@@ -63,33 +63,33 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 
   return (
     <section className="py-8">
-      <div className="flex flex-col gap-6 mb-10">
+      <div className="flex flex-row items-start justify-between gap-6 mb-10">
         <div className="flex flex-col gap-4">
-          <div className="relative transform -rotate-[30deg] self-start">
-            <div 
-              className="w-[80px] h-[80px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
-            >
-              <div className={`w-full h-full ${colorClasses.bg} flex items-center justify-center`}>
-                <img 
-                  src={svgPath} 
-                  alt={`${title} icon`} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-          
           <div>
             <h2 className="category-title">{title}</h2>
             <p className="text-sm text-gray-500 mt-1 max-w-md">{getCategoryDescription(title)}</p>
           </div>
-        
+          
           <Link 
             to={`/${slug}`} 
             className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline self-start"
           >
             See All <ArrowRight size={16} className="ml-1" />
           </Link>
+        </div>
+        
+        <div className="relative transform -rotate-[30deg]">
+          <div 
+            className="w-[80px] h-[80px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
+          >
+            <div className={`w-full h-full ${colorClasses.bg} flex items-center justify-center`}>
+              <img 
+                src={svgPath} 
+                alt={`${title} icon`} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
         </div>
       </div>
       
