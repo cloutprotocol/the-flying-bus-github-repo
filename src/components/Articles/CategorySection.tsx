@@ -30,21 +30,37 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
       bg: `bg-flyingbus-${colorName}`
     };
   };
+  
+  // Function to get the appropriate SVG file based on the category name
+  const getCategorySvg = (category: string): string => {
+    const categoryMap: Record<string, string> = {
+      'Headliners': '/headliners-img.svg',
+      'Debates': '/debates-img.svg',
+      'Spice It Up': '/spice-it-up-img.svg',
+      'Storyboard': '/storyboard-img.svg',
+      'In the Neighborhood': '/in-the-neighborhood-img.svg',
+      'Learning Resources': '/learning-img.svg',
+      'School News': '/school-learning-img.svg'
+    };
+    
+    return categoryMap[category] || '/placeholder.svg';
+  };
 
   const colorClasses = getColorClass();
+  const svgPath = getCategorySvg(title);
 
   return (
     <section className="py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-10">
-          {/* Image frame with placeholder - rotated 30 degrees clockwise */}
+          {/* Image frame with category-specific SVG - rotated 30 degrees clockwise */}
           <div className="relative transform rotate-[30deg]">
             <div 
               className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-md shadow-category-icon overflow-hidden"
             >
               <div className={`w-full h-full ${colorClasses.bg} flex items-center justify-center`}>
                 <img 
-                  src="/placeholder.svg" 
+                  src={svgPath} 
                   alt={`${title} icon`} 
                   className="w-full h-full object-cover"
                 />
