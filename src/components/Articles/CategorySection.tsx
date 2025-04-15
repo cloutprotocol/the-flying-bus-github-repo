@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -50,7 +49,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   return (
     <section className="py-8">
       <div className="flex justify-between items-center mb-10">
-        <div className="flex items-center gap-16">  {/* Increased from gap-10 to gap-16 */}
+        <div className="flex items-center gap-12">
           <div className="relative transform -rotate-[30deg]">
             <div 
               className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
