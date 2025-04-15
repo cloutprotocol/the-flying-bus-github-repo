@@ -54,11 +54,13 @@ This document serves as a master checklist tracking both completed and pending t
 - [ ] Add series filtering by theme or age group
 - [ ] Implement storyboard series search functionality
 
+## Editor System
+
 ### 🔲 Editor System
-- [ ] Build rich text editor for article creation
-- [ ] Implement image upload functionality
-- [ ] Add video upload functionality
-- [ ] Add formatting controls for young writers
+- [x] Build rich text editor for article creation
+- [x] Implement image upload functionality
+- [x] Add video upload functionality
+- [x] Add formatting controls for young writers
 - [ ] Create draft saving system
 - [ ] Implement revision tracking
 - [ ] Build submission flow for articles
