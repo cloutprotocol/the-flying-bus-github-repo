@@ -19,15 +19,15 @@ interface CategorySectionProps {
 }
 
 const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
-  const getCategorySvg = (category: string): string => {
+  const getCategoryIcon = (category: string): string => {
     const categoryMap: Record<string, string> = {
-      'Headliners': '/headliners-img.svg',
-      'Debates': '/debates-img.svg',
-      'Spice It Up': '/spice-it-up-img.svg',
-      'Storyboard': '/storyboard-img.svg',
-      'In the Neighborhood': '/in-the-neighborhood-img.svg',
-      'Learning': '/learning-img.svg',
-      'School News': '/school-learning-img.svg'
+      'Headliners': '/headliners-icon.svg',
+      'Debates': '/debates-icon.svg',
+      'Spice It Up': '/spice-it-up-icon.svg',
+      'Storyboard': '/storyboard-icon.svg',
+      'In the Neighborhood': '/neighborhood-icon.svg',
+      'Learning': '/learning-icon.svg',
+      'School News': '/school-news-icon.svg'
     };
     
     return categoryMap[category] || '/placeholder.svg';
@@ -59,7 +59,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   };
   
   const colorClasses = getColorClass();
-  const svgPath = getCategorySvg(title);
+  const svgPath = getCategoryIcon(title);
 
   return (
     <section className="py-8">
