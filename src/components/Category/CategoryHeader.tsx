@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CategoryHeaderProps {
@@ -53,4 +52,3 @@ const CategoryHeader: React.FC<CategoryHeaderProps> = ({
 };
 
 export default CategoryHeader;
-

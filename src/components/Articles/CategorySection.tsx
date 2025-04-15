@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -19,18 +18,6 @@ interface CategorySectionProps {
 }
 
 const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
-  // Map category to correct Tailwind color based on our updated utility
-  const getColorClass = () => {
-    const categoryColorClass = getCategoryColor(title);
-    const colorName = categoryColorClass.split('-')[1].split(' ')[0]; // Extract color name from bg-flyingbus-{color}
-    
-    return {
-      border: `border-flyingbus-${colorName}`,
-      text: `text-flyingbus-${colorName}`,
-      bg: `bg-flyingbus-${colorName}`
-    };
-  };
-  
   // Function to get the appropriate SVG file based on the category name
   const getCategorySvg = (category: string): string => {
     const categoryMap: Record<string, string> = {
@@ -46,6 +33,18 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     return categoryMap[category] || '/placeholder.svg';
   };
 
+  // Map category to correct Tailwind color based on our updated utility
+  const getColorClass = () => {
+    const categoryColorClass = getCategoryColor(title);
+    const colorName = categoryColorClass.split('-')[1].split(' ')[0]; // Extract color name from bg-flyingbus-{color}
+    
+    return {
+      border: `border-flyingbus-${colorName}`,
+      text: `text-flyingbus-${colorName}`,
+      bg: `bg-flyingbus-${colorName}`
+    };
+  };
+  
   const colorClasses = getColorClass();
   const svgPath = getCategorySvg(title);
 
@@ -106,4 +105,3 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 };
 
 export default CategorySection;
-
