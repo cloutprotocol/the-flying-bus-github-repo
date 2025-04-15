@@ -3,12 +3,26 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BarChart2, FileText, Home, Settings, Users, FolderOpen, Image } from 'lucide-react';
+import { 
+  BarChart, 
+  FileText, 
+  Home, 
+  Settings, 
+  Users, 
+  FolderOpen, 
+  Image,
+  MessageSquare,
+  Flag,
+  AlertTriangle
+} from 'lucide-react';
 
 const navItems = [
   { icon: <Home className="h-5 w-5" />, label: 'Dashboard', path: '/admin/dashboard' },
   { icon: <FileText className="h-5 w-5" />, label: 'Articles', path: '/admin/articles' },
   { icon: <Image className="h-5 w-5" />, label: 'Media', path: '/admin/media' },
+  { icon: <MessageSquare className="h-5 w-5" />, label: 'Comments', path: '/admin/comment-moderation' },
+  { icon: <Flag className="h-5 w-5" />, label: 'Flagged', path: '/admin/content-flagging' },
+  { icon: <BarChart className="h-5 w-5" />, label: 'Analytics', path: '/admin/analytics' },
   { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/admin/users' },
   { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/admin/settings' },
 ];

@@ -25,7 +25,13 @@ import {
   Settings, 
   BarChart3, 
   Newspaper,
-  ClipboardCheck
+  ClipboardCheck,
+  Flag,
+  AlertTriangle,
+  Shield,
+  BarChart,
+  TrendingUp,
+  Activity
 } from 'lucide-react';
 import Logo from '@/components/ui/logo';
 import AdminHeader from './AdminHeader';
@@ -98,7 +104,6 @@ const AdminPortalLayout = ({ children }: AdminPortalLayoutProps) => {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     
-                    {/* New Review Queue item */}
                     {isModerator && (
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Review Queue">
@@ -129,17 +134,43 @@ const AdminPortalLayout = ({ children }: AdminPortalLayoutProps) => {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+            
+            {/* Moderation */}
+            {(isAdmin || isModerator) && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Moderation</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Comment Moderation">
+                        <Link to="/admin/comment-moderation">
+                          <MessageSquare className="w-5 h-5" />
+                          <span>Comment Moderation</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     
-                    {isModerator && (
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Comments">
-                          <Link to="/admin/comments">
-                            <MessageSquare className="w-5 h-5" />
-                            <span>Comment Moderation</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Content Flagging">
+                        <Link to="/admin/content-flagging">
+                          <Flag className="w-5 h-5" />
+                          <span>Content Flagging</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="User Reports">
+                        <Link to="/admin/report-management">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span>User Reports</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -152,10 +183,28 @@ const AdminPortalLayout = ({ children }: AdminPortalLayoutProps) => {
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="Statistics">
+                      <SidebarMenuButton asChild tooltip="Dashboard">
                         <Link to="/admin/analytics">
-                          <BarChart3 className="w-5 h-5" />
-                          <span>Statistics</span>
+                          <BarChart className="w-5 h-5" />
+                          <span>Analytics Dashboard</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Engagement">
+                        <Link to="/admin/analytics?tab=engagement">
+                          <Activity className="w-5 h-5" />
+                          <span>User Engagement</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Performance">
+                        <Link to="/admin/analytics?tab=content">
+                          <TrendingUp className="w-5 h-5" />
+                          <span>Content Performance</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

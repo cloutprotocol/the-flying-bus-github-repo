@@ -19,6 +19,10 @@ import MediaManager from '@/pages/Admin/MediaManager';
 import UserManagement from '@/pages/Admin/UserManagement';
 import ApprovalQueue from '@/pages/Admin/ApprovalQueue';
 import ArticleReview from '@/pages/Admin/ArticleReview';
+import CommentModeration from '@/pages/Admin/CommentModeration';
+import ContentFlagging from '@/pages/Admin/ContentFlagging';
+import ReportManagement from '@/pages/Admin/ReportManagement';
+import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 import '@/styles/index';
 
@@ -100,7 +104,7 @@ function App() {
           } 
         />
         
-        {/* New Admin Routes */}
+        {/* Content Approval Routes */}
         <Route 
           path="/admin/approval-queue" 
           element={
@@ -114,6 +118,42 @@ function App() {
           element={
             <ProtectedRoute>
               <ArticleReview />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Moderation Routes */}
+        <Route 
+          path="/admin/comment-moderation" 
+          element={
+            <ProtectedRoute>
+              <CommentModeration />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/content-flagging" 
+          element={
+            <ProtectedRoute>
+              <ContentFlagging />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/report-management" 
+          element={
+            <ProtectedRoute>
+              <ReportManagement />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Analytics Routes */}
+        <Route 
+          path="/admin/analytics" 
+          element={
+            <ProtectedRoute>
+              <AnalyticsDashboard />
             </ProtectedRoute>
           } 
         />
