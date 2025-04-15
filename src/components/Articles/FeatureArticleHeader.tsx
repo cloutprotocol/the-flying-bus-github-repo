@@ -32,7 +32,7 @@ const FeatureArticleHeader = ({
       MozOsxFontSmoothing: 'grayscale',
       textRendering: 'optimizeLegibility',
       textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
-    }} className="feature-article-title text-4xl md:text-5xl lg:text-7xl">
+    }} className="feature-article-title text-5xl md:text-6xl lg:text-8xl">
         {title}
       </h2>
     </>;
