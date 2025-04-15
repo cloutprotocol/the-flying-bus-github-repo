@@ -63,8 +63,6 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   const colorClasses = getColorClass();
   const svgPath = getCategoryIcon(title);
 
-  const rotationAngle = isMobile ? '15deg' : '-30deg';
-
   return (
     <section className="py-8">
       <div className="flex flex-row items-start justify-between gap-6 mb-10">
@@ -82,7 +80,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
           </Link>
         </div>
         
-        <div className={`relative transform rotate-[${rotationAngle}]`}>
+        <div className="relative transform rotate-[15deg]">
           <div 
             className="w-[80px] h-[80px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
           >
