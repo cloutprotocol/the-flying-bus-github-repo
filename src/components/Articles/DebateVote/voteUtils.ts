@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for debate voting functionality
  */
@@ -11,7 +10,7 @@ const VOTED_DEBATES_KEY = 'votedDebates';
 /**
  * Checks if a user has already voted on a specific debate
  * @param debateId The ID of the debate to check
- * @returns Boolean indicating if the user has voted and their choice if they have
+ * @returns Object indicating if the user has voted and their choice if they have
  */
 export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted: boolean; userChoice: 'yes' | 'no' | null }> => {
   try {

@@ -55,7 +55,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
       try {
         // In a real app, we would create the user first, then log them in
         // For demo, just log them in as "curious_reader"
-        await login("curious_reader");
+        await login("curious_reader", signUpForm.password);
         
         toast({
           title: "Account created!",

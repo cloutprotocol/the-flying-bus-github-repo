@@ -50,12 +50,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               variant: "destructive",
             });
           } else if (profile) {
+            const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
             const userProfile: ReaderProfile = {
               id: profile.id,
               username: profile.username,
               displayName: profile.display_name,
               email: profile.email,
-              role: profile.role,
+              role: userRole,
               bio: profile.bio || '',
               avatar: profile.avatar_url || '',
               joinedDate: new Date(profile.created_at),
@@ -108,12 +109,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (error) {
             console.error('Error fetching user profile:', error);
           } else if (profile) {
+            const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
             const userProfile: ReaderProfile = {
               id: profile.id,
               username: profile.username,
               displayName: profile.display_name,
               email: profile.email,
-              role: profile.role,
+              role: userRole,
               bio: profile.bio || '',
               avatar: profile.avatar_url || '',
               joinedDate: new Date(profile.created_at),

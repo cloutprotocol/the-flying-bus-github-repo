@@ -35,7 +35,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const success = await login(signInForm.username);
+      const success = await login(signInForm.username, signInForm.password);
       
       if (success) {
         toast({

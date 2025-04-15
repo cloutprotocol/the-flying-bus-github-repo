@@ -35,12 +35,16 @@ const DebateVote = ({
   const noPercentage = totalVotes > 0 ? Math.round((votes.no / totalVotes) * 100) : 0;
 
   useEffect(() => {
-    const { hasVoted: userHasVoted, userChoice: savedChoice } = checkIfUserHasVoted(debateId);
-    if (userHasVoted) {
-      setHasVoted(true);
-      setUserChoice(savedChoice);
-      setResultsVisible(true);
-    }
+    const checkVote = async () => {
+      const result = await checkIfUserHasVoted(debateId);
+      if (result.hasVoted) {
+        setHasVoted(true);
+        setUserChoice(result.userChoice);
+        setResultsVisible(true);
+      }
+    };
+    
+    checkVote();
   }, [debateId]);
 
   const handleVote = async (choice: 'yes' | 'no') => {
@@ -65,9 +69,9 @@ const DebateVote = ({
 
     try {
       // Check if this debate ID has been voted on already (stored in localStorage)
-      const { hasVoted: userHasVoted } = checkIfUserHasVoted(debateId);
+      const voteResult = await checkIfUserHasVoted(debateId);
       
-      if (userHasVoted) {
+      if (voteResult.hasVoted) {
         toast.warning("You've already voted on this debate!");
         setHasVoted(true);
         setIsVoting(false);
@@ -93,7 +97,7 @@ const DebateVote = ({
       setUserChoice(choice);
       
       // Save vote to localStorage
-      recordVote(debateId, choice);
+      await recordVote(debateId, choice);
       
       setHasVoted(true);
       
