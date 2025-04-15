@@ -12,11 +12,11 @@ const mockReaderComments: CommentProps[] = [
     id: 'comment-1',
     author: {
       name: 'Curious Reader',
-      username: 'curious_reader',
-      avatar: '/avatar-placeholder.png'
+      avatar: '/avatar-placeholder.png',
+      badges: ['Reader']
     },
     content: 'This article was really informative! I learned so much about climate change.',
-    date: new Date('2023-10-15T10:30:00'),
+    createdAt: new Date('2023-10-15T10:30:00'),
     likes: 5,
     articleTitle: 'Understanding Climate Change',
     articleUrl: '/headliners/understanding-climate-change'
@@ -25,11 +25,11 @@ const mockReaderComments: CommentProps[] = [
     id: 'comment-2',
     author: {
       name: 'Curious Reader',
-      username: 'curious_reader',
-      avatar: '/avatar-placeholder.png'
+      avatar: '/avatar-placeholder.png',
+      badges: ['Reader']
     },
     content: 'I disagree with some points in this article. I think we need more evidence.',
-    date: new Date('2023-10-10T14:20:00'),
+    createdAt: new Date('2023-10-10T14:20:00'),
     likes: 2,
     articleTitle: 'The Future of Renewable Energy',
     articleUrl: '/debates/future-of-renewable-energy'
