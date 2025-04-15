@@ -24,7 +24,7 @@ const Index = () => {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full px-0 sm:px-4 py-0 sm:py-4">
+      <div className="w-full px-0 sm:px-4 py-0 sm:py-4 mb-8">
         {headlineArticle && (
           <FeatureArticle {...headlineArticle} />
         )}
