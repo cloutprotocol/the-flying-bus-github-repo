@@ -40,7 +40,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
                     htmlFor={category.id}
                     className="flex items-center cursor-pointer text-sm"
                   >
-                    <span className="mr-2">{getCategoryIcon(category.name, '16')}</span>
+                    <span className="mr-2">{getCategoryIcon(category.name)}</span>
                     {category.name}
                   </label>
                 </div>
