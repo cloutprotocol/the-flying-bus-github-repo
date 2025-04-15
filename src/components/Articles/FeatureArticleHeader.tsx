@@ -25,14 +25,7 @@ const FeatureArticleHeader = ({
           </Badge>}
       </div>
       
-      <h2 style={{
-      letterSpacing: '-0.01em',
-      fontWeight: 400,
-      WebkitFontSmoothing: 'antialiased',
-      MozOsxFontSmoothing: 'grayscale',
-      textRendering: 'optimizeLegibility',
-      textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
-    }} className="feature-article-title text-5xl md:text-6xl lg:text-8xl">
+      <h2 className="feature-article-title">
         {title}
       </h2>
     </>;

@@ -1,3 +1,4 @@
+
 /* Base typography styles */
 h1, h2, h3, h4, h5, h6 {
   @apply font-display font-medium text-[#1B344C];
@@ -22,7 +23,7 @@ p, span, div, a, button, input, textarea {
 }
 
 .feature-article-title {
-  @apply text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-2 md:mb-3 font-instrument-serif;
+  @apply text-white text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-2 md:mb-3 font-instrument-serif;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   text-wrap: balance;
   font-weight: 400;
