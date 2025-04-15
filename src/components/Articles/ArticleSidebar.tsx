@@ -21,8 +21,9 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({ article }) => {
   const fallbackImage = "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dGVjaG5vbG9neXxlbnwwfHwwfHx8MA%3D";
 
   // For the author profile url - we'll assume the author name is used to create the URL
-  // Later this can be replaced with actual author IDs from the backend
-  const authorUsername = article.author.toLowerCase().replace(/\s+/g, '_');
+  const authorUsername = typeof article.author === 'string' ? 
+    article.author.toLowerCase().replace(/\s+/g, '_') : 
+    'anonymous';
 
   return (
     <div className="lg:col-span-4">
@@ -75,7 +76,7 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({ article }) => {
                         <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 mt-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        {relatedArticle.publishDate}
+                        {relatedArticle.date || relatedArticle.publishDate}
                       </p>
                     </div>
                   </Link>

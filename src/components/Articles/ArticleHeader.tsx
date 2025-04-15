@@ -38,7 +38,7 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           <span className="mr-4 font-medium">By {article.author}</span>
           <span className="flex items-center mr-4">
             <CalendarDays size={16} className="mr-1" />
-            {article.publishDate}
+            {article.date || article.publishDate}
           </span>
           <span className="flex items-center mr-4">
             <Clock size={16} className="mr-1" />

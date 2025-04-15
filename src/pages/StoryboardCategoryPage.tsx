@@ -97,7 +97,7 @@ const StoryboardCategoryPage = () => {
                 </h3>
                 <div className="flex items-center text-sm text-gray-500 mb-3">
                   <CalendarDays size={14} className="mr-1" />
-                  <span>{series.publishDate}</span>
+                  <span>{series.date}</span>
                   <span className="mx-2">•</span>
                   <span>By {series.author}</span>
                 </div>

@@ -24,6 +24,7 @@ const FeatureArticle = (props: ArticleProps) => {
         <FeatureArticleFooter 
           id={props.id}
           author={props.author}
+          date={props.date}
           publishDate={props.publishDate}
         />
       </div>

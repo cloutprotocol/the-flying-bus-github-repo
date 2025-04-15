@@ -56,7 +56,7 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({ article }) => {
             <span className="mr-4 font-medium">Created by {article.author}</span>
             <span className="flex items-center mr-4">
               <CalendarDays size={16} className="mr-1" />
-              Series started on {article.publishDate}
+              Series started on {article.date || article.publishDate}
             </span>
           </div>
           

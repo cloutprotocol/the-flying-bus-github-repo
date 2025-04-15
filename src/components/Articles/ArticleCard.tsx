@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { getCategoryColor } from '@/utils/categoryColors';
@@ -13,14 +12,12 @@ export interface ArticleProps {
   category: string;
   readingLevel: string;
   readTime: number;
-  author: {
-    name: string;
-    avatar: string;
-  };
+  author: string;
   date: string;
   commentCount?: number;
   videoUrl?: string;
   duration?: string;
+  publishDate?: string;
 }
 
 const ArticleCard: React.FC<ArticleProps> = ({ 
@@ -41,7 +38,6 @@ const ArticleCard: React.FC<ArticleProps> = ({
   
   const isVideo = !!videoUrl;
   
-  // Determine the link URL based on the category
   const getArticleUrl = () => {
     if (category === 'Storyboard') {
       return `/storyboard/${id}`;
@@ -116,12 +112,12 @@ const ArticleCard: React.FC<ArticleProps> = ({
         <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
           <div className="flex items-center">
             <img
-              src={author.avatar}
-              alt={author.name}
+              src={author}
+              alt={author}
               className="h-8 w-8 rounded-full object-cover"
             />
             <div className="ml-2">
-              <h3 className="text-xs font-medium">{author.name}</h3>
+              <h3 className="text-xs font-medium">{author}</h3>
               <p className="text-xs text-gray-500">{date}</p>
             </div>
           </div>
