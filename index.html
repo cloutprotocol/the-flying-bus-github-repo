@@ -22,40 +22,11 @@
     <!-- Open Sauce Sans font -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/marcologous/Open-Sauce-Fonts@master/css/opensaucesans.css">
     
-    <!-- Instrument Serif font preload -->
-    <link rel="preload" as="font" href="https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff2" type="font/woff2" crossorigin="anonymous">
-    <link rel="preload" as="font" href="https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Italic.woff2" type="font/woff2" crossorigin="anonymous">
+    <!-- Instrument Serif font -->
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/instrument-serif">
     
     <!-- Ensure proper font rendering -->
     <style>
-      /* Fallback @font-face declaration for Instrument Serif */
-      @font-face {
-        font-family: 'Instrument Serif Condensed';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff2') format('woff2'),
-             url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff') format('woff');
-      }
-      
-      @font-face {
-        font-family: 'Instrument Serif';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff2') format('woff2'),
-             url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff') format('woff');
-      }
-      
-      @font-face {
-        font-family: 'Instrument Serif';
-        font-style: italic;
-        font-weight: 400;
-        font-display: swap;
-        src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Italic.woff2') format('woff2'),
-             url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Italic.woff') format('woff');
-      }
-      
       /* Ensure proper font rendering */
       .font-instrument-serif {
         font-family: 'Instrument Serif Condensed', 'Instrument Serif', Georgia, serif;

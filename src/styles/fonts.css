@@ -1,22 +1,12 @@
 
-/* Instrument Serif Condensed font declarations */
+/* Instrument Serif font declarations */
 @font-face {
   font-family: 'Instrument Serif';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff2') format('woff2'),
-       url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff') format('woff');
-  font-stretch: condensed;
-}
-
-@font-face {
-  font-family: 'Instrument Serif Condensed';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff2') format('woff2'),
-       url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Regular.woff') format('woff');
+  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff2') format('woff2');
 }
 
 @font-face {
@@ -24,6 +14,16 @@
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Italic.woff2') format('woff2'),
-       url('https://raw.githubusercontent.com/Instrument/instrument-serif/main/fonts/Web/fonts/InstrumentSerif-Italic.woff') format('woff');
+  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Italic.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Instrument Serif Condensed';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff2') format('woff2');
+  font-stretch: condensed;
 }
