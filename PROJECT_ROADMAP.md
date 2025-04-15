@@ -1,4 +1,3 @@
-
 # The Flying Bus: News for Kids, By Kids - Project Roadmap
 
 This document serves as a master checklist tracking both completed and pending tasks to transform "The Flying Bus" into a fully functional product according to the Product Requirements Document.
@@ -98,11 +97,11 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Implement profile navigation and routing
 
 ### 🔲 Journalist & Moderator Roles
-- [ ] Implement role-based access control (young journalists, moderators, admins)
-- [ ] Create journalist-specific profile pages
+- [x] Implement role-based access control (young journalists, moderators, admins)
+- [x] Create journalist-specific profile pages
 - [ ] Build journalist contribution tracking
-- [ ] Implement moderator queue dashboard
-- [ ] Create admin controls for site management
+- [x] Implement moderator queue dashboard
+- [x] Create admin controls for site management
 
 ### 🔲 Authentication Backend
 - [ ] Build secure login system
@@ -130,10 +129,10 @@ This document serves as a master checklist tracking both completed and pending t
 ## Safety & Moderation
 
 ### 🔲 Content Moderation
-- [ ] Build pre-publishing review system
-- [ ] Implement content filtering algorithms
-- [ ] Create flagging system for inappropriate content
-- [ ] Build moderation dashboard
+- [x] Build pre-publishing review system
+- [x] Implement content filtering algorithms
+- [x] Create flagging system for inappropriate content
+- [x] Build moderation dashboard
 - [ ] Add audit logs for moderation actions
 
 ### 🔲 User Safety
@@ -166,11 +165,21 @@ This document serves as a master checklist tracking both completed and pending t
 ### 🔲 Advanced UI Features
 - [ ] Add dark mode support
 - [ ] Create animations for page transitions
-- [ ] Implement loading states and skeletons
+- [x] Implement loading states and skeletons
 - [ ] Build error handling displays
 - [ ] Add accessibility enhancements
 - [ ] Implement text-to-speech capabilities
 - [ ] Create print-friendly article views
+
+## Analytics & Reporting
+
+### 🔲 Reporting Infrastructure
+- [x] Design data visualization components for analytics
+- [x] Create user engagement metrics UI
+- [x] Implement content performance tracking screens
+- [x] Build admin analytics dashboard
+- [ ] Develop custom reporting capabilities
+- [ ] Add exportable report functionality
 
 ## Performance Optimization
 
