@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CategoryHeaderProps {
@@ -32,7 +31,7 @@ const CategoryHeader: React.FC<CategoryHeaderProps> = ({
       {/* Image frame with category-specific SVG - rotated 30 degrees counter-clockwise */}
       <div className="relative transform -rotate-[30deg]">
         <div 
-          className="w-[120px] h-[120px] md:w-[144px] md:h-[144px] bg-white rounded-md shadow-category-icon overflow-hidden p-2.5"
+          className="w-[120px] h-[120px] md:w-[144px] md:h-[144px] bg-white shadow-category-icon overflow-hidden p-1.5"
         >
           <div className={`w-full h-full bg-flyingbus-${colorName} flex items-center justify-center`}>
             <img 
@@ -53,4 +52,3 @@ const CategoryHeader: React.FC<CategoryHeaderProps> = ({
 };
 
 export default CategoryHeader;
-

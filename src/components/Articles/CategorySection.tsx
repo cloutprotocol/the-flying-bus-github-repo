@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -19,7 +18,6 @@ interface CategorySectionProps {
 }
 
 const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
-  // Function to get the appropriate SVG file based on the category name
   const getCategorySvg = (category: string): string => {
     const categoryMap: Record<string, string> = {
       'Headliners': '/headliners-img.svg',
@@ -34,10 +32,9 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     return categoryMap[category] || '/placeholder.svg';
   };
 
-  // Map category to correct Tailwind color based on our updated utility
   const getColorClass = () => {
     const categoryColorClass = getCategoryColor(title);
-    const colorName = categoryColorClass.split('-')[1].split(' ')[0]; // Extract color name from bg-flyingbus-{color}
+    const colorName = categoryColorClass.split('-')[1].split(' ')[0];
     
     return {
       border: `border-flyingbus-${colorName}`,
@@ -53,10 +50,9 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     <section className="py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-10">
-          {/* Image frame with category-specific SVG - rotated 30 degrees counter-clockwise */}
           <div className="relative transform -rotate-[30deg]">
             <div 
-              className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] bg-white rounded-md shadow-category-icon overflow-hidden p-2.5"
+              className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
             >
               <div className={`w-full h-full ${colorClasses.bg} flex items-center justify-center`}>
                 <img 
@@ -79,7 +75,6 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
         </Link>
       </div>
       
-      {/* For desktop and larger screens, show carousel */}
       <div className="hidden md:block relative">
         <Carousel>
           <CarouselContent className="-ml-6">
@@ -95,7 +90,6 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
         </Carousel>
       </div>
       
-      {/* For mobile, show grid layout */}
       <div className="grid grid-cols-1 md:hidden gap-6">
         {articles.map((article) => (
           <ArticleCard key={article.id} {...article} />
@@ -106,4 +100,3 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 };
 
 export default CategorySection;
-
