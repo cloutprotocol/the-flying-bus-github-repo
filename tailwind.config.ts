@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -114,6 +113,7 @@ export default {
         display: ['Open Sauce Sans', 'system-ui', 'sans-serif'],
         body: ['Open Sauce Sans', 'system-ui', 'sans-serif'],
         'instrument-serif': ['Instrument Serif', 'Georgia', 'serif'],
+        'junicode': ['Junicode', 'serif'],
       },
     }
   },
