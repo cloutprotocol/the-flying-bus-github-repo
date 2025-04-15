@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, Upload } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
