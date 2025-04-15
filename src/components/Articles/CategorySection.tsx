@@ -39,7 +39,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
       'Spice It Up': '/spice-it-up-img.svg',
       'Storyboard': '/storyboard-img.svg',
       'In the Neighborhood': '/in-the-neighborhood-img.svg',
-      'Learning Resources': '/learning-img.svg',
+      'Learning': '/learning-img.svg',
       'School News': '/school-learning-img.svg'
     };
     
