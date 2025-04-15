@@ -34,7 +34,7 @@ p, span, div, a, button, input, textarea {
 
 /* Instrument Serif font utility classes */
 .font-instrument-serif {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Instrument Serif Condensed', 'Instrument Serif', Georgia, serif;
   font-weight: 400;
   @apply tracking-tight;
   -webkit-font-smoothing: antialiased;

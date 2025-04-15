@@ -113,7 +113,7 @@ export default {
       fontFamily: {
         display: ['Open Sauce Sans', 'system-ui', 'sans-serif'],
         body: ['Open Sauce Sans', 'system-ui', 'sans-serif'],
-        'instrument-serif': ['Instrument Serif', 'Georgia', 'serif'],
+        'instrument-serif': ['Instrument Serif Condensed', 'Instrument Serif', 'Georgia', 'serif'],
       },
     }
   },
