@@ -24,7 +24,8 @@ import {
   MessageSquare, 
   Settings, 
   BarChart3, 
-  Newspaper
+  Newspaper,
+  ClipboardCheck
 } from 'lucide-react';
 import Logo from '@/components/ui/logo';
 import AdminHeader from './AdminHeader';
@@ -96,6 +97,18 @@ const AdminPortalLayout = ({ children }: AdminPortalLayoutProps) => {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    
+                    {/* New Review Queue item */}
+                    {isModerator && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Review Queue">
+                          <Link to="/admin/approval-queue">
+                            <ClipboardCheck className="w-5 h-5" />
+                            <span>Review Queue</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
                     
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="Drafts">

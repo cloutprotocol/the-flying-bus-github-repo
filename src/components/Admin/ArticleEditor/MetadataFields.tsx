@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { UseFormReturn } from 'react-hook-form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import StatusDropdown from '../Status/StatusDropdown';
+import { StatusType } from '../Status/StatusBadge';
 
 interface MetadataFieldsProps {
   form: UseFormReturn<any>;
@@ -25,22 +27,13 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType }) =>
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="pending">Pending Review</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <StatusDropdown 
+                  currentStatus={field.value as StatusType}
+                  onStatusChange={(newStatus) => field.onChange(newStatus)}
+                  userRole="author"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
