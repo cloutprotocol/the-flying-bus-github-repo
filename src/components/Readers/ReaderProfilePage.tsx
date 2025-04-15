@@ -1,46 +1,53 @@
 
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { getReaderByUsername } from '@/data/readers';
-import { getCommentsByAuthor } from '@/data/comments';
-import MainLayout from '@/components/Layout/MainLayout';
-import { useAuth } from '@/contexts/AuthContext';
+import { ReaderProfile } from '@/types/ReaderProfile';
 import ProfileHeader from './ProfileHeader';
 import ProfileInfo from './ProfileInfo';
 import ProfileTabs from './ProfileTabs';
+import { CommentProps } from '@/components/Comments/CommentItem';
 
-const ReaderProfilePage: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
-  const reader = username ? getReaderByUsername(username) : undefined;
-  const { currentUser } = useAuth();
-  const isOwnProfile = currentUser?.username === username;
-  const readerComments = username ? getCommentsByAuthor(username) : [];
-  
-  if (!reader) {
-    return (
-      <MainLayout>
-        <div className="container mx-auto py-12 px-4 text-center">
-          <h1 className="text-2xl font-semibold text-gray-800">
-            Reader profile not found
-          </h1>
-          <Link to="/" className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to home
-          </Link>
-        </div>
-      </MainLayout>
-    );
+// Mock comment data for the profile
+const mockReaderComments: CommentProps[] = [
+  {
+    id: 'comment-1',
+    author: {
+      name: 'Curious Reader',
+      username: 'curious_reader',
+      avatar: '/avatar-placeholder.png'
+    },
+    content: 'This article was really informative! I learned so much about climate change.',
+    date: new Date('2023-10-15T10:30:00'),
+    likes: 5,
+    articleTitle: 'Understanding Climate Change',
+    articleUrl: '/headliners/understanding-climate-change'
+  },
+  {
+    id: 'comment-2',
+    author: {
+      name: 'Curious Reader',
+      username: 'curious_reader',
+      avatar: '/avatar-placeholder.png'
+    },
+    content: 'I disagree with some points in this article. I think we need more evidence.',
+    date: new Date('2023-10-10T14:20:00'),
+    likes: 2,
+    articleTitle: 'The Future of Renewable Energy',
+    articleUrl: '/debates/future-of-renewable-energy'
   }
-  
+];
+
+interface ReaderProfilePageProps {
+  profile: ReaderProfile;
+  isOwnProfile: boolean;
+}
+
+const ReaderProfilePage: React.FC<ReaderProfilePageProps> = ({ profile, isOwnProfile }) => {
   return (
-    <MainLayout>
-      <div className="container max-w-4xl mx-auto pb-12">
-        <ProfileHeader reader={reader} isOwnProfile={isOwnProfile} />
-        <ProfileInfo reader={reader} />
-        <ProfileTabs reader={reader} readerComments={readerComments} />
-      </div>
-    </MainLayout>
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <ProfileHeader reader={profile} isOwnProfile={isOwnProfile} />
+      <ProfileInfo reader={profile} />
+      <ProfileTabs reader={profile} readerComments={mockReaderComments} />
+    </div>
   );
 };
 
