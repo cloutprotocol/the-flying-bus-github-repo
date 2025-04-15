@@ -15,13 +15,21 @@ p, span, div, a, button, input, textarea {
 }
 
 .category-title {
-  @apply font-instrument-serif text-4xl md:text-6xl font-normal pb-2 mb-0 text-[#1B344C] italic;
+  @apply font-instrument-serif text-4xl md:text-6xl pb-2 mb-0 text-[#1B344C] italic;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .feature-article-title {
-  @apply text-white text-2xl md:text-5xl lg:text-6xl font-normal mb-2 md:mb-3 font-instrument-serif;
+  @apply text-white text-2xl md:text-5xl lg:text-6xl mb-2 md:mb-3 font-instrument-serif;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   text-wrap: balance;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Instrument Serif font utility classes */
@@ -30,6 +38,10 @@ p, span, div, a, button, input, textarea {
   font-weight: 400; /* Explicit normal weight (400) */
   /* Adjust letter spacing for better rendering */
   @apply tracking-tight;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  text-shadow: none;
 }
 
 /* Mobile optimization for Instrument Serif */
@@ -40,14 +52,21 @@ p, span, div, a, button, input, textarea {
     /* Improve rendering on mobile */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 }
 
 .instrument-serif-title {
-  @apply font-instrument-serif text-4xl md:text-5xl lg:text-7xl font-normal text-[#1B344C] mb-4;
+  @apply font-instrument-serif text-4xl md:text-5xl lg:text-7xl mb-4 text-[#1B344C];
   text-wrap: balance;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .instrument-serif-quote {
   @apply font-instrument-serif text-2xl md:text-4xl italic text-gray-700 border-l-4 border-flyingbus-green pl-4 py-2 my-6;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

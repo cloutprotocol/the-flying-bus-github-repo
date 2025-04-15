@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/marcologous/Open-Sauce-Fonts@master/css/opensaucesans.css">
     
     <!-- Instrument Serif font from Google Fonts - only loading the 400 weight that exists -->
+    <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:?!()%&" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:?!()%&">
     
     <!-- Font display optimization -->
@@ -31,6 +32,10 @@
       .font-instrument-serif {
         font-display: swap;
         font-weight: 400 !important; /* Force normal weight always */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        text-shadow: none !important;
       }
       
       /* Apply slight tracking adjustment for Instrument Serif on mobile */

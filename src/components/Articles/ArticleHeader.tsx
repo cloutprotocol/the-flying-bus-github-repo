@@ -35,7 +35,11 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           style={{ 
             textWrap: 'balance',
             letterSpacing: '-0.01em',  /* Slight negative tracking for better readability */
-            fontWeight: 400
+            fontWeight: 400,
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'optimizeLegibility',
+            textShadow: 'none'
           }}
         >
           {article.title}

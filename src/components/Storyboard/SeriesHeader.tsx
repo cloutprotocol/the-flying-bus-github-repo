@@ -42,6 +42,12 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({ article }) => {
           
           <h1 
             className="font-display text-3xl md:text-4xl font-bold mb-2 leading-tight"
+            style={{ 
+              WebkitFontSmoothing: 'antialiased',
+              MozOsxFontSmoothing: 'grayscale', 
+              textRendering: 'optimizeLegibility',
+              textShadow: 'none'
+            }}
           >
             {article.title}
           </h1>

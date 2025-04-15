@@ -28,7 +28,11 @@ const FeatureArticleHeader = ({ title, category, readingLevel }: FeatureArticleH
         className="feature-article-title"
         style={{
           letterSpacing: '-0.01em', /* Slight negative tracking for better readability */
-          fontWeight: 400 /* Explicit declaration of normal weight */
+          fontWeight: 400, /* Explicit declaration of normal weight */
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          textRendering: 'optimizeLegibility',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.5)' /* Keep the shadow for contrast on images */
         }}
       >
         {title}
