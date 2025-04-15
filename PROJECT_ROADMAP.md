@@ -1,3 +1,4 @@
+
 # The Flying Bus: News for Kids, By Kids - Project Roadmap
 
 This document serves as a master checklist tracking both completed and pending tasks to transform "The Flying Bus" into a fully functional product according to the Product Requirements Document.
@@ -12,12 +13,12 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Configure Tailwind CSS styling
 - [x] Set up state management approach
 
-### 🔲 Backend Integration
-- [ ] Connect Supabase backend services
-- [ ] Implement authentication system
-- [ ] Set up database schema for articles, comments, and user profiles
-- [ ] Create API endpoints for article CRUD operations
-- [ ] Develop moderation queue system in backend
+### ✅ Backend Integration
+- [x] Connect Supabase backend services
+- [x] Implement authentication system
+- [x] Set up database schema for articles, comments, and user profiles
+- [x] Create API endpoints for article CRUD operations
+- [x] Develop moderation queue system in backend
 - [ ] Implement real-time updates for comments and voting
 
 ## Content & Categories
@@ -105,12 +106,12 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Implement moderator queue dashboard
 - [x] Create admin controls for site management
 
-### 🔲 Authentication Backend
-- [ ] Build secure login system
+### ✅ Authentication Backend
+- [x] Build secure login system
 - [ ] Implement parent/guardian approval flow for young journalists
 - [ ] Create account creation process with role selection
-- [ ] Add password reset functionality
-- [ ] Implement session management
+- [x] Add password reset functionality
+- [x] Implement session management
 - [ ] Create different registration flows for readers vs. journalists
 
 ## Educational Features

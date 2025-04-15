@@ -4,6 +4,7 @@
  */
 
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const VOTED_DEBATES_KEY = 'votedDebates';
 
@@ -12,14 +13,40 @@ const VOTED_DEBATES_KEY = 'votedDebates';
  * @param debateId The ID of the debate to check
  * @returns Boolean indicating if the user has voted and their choice if they have
  */
-export const checkIfUserHasVoted = (debateId: string): { hasVoted: boolean; userChoice: 'yes' | 'no' | null } => {
+export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted: boolean; userChoice: 'yes' | 'no' | null }> => {
   try {
-    const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
-    if (votedDebates[debateId]) {
-      return {
-        hasVoted: true,
-        userChoice: votedDebates[debateId] as 'yes' | 'no'
-      };
+    // First check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      // Check database for user vote
+      const { data, error } = await supabase
+        .from('article_votes')
+        .select('vote')
+        .eq('article_id', debateId)
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking vote status:', error);
+        toast.error('There was a problem checking your vote status');
+      }
+      
+      if (data) {
+        return {
+          hasVoted: true,
+          userChoice: data.vote as 'yes' | 'no'
+        };
+      }
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
+      if (votedDebates[debateId]) {
+        return {
+          hasVoted: true,
+          userChoice: votedDebates[debateId] as 'yes' | 'no'
+        };
+      }
     }
   } catch (error) {
     console.error('Error checking vote status:', error);
@@ -36,30 +63,78 @@ export const checkIfUserHasVoted = (debateId: string): { hasVoted: boolean; user
  * Simulates checking if the user's IP has already voted
  * In a real app, this would call an API endpoint
  */
-export const simulateIpCheck = (debateId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      try {
-        const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
-        resolve(!!votedDebates[debateId]);
-      } catch (error) {
+export const simulateIpCheck = async (debateId: string): Promise<boolean> => {
+  try {
+    // First check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      // Check database for user vote
+      const { data, error } = await supabase
+        .from('article_votes')
+        .select('vote')
+        .eq('article_id', debateId)
+        .eq('user_id', session.user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
         console.error('Error checking IP vote status:', error);
-        resolve(false);
       }
-    }, 600);
-  });
+      
+      return !!data;
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          try {
+            const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
+            resolve(!!votedDebates[debateId]);
+          } catch (error) {
+            console.error('Error checking IP vote status:', error);
+            resolve(false);
+          }
+        }, 600);
+      });
+    }
+  } catch (error) {
+    console.error('Error checking IP vote status:', error);
+    return false;
+  }
 };
 
 /**
- * Records a user's vote in localStorage
+ * Records a user's vote in the database or localStorage
  * @param debateId The debate ID
  * @param choice The user's choice ('yes' or 'no')
  */
-export const recordVote = (debateId: string, choice: 'yes' | 'no'): void => {
+export const recordVote = async (debateId: string, choice: 'yes' | 'no'): Promise<void> => {
   try {
-    const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
-    votedDebates[debateId] = choice;
-    localStorage.setItem(VOTED_DEBATES_KEY, JSON.stringify(votedDebates));
+    // First check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      // Record vote in the database
+      const { error } = await supabase
+        .from('article_votes')
+        .upsert({
+          article_id: debateId,
+          user_id: session.user.id,
+          vote: choice
+        });
+      
+      if (error) {
+        console.error('Error recording vote:', error);
+        toast.error('There was a problem saving your vote');
+      } else {
+        toast.success(`Your vote (${choice}) has been recorded!`);
+      }
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
+      votedDebates[debateId] = choice;
+      localStorage.setItem(VOTED_DEBATES_KEY, JSON.stringify(votedDebates));
+      toast.success(`Your vote (${choice}) has been recorded locally!`);
+    }
   } catch (error) {
     console.error('Error recording vote:', error);
     toast.error('There was a problem saving your vote');
@@ -69,7 +144,17 @@ export const recordVote = (debateId: string, choice: 'yes' | 'no'): void => {
 /**
  * Clears all votes (for testing purposes)
  */
-export const clearAllVotes = (): void => {
-  localStorage.removeItem(VOTED_DEBATES_KEY);
-  toast.success('All vote data has been cleared');
+export const clearAllVotes = async (): Promise<void> => {
+  try {
+    // Clear local storage votes
+    localStorage.removeItem(VOTED_DEBATES_KEY);
+    
+    // For authenticated users, we can't delete from database here
+    // as it would require admin privileges
+    
+    toast.success('Local vote data has been cleared');
+  } catch (error) {
+    console.error('Error clearing votes:', error);
+    toast.error('There was a problem clearing your votes');
+  }
 };
