@@ -31,10 +31,11 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
         </div>
         
         <h1 
-          className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl font-normal mb-4 sm:mb-6 leading-tight text-left text-flyingbus-headline-text" 
+          className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl mb-4 sm:mb-6 leading-tight text-left text-flyingbus-headline-text" 
           style={{ 
             textWrap: 'balance',
             letterSpacing: '-0.01em',  /* Slight negative tracking for better readability */
+            fontWeight: 400
           }}
         >
           {article.title}

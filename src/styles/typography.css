@@ -27,6 +27,7 @@ p, span, div, a, button, input, textarea {
 /* Instrument Serif font utility classes */
 .font-instrument-serif {
   font-family: var(--font-instrument-serif);
+  font-weight: 400; /* Explicit normal weight (400) */
   /* Adjust letter spacing for better rendering */
   @apply tracking-tight;
 }
@@ -35,6 +36,7 @@ p, span, div, a, button, input, textarea {
 @media (max-width: 768px) {
   .font-instrument-serif {
     @apply tracking-tighter;
+    font-weight: 400; /* Ensure normal weight is applied on mobile too */
     /* Improve rendering on mobile */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

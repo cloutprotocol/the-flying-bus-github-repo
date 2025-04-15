@@ -104,6 +104,7 @@
   @media (max-width: 768px) {
     .font-instrument-serif {
       letter-spacing: -0.02em;
+      font-weight: 400;
     }
   }
 }

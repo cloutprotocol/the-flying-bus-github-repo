@@ -45,7 +45,7 @@ const CategoryHeader: React.FC<CategoryHeaderProps> = ({
       </div>
       
       {/* Category title */}
-      <h1 className="category-title">
+      <h1 className="category-title" style={{ fontWeight: 400 }}>
         {displayCategory}
       </h1>
     </div>

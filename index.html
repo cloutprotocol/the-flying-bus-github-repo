@@ -30,12 +30,14 @@
       /* Optimize for font loading */
       .font-instrument-serif {
         font-display: swap;
+        font-weight: 400 !important; /* Force normal weight always */
       }
       
       /* Apply slight tracking adjustment for Instrument Serif on mobile */
       @media (max-width: 768px) {
         .font-instrument-serif {
           letter-spacing: -0.02em;
+          font-weight: 400 !important;
         }
       }
     </style>

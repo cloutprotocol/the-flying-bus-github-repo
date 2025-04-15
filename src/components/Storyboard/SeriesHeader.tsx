@@ -40,7 +40,9 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({ article }) => {
             )}
           </div>
           
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-2 leading-tight">
+          <h1 
+            className="font-display text-3xl md:text-4xl font-bold mb-2 leading-tight"
+          >
             {article.title}
           </h1>
           

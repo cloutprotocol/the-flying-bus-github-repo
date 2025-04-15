@@ -28,6 +28,7 @@ const FeatureArticleHeader = ({ title, category, readingLevel }: FeatureArticleH
         className="feature-article-title"
         style={{
           letterSpacing: '-0.01em', /* Slight negative tracking for better readability */
+          fontWeight: 400 /* Explicit declaration of normal weight */
         }}
       >
         {title}
