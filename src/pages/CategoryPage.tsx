@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { mockArticles } from '@/data/articles';
 import { getCategoryColor } from '@/utils/categoryColors';
@@ -12,6 +12,7 @@ import ArticlesGrid from '@/components/Category/ArticlesGrid';
 import PaginationControls from '@/components/Category/PaginationControls';
 import { Skeleton } from '@/components/ui/skeleton';
 import { filterAndSortArticles, paginateArticles, getCategoryFromSlug } from '@/components/Category/CategoryHelpers';
+import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 
 interface CategoryPageProps {
   category?: string;
@@ -27,12 +28,15 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Get the categoryId parameter from the URL
+  const { categoryId } = useParams<{ categoryId: string }>();
+  
   // Get path from location to determine category if not provided via props
   const location = useLocation();
   const pathCategory = location.pathname.split('/')[1];
   
-  // Use prop category if provided, otherwise use path
-  const categorySlug = propCategory || pathCategory;
+  // Use prop category if provided, otherwise use parameter, then path
+  const categorySlug = propCategory || categoryId || pathCategory;
   
   // Get the display category name from the slug
   const displayCategory = getCategoryFromSlug(categorySlug);
@@ -41,6 +45,18 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   const categoryArticles = useMemo(() => {
     return mockArticles.filter(article => article.category === displayCategory);
   }, [displayCategory]);
+
+  // If no category found, show not found message
+  if (!displayCategory || categoryArticles.length === 0) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <h1 className="text-3xl font-display font-bold mb-4">Category Not Found</h1>
+          <p className="mb-8">Sorry, we couldn't find the category you're looking for.</p>
+        </div>
+      </MainLayout>
+    );
+  }
   
   // Extract and set unique reading levels on component mount
   useEffect(() => {

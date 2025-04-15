@@ -33,7 +33,17 @@ function App() {
         {/* Main Public Routes */}
         <Route path="/" element={<Index />} />
         <Route path="/articles/:articleId" element={<ArticlePage />} />
+        
+        {/* Category Routes - Handle both with and without trailing slash */}
         <Route path="/category/:categoryId" element={<CategoryPage />} />
+        <Route path="/headliners" element={<CategoryPage />} />
+        <Route path="/debates" element={<CategoryPage />} />
+        <Route path="/spice-it-up" element={<CategoryPage />} />
+        <Route path="/in-the-neighborhood" element={<CategoryPage />} />
+        <Route path="/learning" element={<CategoryPage />} />
+        <Route path="/school-news" element={<CategoryPage />} />
+        
+        {/* Storyboard Routes */}
         <Route path="/storyboard/:seriesId" element={<StoryboardPage />} />
         <Route path="/storyboard" element={<StoryboardCategoryPage />} />
         <Route path="/storyboard/:seriesId/episode/:episodeId" element={<StoryboardEpisodePage />} />

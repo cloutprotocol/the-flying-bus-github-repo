@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { getArticleById, isStoryboardArticle } from '@/data/articles';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,9 @@ import ArticleFooter from '@/components/Articles/ArticleFooter';
 import { getCommentsByArticleId } from '@/data/comments';
 
 const ArticlePage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
-  const article = getArticleById(id || '');
+  const article = getArticleById(articleId || '');
 
   // If it's a storyboard article, redirect to the StoryboardPage
   useEffect(() => {
@@ -29,7 +29,7 @@ const ArticlePage = () => {
           <h1 className="text-3xl font-display font-bold mb-4">Article Not Found</h1>
           <p className="mb-8">Sorry, we couldn't find the article you're looking for.</p>
           <Button asChild>
-            <a href="/">Back to Home</a>
+            <Link to="/">Back to Home</Link>
           </Button>
         </div>
       </MainLayout>

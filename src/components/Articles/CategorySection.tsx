@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -62,6 +63,12 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   
   const colorClasses = getColorClass();
   const svgPath = getCategoryIcon(title);
+  
+  // Generate the correct URL for the category
+  const getCategoryUrl = () => {
+    // Use kebab case for multi-word categories in URLs
+    return `/${slug.toLowerCase()}`;
+  };
 
   return (
     <section className="py-8">
@@ -73,7 +80,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
           </div>
           
           <Link 
-            to={`/${slug}`} 
+            to={getCategoryUrl()} 
             className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline self-start"
           >
             See All <ArrowRight size={16} className="ml-1" />
