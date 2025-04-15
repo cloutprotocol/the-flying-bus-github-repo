@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -10,6 +9,7 @@ import {
   CarouselNavigation 
 } from '@/components/ui/custom-carousel';
 import { getCategoryColor } from '@/utils/categoryColors';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CategorySectionProps {
   title: string;
@@ -19,6 +19,8 @@ interface CategorySectionProps {
 }
 
 const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
+  const isMobile = useIsMobile();
+  
   const getCategoryIcon = (category: string): string => {
     const categoryMap: Record<string, string> = {
       'Headliners': '/headliners-icon.svg',
@@ -61,6 +63,8 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   const colorClasses = getColorClass();
   const svgPath = getCategoryIcon(title);
 
+  const rotationAngle = isMobile ? '15deg' : '-30deg';
+
   return (
     <section className="py-8">
       <div className="flex flex-row items-start justify-between gap-6 mb-10">
@@ -78,7 +82,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
           </Link>
         </div>
         
-        <div className="relative transform -rotate-[30deg]">
+        <div className={`relative transform rotate-[${rotationAngle}]`}>
           <div 
             className="w-[80px] h-[80px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
           >
