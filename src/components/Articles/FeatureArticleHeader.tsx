@@ -1,11 +1,14 @@
+
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { getCategoryColor } from '@/utils/categoryColors';
+
 interface FeatureArticleHeaderProps {
   title: string;
   category: string;
   readingLevel?: string;
 }
+
 const FeatureArticleHeader = ({
   title,
   category,
@@ -29,9 +32,10 @@ const FeatureArticleHeader = ({
       MozOsxFontSmoothing: 'grayscale',
       textRendering: 'optimizeLegibility',
       textShadow: '1px 1px 2px rgba(0,0,0,0.5)'
-    }} className="feature-article-title text-7xl">
+    }} className="feature-article-title text-4xl md:text-5xl lg:text-7xl">
         {title}
       </h2>
     </>;
 };
+
 export default FeatureArticleHeader;
