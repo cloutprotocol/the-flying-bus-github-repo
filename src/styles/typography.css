@@ -15,11 +15,11 @@ p, span, div, a, button, input, textarea {
 }
 
 .category-title {
-  @apply font-instrument-serif text-4xl md:text-6xl font-bold pb-2 mb-0 text-[#1B344C] italic;
+  @apply font-instrument-serif text-4xl md:text-6xl font-normal pb-2 mb-0 text-[#1B344C] italic;
 }
 
 .feature-article-title {
-  @apply text-white text-2xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-3 font-instrument-serif;
+  @apply text-white text-2xl md:text-5xl lg:text-6xl font-normal mb-2 md:mb-3 font-instrument-serif;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   text-wrap: balance;
 }
@@ -42,7 +42,7 @@ p, span, div, a, button, input, textarea {
 }
 
 .instrument-serif-title {
-  @apply font-instrument-serif text-4xl md:text-5xl lg:text-7xl font-bold text-[#1B344C] mb-4;
+  @apply font-instrument-serif text-4xl md:text-5xl lg:text-7xl font-normal text-[#1B344C] mb-4;
   text-wrap: balance;
 }
 
