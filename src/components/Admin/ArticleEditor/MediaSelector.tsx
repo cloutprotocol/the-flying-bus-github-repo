@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
-import { Image, Upload, X, ExternalLink, Camera, Film, Gallery } from 'lucide-react';
+import { Image, Upload, X, ExternalLink, Camera, Film, FolderOpen } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 import { 
   Dialog, 
@@ -139,7 +138,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({ form }) => {
           <Dialog open={showMediaDialog} onOpenChange={setShowMediaDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full" type="button">
-                <Gallery className="mr-2 h-4 w-4" />
+                <FolderOpen className="mr-2 h-4 w-4" />
                 Media Gallery
               </Button>
             </DialogTrigger>
@@ -154,7 +153,7 @@ const MediaSelector: React.FC<MediaSelectorProps> = ({ form }) => {
               <Tabs defaultValue="gallery" className="mt-4">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="gallery">
-                    <Gallery className="mr-2 h-4 w-4" />
+                    <FolderOpen className="mr-2 h-4 w-4" />
                     Gallery
                   </TabsTrigger>
                   <TabsTrigger value="upload">

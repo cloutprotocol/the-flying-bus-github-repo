@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Gallery, Image, Upload, Video, Search, Filter, SlidersHorizontal, Grid2X2, List, Trash } from 'lucide-react';
+import { FolderOpen, Image, Upload, Video, Search, Filter, SlidersHorizontal, Grid2X2, List, Trash } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +17,6 @@ const MediaManager = () => {
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
   
-  // Mock data - In a real application, these would come from an API
   const mockImages = [
     { id: '1', url: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b', title: 'Laptop', type: 'image', date: '2023-04-15' },
     { id: '2', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475', title: 'Circuit Board', type: 'image', date: '2023-04-14' },
@@ -85,7 +83,7 @@ const MediaManager = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 mb-4">
             <TabsList>
               <TabsTrigger value="all">
-                <Gallery className="mr-2 h-4 w-4" />
+                <FolderOpen className="mr-2 h-4 w-4" />
                 All
               </TabsTrigger>
               <TabsTrigger value="images">
