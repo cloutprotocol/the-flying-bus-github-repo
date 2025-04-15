@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock } from 'lucide-react';
@@ -30,7 +29,7 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           )}
         </div>
         
-        <h1 className="font-instrument-serif text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-tight text-left text-flyingbus-headline-text" style={{ textWrap: 'balance' }}>
+        <h1 className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl font-semibold mb-6 leading-tight text-left text-flyingbus-headline-text" style={{ textWrap: 'balance' }}>
           {article.title}
         </h1>
         
