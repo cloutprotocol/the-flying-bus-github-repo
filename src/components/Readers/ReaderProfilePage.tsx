@@ -18,7 +18,6 @@ const mockReaderComments: CommentProps[] = [
     content: 'This article was really informative! I learned so much about climate change.',
     createdAt: new Date('2023-10-15T10:30:00'),
     likes: 5,
-    articleTitle: 'Understanding Climate Change',
     articleUrl: '/headliners/understanding-climate-change'
   },
   {
@@ -31,7 +30,6 @@ const mockReaderComments: CommentProps[] = [
     content: 'I disagree with some points in this article. I think we need more evidence.',
     createdAt: new Date('2023-10-10T14:20:00'),
     likes: 2,
-    articleTitle: 'The Future of Renewable Energy',
     articleUrl: '/debates/future-of-renewable-energy'
   }
 ];
