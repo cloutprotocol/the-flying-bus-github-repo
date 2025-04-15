@@ -25,8 +25,8 @@ const AdminHeader = () => {
       .toUpperCase();
   };
 
-  const userInitials = currentUser?.name 
-    ? getInitials(currentUser.name) 
+  const userInitials = currentUser?.displayName 
+    ? getInitials(currentUser.displayName) 
     : 'U';
 
   return (
@@ -51,14 +51,14 @@ const AdminHeader = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
-                  <AvatarImage src={currentUser?.avatar} alt={currentUser?.name || 'User'} />
+                  <AvatarImage src={currentUser?.avatar} alt={currentUser?.displayName || 'User'} />
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 z-50">
               <DropdownMenuLabel>
-                {currentUser?.name || 'User'}
+                {currentUser?.displayName || 'User'}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile</DropdownMenuItem>
