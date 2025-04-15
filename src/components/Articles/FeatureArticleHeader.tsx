@@ -24,7 +24,12 @@ const FeatureArticleHeader = ({ title, category, readingLevel }: FeatureArticleH
         )}
       </div>
       
-      <h2 className="feature-article-title">
+      <h2 
+        className="feature-article-title"
+        style={{
+          letterSpacing: '-0.01em', /* Slight negative tracking for better readability */
+        }}
+      >
         {title}
       </h2>
     </>

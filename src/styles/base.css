@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -93,8 +94,16 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+  
   body {
     @apply bg-flyingbus-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Optimize font rendering on mobile */
+  @media (max-width: 768px) {
+    .font-instrument-serif {
+      letter-spacing: -0.02em;
+    }
   }
 }

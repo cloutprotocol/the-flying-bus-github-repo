@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock } from 'lucide-react';
@@ -10,9 +11,9 @@ interface ArticleHeaderProps {
 
 const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
   return (
-    <div className="w-full bg-gradient-to-b from-flyingbus-background to-white py-8 mb-2">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="flex items-center space-x-2 mb-6">
+    <div className="w-full bg-gradient-to-b from-flyingbus-background to-white py-6 sm:py-8 mb-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center space-x-2 mb-4 sm:mb-6">
           <Badge className={`${getCategoryColor(article.category)}`}>
             {article.category}
           </Badge>
@@ -29,11 +30,17 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           )}
         </div>
         
-        <h1 className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl font-semibold mb-6 leading-tight text-left text-flyingbus-headline-text" style={{ textWrap: 'balance' }}>
+        <h1 
+          className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl font-semibold mb-4 sm:mb-6 leading-tight text-left text-flyingbus-headline-text" 
+          style={{ 
+            textWrap: 'balance',
+            letterSpacing: '-0.01em',  /* Slight negative tracking for better readability */
+          }}
+        >
           {article.title}
         </h1>
         
-        <div className="flex flex-wrap items-center text-flyingbus-muted-text mb-8">
+        <div className="flex flex-wrap items-center text-flyingbus-muted-text mb-6 sm:mb-8">
           <span className="mr-4 font-medium">By {article.author}</span>
           <span className="flex items-center mr-4">
             <CalendarDays size={16} className="mr-1" />

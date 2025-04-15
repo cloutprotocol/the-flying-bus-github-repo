@@ -27,6 +27,18 @@ p, span, div, a, button, input, textarea {
 /* Instrument Serif font utility classes */
 .font-instrument-serif {
   font-family: var(--font-instrument-serif);
+  /* Adjust letter spacing for better rendering */
+  @apply tracking-tight;
+}
+
+/* Mobile optimization for Instrument Serif */
+@media (max-width: 768px) {
+  .font-instrument-serif {
+    @apply tracking-tighter;
+    /* Improve rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 .instrument-serif-title {

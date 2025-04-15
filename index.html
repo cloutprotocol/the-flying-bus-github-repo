@@ -22,8 +22,23 @@
     <!-- Open Sauce Sans font -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/marcologous/Open-Sauce-Fonts@master/css/opensaucesans.css">
     
-    <!-- Instrument Serif font from Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+    <!-- Instrument Serif font from Google Fonts with display=swap for better rendering -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;0,700;1,400;1,700&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,;:?!()%&">
+    
+    <!-- Font display optimization -->
+    <style>
+      /* Optimize for font loading */
+      .font-instrument-serif {
+        font-display: swap;
+      }
+      
+      /* Apply slight tracking adjustment for Instrument Serif on mobile */
+      @media (max-width: 768px) {
+        .font-instrument-serif {
+          letter-spacing: -0.02em;
+        }
+      }
+    </style>
   </head>
 
   <body>
