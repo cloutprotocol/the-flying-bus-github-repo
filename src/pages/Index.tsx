@@ -25,7 +25,7 @@ const Index = () => {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full px-4 py-6 mb-4">
+      <div className="w-full px-0 sm:px-4 py-6 mb-4">
         {headlineArticle && (
           <FeatureArticle {...headlineArticle} />
         )}
@@ -61,3 +61,4 @@ const Index = () => {
 };
 
 export default Index;
+
