@@ -63,8 +63,8 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 
   return (
     <section className="py-8">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0 mb-10">
-        <div className="flex items-start md:items-center gap-4 md:gap-12">
+      <div className="flex flex-col gap-4 mb-10">
+        <div className="flex items-start gap-4">
           <div className="relative transform -rotate-[30deg]">
             <div 
               className="w-[80px] h-[80px] md:w-[120px] md:h-[120px] bg-white shadow-category-icon overflow-hidden p-1.5"
@@ -87,7 +87,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
         
         <Link 
           to={`/${slug}`} 
-          className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline ml-auto md:ml-0 mt-4 md:mt-0"
+          className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline mt-2"
         >
           See All <ArrowRight size={16} className="ml-1" />
         </Link>
