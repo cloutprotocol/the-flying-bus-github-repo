@@ -19,7 +19,7 @@ const UserManagement = () => {
           <CardHeader className="pb-3">
             <CardTitle>All Users</CardTitle>
             <CardDescription>
-              Manage reader and contributor accounts with advanced filtering, sorting, and pagination
+              Manage reader and contributor accounts
             </CardDescription>
           </CardHeader>
           <CardContent>
