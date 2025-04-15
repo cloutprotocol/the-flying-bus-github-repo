@@ -34,7 +34,7 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           className="font-instrument-serif text-4xl md:text-5xl lg:text-6xl mb-4 sm:mb-6 leading-tight text-left text-flyingbus-headline-text" 
           style={{ 
             textWrap: 'balance',
-            letterSpacing: '-0.01em',  /* Slight negative tracking for better readability */
+            letterSpacing: '-0.01em',
             fontWeight: 400,
             WebkitFontSmoothing: 'antialiased',
             MozOsxFontSmoothing: 'grayscale',
