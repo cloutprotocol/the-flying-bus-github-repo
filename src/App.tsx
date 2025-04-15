@@ -14,6 +14,7 @@ import ProfileEditPage from '@/pages/ProfileEditPage';
 import AdminPortalIndex from '@/pages/Admin/AdminPortalIndex';
 import Dashboard from '@/pages/Admin/Dashboard';
 import MyArticles from '@/pages/Admin/MyArticles';
+import UserManagement from '@/pages/Admin/UserManagement';
 import { Toaster } from "@/components/ui/toaster";
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
@@ -57,6 +58,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyArticles />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/users" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderator']}>
+              <UserManagement />
             </ProtectedRoute>
           } 
         />
