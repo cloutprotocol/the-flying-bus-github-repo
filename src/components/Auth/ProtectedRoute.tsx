@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { currentUser, isLoggedIn } = useAuth();
 
   if (!isLoggedIn) {
-    return <Navigate to="/reader-auth" replace />;
+    return <Navigate to="/reader-auth?tab=sign-in&redirect=/admin" replace />;
   }
 
   if (!currentUser || !allowedRoles.includes(currentUser.role)) {

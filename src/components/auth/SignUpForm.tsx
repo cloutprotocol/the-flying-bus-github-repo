@@ -9,7 +9,12 @@ import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-const SignUpForm = () => {
+interface SignUpFormProps {
+  onSwitchTab: () => void;
+  redirectPath?: string | null;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login } = useAuth();
@@ -57,10 +62,10 @@ const SignUpForm = () => {
           description: "Welcome to The Flying Bus! You're now a reader.",
         });
         
-        // Redirect to home
+        // Redirect to home or specified path
         setTimeout(() => {
-          navigate('/');
-        }, 1000);
+          navigate(redirectPath || '/', { replace: true });
+        }, 500);
       } catch (error) {
         toast({
           title: "An error occurred",
@@ -165,9 +170,18 @@ const SignUpForm = () => {
         </div>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-4">
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Creating Account...' : 'Create Account'}
+        </Button>
+        <Button 
+          type="button" 
+          variant="link" 
+          onClick={onSwitchTab}
+          className="text-xs"
+          disabled={isSubmitting}
+        >
+          Already have an account? Sign in
         </Button>
       </CardFooter>
     </form>

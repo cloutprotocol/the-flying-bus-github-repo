@@ -11,9 +11,10 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface SignInFormProps {
   onSwitchTab: () => void;
+  redirectPath?: string | null;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab }) => {
+const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login } = useAuth();
@@ -34,7 +35,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab }) => {
     setIsSubmitting(true);
     
     try {
-      const success = await login(signInForm.username);
+      const success = await login(signInForm.username, signInForm.password);
       
       if (success) {
         toast({
@@ -42,14 +43,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab }) => {
           description: "You've successfully signed in.",
         });
         
-        // Redirect to home or previous page
+        // Redirect to specified path or home
         setTimeout(() => {
-          navigate('/');
-        }, 1000);
+          navigate(redirectPath || '/', { replace: true });
+        }, 500);
       } else {
         toast({
           title: "Sign in failed",
-          description: "Invalid username or password. Try 'curious_reader' for demo.",
+          description: "Invalid username or password. Try 'curious_reader' or 'admin_user' for demo.",
           variant: "destructive",
         });
       }
@@ -82,7 +83,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab }) => {
               required
             />
           </div>
-          <p className="text-xs text-gray-500">Demo: try "curious_reader"</p>
+          <p className="text-xs text-gray-500">Demo: try "curious_reader" (reader) or "admin_user" (admin)</p>
         </div>
         
         <div className="space-y-2">

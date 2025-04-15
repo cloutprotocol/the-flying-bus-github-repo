@@ -1,3 +1,4 @@
+
 export interface ReaderProfile {
   id: string;
   username: string;
@@ -5,5 +6,18 @@ export interface ReaderProfile {
   avatar?: string;
   email: string;
   role: 'reader' | 'author' | 'moderator' | 'admin';
-  // Add other relevant fields
+  
+  // Additional profile fields
+  bio?: string;
+  joinedDate?: Date;
+  commentCount?: number;
+  badges?: string[];
+  achievements?: string[];
+  readingStreak?: number;
+}
+
+export interface PrivacySettings {
+  showCommentHistory: boolean;
+  showReadingActivity: boolean;
+  profileVisibility: 'public' | 'private';
 }

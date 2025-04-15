@@ -1,3 +1,4 @@
+
 import { Routes, Route } from 'react-router-dom';
 import Index from '@/pages/Index';
 import About from '@/pages/About';
@@ -8,6 +9,8 @@ import StoryboardPage from '@/pages/StoryboardPage';
 import StoryboardCategoryPage from '@/pages/StoryboardCategoryPage';
 import StoryboardEpisodePage from '@/pages/StoryboardEpisodePage';
 import ReaderAuth from '@/pages/ReaderAuth';
+import ProfilePage from '@/pages/ProfilePage';
+import ProfileEditPage from '@/pages/ProfileEditPage';
 import AdminPortalIndex from '@/pages/Admin/AdminPortalIndex';
 import Dashboard from '@/pages/Admin/Dashboard';
 import MyArticles from '@/pages/Admin/MyArticles';
@@ -21,6 +24,10 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/about" element={<About />} />
         <Route path="/reader-auth" element={<ReaderAuth />} />
+        
+        {/* Profile routes */}
+        <Route path="/profile/:username" element={<ProfilePage />} />
+        <Route path="/profile/:username/edit" element={<ProfileEditPage />} />
         
         <Route path="/:category" element={<CategoryPage />} />
         <Route path="/:category/:articleId" element={<ArticlePage />} />

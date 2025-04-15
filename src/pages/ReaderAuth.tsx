@@ -1,22 +1,34 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
 import AuthCardHeader from '@/components/auth/AuthCardHeader';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ReaderAuth = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   
-  // Get the tab from the URL query parameters
+  // Get the tab and redirect from URL query parameters
   const searchParams = new URLSearchParams(location.search);
   const tabParam = searchParams.get('tab');
+  const redirectParam = searchParams.get('redirect');
+  
   const [activeTab, setActiveTab] = useState<string>(
     tabParam === 'sign-in' ? 'sign-in' : 'sign-up'
   );
+
+  // If user is already logged in, redirect to home or the redirect param
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate(redirectParam || '/', { replace: true });
+    }
+  }, [isLoggedIn, navigate, redirectParam]);
 
   // Update activeTab when URL parameters change
   useEffect(() => {
@@ -28,6 +40,10 @@ const ReaderAuth = () => {
 
   const handleSwitchToSignUp = () => {
     setActiveTab('sign-up');
+  };
+
+  const handleSwitchToSignIn = () => {
+    setActiveTab('sign-in');
   };
 
   return (
@@ -43,11 +59,11 @@ const ReaderAuth = () => {
             </TabsList>
             
             <TabsContent value="sign-up">
-              <SignUpForm />
+              <SignUpForm onSwitchTab={handleSwitchToSignIn} redirectPath={redirectParam} />
             </TabsContent>
             
             <TabsContent value="sign-in">
-              <SignInForm onSwitchTab={handleSwitchToSignUp} />
+              <SignInForm onSwitchTab={handleSwitchToSignUp} redirectPath={redirectParam} />
             </TabsContent>
           </Tabs>
         </Card>
