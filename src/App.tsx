@@ -17,8 +17,8 @@ import MyArticles from '@/pages/Admin/MyArticles';
 import ArticleEditor from '@/pages/Admin/ArticleEditor';
 import MediaManager from '@/pages/Admin/MediaManager';
 import UserManagement from '@/pages/Admin/UserManagement';
-import ApprovalQueue from '@/pages/Admin/ApprovalQueue'; // Add this
-import ArticleReview from '@/pages/Admin/ArticleReview'; // Add this
+import ApprovalQueue from '@/pages/Admin/ApprovalQueue';
+import ArticleReview from '@/pages/Admin/ArticleReview';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 import '@/styles/index';
 
