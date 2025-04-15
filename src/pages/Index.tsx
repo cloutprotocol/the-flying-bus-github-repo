@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import MainLayout from '@/components/Layout/MainLayout';
 import FeatureArticle from '@/components/Articles/FeatureArticle';
@@ -17,7 +16,6 @@ const Index = () => {
     { title: 'School News', slug: 'school', color: 'pink' },
   ];
 
-  // Set CSS variable for header height for responsive calculations
   useEffect(() => {
     const headerHeight = document.querySelector('header')?.offsetHeight || 80;
     document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
@@ -25,7 +23,7 @@ const Index = () => {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full px-0 sm:px-4 py-6 mb-4">
+      <div className="w-full px-0 sm:px-4 py-0">
         {headlineArticle && (
           <FeatureArticle {...headlineArticle} />
         )}
@@ -61,4 +59,3 @@ const Index = () => {
 };
 
 export default Index;
-
