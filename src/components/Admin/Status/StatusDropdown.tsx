@@ -29,7 +29,7 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
 
   // Define which statuses are available based on current status and user role
   const getAvailableStatuses = (): { status: StatusType; label: string; icon: React.ReactNode }[] => {
-    const allStatuses = [
+    const allStatuses: { status: StatusType; label: string; icon: React.ReactNode }[] = [
       { status: 'draft', label: 'Draft', icon: <EyeOff className="h-4 w-4 mr-2" /> },
       { status: 'pending', label: 'Submit for Review', icon: <Clock className="h-4 w-4 mr-2" /> },
       { status: 'published', label: 'Publish', icon: <Check className="h-4 w-4 mr-2" /> },
