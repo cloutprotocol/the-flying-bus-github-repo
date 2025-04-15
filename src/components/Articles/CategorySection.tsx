@@ -56,7 +56,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
           {/* Image frame with category-specific SVG - rotated 30 degrees clockwise */}
           <div className="relative transform rotate-[30deg]">
             <div 
-              className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-md shadow-category-icon overflow-hidden"
+              className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] bg-white rounded-md shadow-category-icon overflow-hidden p-2.5"
             >
               <div className={`w-full h-full ${colorClasses.bg} flex items-center justify-center`}>
                 <img 
@@ -106,3 +106,4 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 };
 
 export default CategorySection;
+
