@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -52,8 +53,8 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     <section className="py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-10">
-          {/* Image frame with category-specific SVG - rotated 30 degrees clockwise */}
-          <div className="relative transform rotate-[30deg]">
+          {/* Image frame with category-specific SVG - rotated 30 degrees counter-clockwise */}
+          <div className="relative transform -rotate-[30deg]">
             <div 
               className="w-[96px] h-[96px] md:w-[120px] md:h-[120px] bg-white rounded-md shadow-category-icon overflow-hidden p-2.5"
             >
@@ -105,3 +106,4 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
 };
 
 export default CategorySection;
+
