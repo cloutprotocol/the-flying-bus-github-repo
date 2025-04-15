@@ -47,7 +47,7 @@ const MOCK_ARTICLES: ArticleReviewItem[] = [
   },
   {
     id: '5',
-    title: 'Our School's New Recycling Program',
+    title: "Our School's New Recycling Program", // Use double quotes to escape the apostrophe
     author: 'Casey Miller',
     status: 'rejected',
     submittedAt: new Date('2025-04-06T11:10:00'),
