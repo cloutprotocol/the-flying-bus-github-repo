@@ -16,6 +16,7 @@ import Dashboard from '@/pages/Admin/Dashboard';
 import MyArticles from '@/pages/Admin/MyArticles';
 import UserManagement from '@/pages/Admin/UserManagement';
 import ArticleEditor from '@/pages/Admin/ArticleEditor';
+import MediaManager from '@/pages/Admin/MediaManager';
 import { Toaster } from "@/components/ui/toaster";
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
@@ -75,6 +76,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'moderator', 'author']}>
               <ArticleEditor />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/media" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderator', 'author']}>
+              <MediaManager />
             </ProtectedRoute>
           } 
         />
