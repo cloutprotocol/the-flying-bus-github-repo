@@ -1,3 +1,4 @@
+
 # The Flying Bus: News for Kids, By Kids - Project Roadmap
 
 This document serves as a master checklist tracking both completed and pending tasks to transform "The Flying Bus" into a fully functional product according to the Product Requirements Document.
@@ -29,6 +30,7 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Build category section components
 - [x] Implement category-specific pages with filtering and sorting
 - [x] Optimize category page performance with lazy loading and skeleton UI
+- [x] Add category descriptions to improve user understanding of content types
 
 ### ✅ Article System
 - [x] Design article card components

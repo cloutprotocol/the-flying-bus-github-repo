@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -32,6 +33,20 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     return categoryMap[category] || '/placeholder.svg';
   };
 
+  const getCategoryDescription = (category: string): string => {
+    const descriptionMap: Record<string, string> = {
+      'Headliners': 'Breaking news and important stories from around the world',
+      'Debates': 'Explore different sides of important topics and share your opinion',
+      'Spice It Up': 'Fun and interesting video content to brighten your day',
+      'Storyboard': 'Creative stories told through engaging series and episodes',
+      'In the Neighborhood': 'Local news and events happening in communities like yours',
+      'Learning': 'Educational articles that help you learn something new',
+      'School News': 'Updates and stories from schools across the country'
+    };
+    
+    return descriptionMap[category] || 'Discover interesting articles in this category';
+  };
+
   const getColorClass = () => {
     const categoryColorClass = getCategoryColor(title);
     const colorName = categoryColorClass.split('-')[1].split(' ')[0];
@@ -64,7 +79,10 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
             </div>
           </div>
           
-          <h2 className="category-title">{title}</h2>
+          <div>
+            <h2 className="category-title">{title}</h2>
+            <p className="text-sm text-gray-500 mt-1 max-w-md">{getCategoryDescription(title)}</p>
+          </div>
         </div>
         
         <Link 
