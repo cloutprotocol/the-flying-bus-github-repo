@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { mockArticles } from '@/data/articles';
@@ -9,6 +10,7 @@ import CategoryHeader from '@/components/Category/CategoryHeader';
 import ActiveFilters from '@/components/Category/ActiveFilters';
 import ArticlesGrid from '@/components/Category/ArticlesGrid';
 import PaginationControls from '@/components/Category/PaginationControls';
+import { Skeleton } from '@/components/ui/skeleton';
 import { filterAndSortArticles, paginateArticles, getCategoryFromSlug } from '@/components/Category/CategoryHelpers';
 
 interface CategoryPageProps {
@@ -23,6 +25,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   const [selectedReadingLevel, setSelectedReadingLevel] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Get path from location to determine category if not provided via props
   const location = useLocation();
@@ -34,34 +37,44 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   // Get the display category name from the slug
   const displayCategory = getCategoryFromSlug(categorySlug);
   
-  // Filter articles by category
-  let articles = mockArticles.filter(article => article.category === displayCategory);
+  // Filter articles by category - wrapped in useMemo to avoid unnecessary recalculations
+  const categoryArticles = useMemo(() => {
+    return mockArticles.filter(article => article.category === displayCategory);
+  }, [displayCategory]);
   
   // Extract and set unique reading levels on component mount
   useEffect(() => {
-    const levels = [...new Set(articles.map(article => article.readingLevel))];
+    const levels = [...new Set(categoryArticles.map(article => article.readingLevel))];
     setAvailableReadingLevels(levels);
-  }, [displayCategory]);
+    // Simulate loading data from an API
+    setTimeout(() => setIsLoading(false), 300);
+  }, [categoryArticles]);
 
-  // Apply filters and sorting
-  const filteredAndSortedArticles = filterAndSortArticles(
-    articles,
-    selectedReadingLevel,
-    sortBy
-  );
+  // Apply filters and sorting - wrapped in useMemo for performance
+  const filteredAndSortedArticles = useMemo(() => {
+    return filterAndSortArticles(
+      categoryArticles,
+      selectedReadingLevel,
+      sortBy
+    );
+  }, [categoryArticles, selectedReadingLevel, sortBy]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [sortBy, selectedReadingLevel]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredAndSortedArticles.length / ARTICLES_PER_PAGE);
-  const paginatedArticles = paginateArticles(
-    filteredAndSortedArticles,
-    currentPage,
-    ARTICLES_PER_PAGE
-  );
+  // Calculate pagination with useMemo
+  const { paginatedArticles, totalPages } = useMemo(() => {
+    return {
+      paginatedArticles: paginateArticles(
+        filteredAndSortedArticles,
+        currentPage,
+        ARTICLES_PER_PAGE
+      ),
+      totalPages: Math.ceil(filteredAndSortedArticles.length / ARTICLES_PER_PAGE)
+    };
+  }, [filteredAndSortedArticles, currentPage]);
   
   // Get category color
   const colorClass = getCategoryColor(displayCategory).split(' ')[0] || '';
@@ -85,6 +98,29 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   };
 
   const hasActiveFilters = selectedReadingLevel !== null || sortBy !== 'newest';
+
+  // Render loading skeleton when data is loading
+  if (isLoading) {
+    return (
+      <MainLayout fullWidth={true}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex items-center gap-10">
+              <Skeleton className="h-[144px] w-[144px] rounded-md" />
+              <Skeleton className="h-12 w-60" />
+            </div>
+            <Skeleton className="h-10 w-full max-w-md" />
+          </div>
+          <Skeleton className="h-12 w-full max-w-lg mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array(6).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-[300px] w-full rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout fullWidth={true}>
@@ -122,11 +158,19 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
           hasActiveFilters={hasActiveFilters}
         />
         
-        {/* Articles Grid */}
-        <ArticlesGrid 
-          articles={paginatedArticles}
-          hasActiveFilters={hasActiveFilters}
-        />
+        {/* Articles Grid with Suspense */}
+        <Suspense fallback={
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array(6).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-[300px] w-full rounded-lg" />
+            ))}
+          </div>
+        }>
+          <ArticlesGrid 
+            articles={paginatedArticles}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </Suspense>
         
         {/* Pagination */}
         <PaginationControls 

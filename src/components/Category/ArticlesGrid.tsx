@@ -1,6 +1,10 @@
 
-import React from 'react';
-import ArticleCard, { ArticleProps } from '@/components/Articles/ArticleCard';
+import React, { lazy, Suspense } from 'react';
+import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy load the ArticleCard component
+const ArticleCard = lazy(() => import('@/components/Articles/ArticleCard'));
 
 interface ArticlesGridProps {
   articles: ArticleProps[];
@@ -25,7 +29,12 @@ const ArticlesGrid: React.FC<ArticlesGridProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {articles.map((article) => (
-        <ArticleCard key={article.id} {...article} />
+        <Suspense 
+          key={article.id} 
+          fallback={<Skeleton className="h-[300px] w-full rounded-lg" />}
+        >
+          <ArticleCard {...article} />
+        </Suspense>
       ))}
     </div>
   );

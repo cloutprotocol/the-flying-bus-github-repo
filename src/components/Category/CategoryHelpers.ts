@@ -13,6 +13,7 @@ export const filterAndSortArticles = (
   
   // Sort articles based on selected option
   if (sortBy === 'newest') {
+    // Use a stable sort algorithm
     return [...filteredArticles].sort((a, b) => 
       new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
     );
@@ -36,16 +37,17 @@ export const paginateArticles = (
   return articles.slice(startIndex, startIndex + articlesPerPage);
 };
 
+// Cache for category mapping
+const categoryMapping: Record<string, string> = {
+  'headliners': 'Headliners',
+  'debates': 'Debates',
+  'spice-it-up': 'Spice It Up',
+  'neighborhood': 'In the Neighborhood',
+  'learning': 'Learning',
+  'school-news': 'School News',
+  'storyboard': 'Storyboard'
+};
+
 export const getCategoryFromSlug = (slug: string): string => {
-  // Map URL parameter to proper category name
-  const categoryMapping: Record<string, string> = {
-    'headliners': 'Headliners',
-    'debates': 'Debates',
-    'spice-it-up': 'Spice It Up',
-    'neighborhood': 'In the Neighborhood',
-    'learning': 'Learning Resources',
-    'school-news': 'School News'
-  };
-  
   return categoryMapping[slug] || 'Articles';
 };
