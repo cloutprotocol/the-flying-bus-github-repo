@@ -30,7 +30,7 @@ const ArticleHeader: React.FC<ArticleHeaderProps> = ({ article }) => {
           )}
         </div>
         
-        <h1 className="font-junicode text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-tight text-left" style={{ textWrap: 'balance' }}>
+        <h1 className="font-junicode !font-semibold text-3xl md:text-4xl lg:text-5xl mb-6 leading-tight text-left text-flyingbus-headline-text" style={{ textWrap: 'balance' }}>
           {article.title}
         </h1>
         

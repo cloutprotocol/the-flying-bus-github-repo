@@ -37,3 +37,15 @@ p, span, div, a, button, input, textarea {
 .instrument-serif-quote {
   @apply font-instrument-serif text-2xl md:text-4xl italic text-gray-700 border-l-4 border-flyingbus-green pl-4 py-2 my-6;
 }
+
+/* Junicode font utility class */
+.font-junicode {
+  font-family: 'Junicode', serif;
+  font-display: swap;
+}
+
+/* Article title styling with Junicode */
+.junicode-article-title {
+  @apply font-junicode text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-tight;
+  text-wrap: balance;
+}

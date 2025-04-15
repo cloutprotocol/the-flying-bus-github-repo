@@ -24,7 +24,7 @@ const FeatureArticleHeader = ({ title, category, readingLevel }: FeatureArticleH
         )}
       </div>
       
-      <h2 className="feature-article-title">
+      <h2 className="font-junicode feature-article-title">
         {title}
       </h2>
     </>
