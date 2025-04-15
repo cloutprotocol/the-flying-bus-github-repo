@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import MainLayout from '@/components/Layout/MainLayout';
 import FeatureArticle from '@/components/Articles/FeatureArticle';
@@ -23,7 +24,7 @@ const Index = () => {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full px-0 sm:px-4 py-0">
+      <div className="w-full px-0 sm:px-4 py-0 sm:py-4">
         {headlineArticle && (
           <FeatureArticle {...headlineArticle} />
         )}
