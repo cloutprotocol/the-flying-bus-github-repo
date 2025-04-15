@@ -14,11 +14,11 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
       <ModernHeader />
       <main className="flex-grow w-full">
         {fullWidth ? (
-          <div className="w-full px-2 sm:px-4 py-6">
+          <div className="w-full px-4 py-4">
             {children}
           </div>
         ) : (
-          <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-4 py-6">
+          <div className="max-w-6xl mx-auto px-4 py-4">
             {children}
           </div>
         )}
@@ -29,3 +29,4 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
 };
 
 export default MainLayout;
+
