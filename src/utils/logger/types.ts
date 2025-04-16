@@ -36,6 +36,11 @@ export interface LogEntry {
   source: LogSource;
   message: string;
   data?: any;
+  
+  // Additional properties for extended logging
+  userId?: string;
+  url?: string;
+  userAgent?: string;
 }
 
 export interface LoggerInterface {

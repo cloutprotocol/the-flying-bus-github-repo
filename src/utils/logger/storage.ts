@@ -36,8 +36,8 @@ export async function sendLogToServer(entry: LogEntry): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
+    // Add user ID to log entry if available
     if (userId) {
-      // Add user ID to log entry
       entry = { ...entry, userId };
     }
 
