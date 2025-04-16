@@ -3,9 +3,8 @@ import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Link } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
 
 interface CommentFormProps {
@@ -72,7 +71,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           className="min-h-[80px] resize-none border-neutral-200 focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 bg-white"
-          disabled={!isLoggedIn}
+          disabled={!isLoggedIn || isSubmitting}
         />
         
         <div className="flex justify-end gap-2">

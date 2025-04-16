@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import ReplyForm from './ReplyForm';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CommentProps {
   id: string;
@@ -21,9 +22,18 @@ export interface CommentProps {
   createdAt: Date;
   likes: number;
   replies?: CommentProps[];
+  articleId?: string; // Added for Supabase interaction
 }
 
-const CommentItem: React.FC<CommentProps> = ({ id, author, content, createdAt, likes: initialLikes, replies = [] }) => {
+const CommentItem: React.FC<CommentProps> = ({ 
+  id, 
+  author, 
+  content, 
+  createdAt, 
+  likes: initialLikes, 
+  replies = [],
+  articleId
+}) => {
   const [isReplying, setIsReplying] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [likes, setLikes] = useState(initialLikes);
@@ -49,6 +59,8 @@ const CommentItem: React.FC<CommentProps> = ({ id, author, content, createdAt, l
       setLikes(prev => prev - 1);
       setHasLiked(false);
     }
+    
+    // In a future update, we'll persist the like to Supabase
   };
   
   const handleReplyClick = () => {
@@ -67,24 +79,64 @@ const CommentItem: React.FC<CommentProps> = ({ id, author, content, createdAt, l
     }
   };
   
-  const handleReplySubmit = (replyContent: string) => {
-    if (!currentUser) return;
+  const handleReplySubmit = async (replyContent: string) => {
+    if (!currentUser || !articleId) return;
     
-    const newReply: CommentProps = {
-      id: `reply-${Date.now()}`,
-      author: {
-        name: currentUser.displayName,
-        avatar: currentUser.avatar,
-        badges: currentUser.badges
-      },
-      content: replyContent,
-      createdAt: new Date(),
-      likes: 0
-    };
-    
-    setLocalReplies([...localReplies, newReply]);
-    setIsReplying(false);
-    setShowReplies(true);
+    try {
+      // Insert the reply to Supabase
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          article_id: articleId,
+          user_id: currentUser.id,
+          content: replyContent,
+          parent_id: id,
+          status: 'published'
+        })
+        .select('*, profiles:user_id (display_name, username, avatar_url, role)')
+        .single();
+      
+      if (error) {
+        console.error('Error submitting reply:', error);
+        toast({
+          title: 'Failed to post reply',
+          description: 'There was an error posting your reply. Please try again.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // Create the new reply object
+      const newReply: CommentProps = {
+        id: data.id,
+        content: data.content,
+        createdAt: new Date(data.created_at),
+        author: {
+          name: data.profiles.display_name,
+          avatar: data.profiles.avatar_url || undefined,
+          badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
+        },
+        likes: 0
+      };
+      
+      // Add the new reply to the local state
+      setLocalReplies([...localReplies, newReply]);
+      setIsReplying(false);
+      setShowReplies(true);
+      
+      toast({
+        title: 'Reply posted',
+        description: 'Your reply has been posted successfully.'
+      });
+      
+    } catch (error) {
+      console.error('Error in reply submission:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
