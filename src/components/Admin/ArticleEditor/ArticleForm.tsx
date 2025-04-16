@@ -1,7 +1,4 @@
-
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,22 +15,10 @@ import { useNavigate } from 'react-router-dom';
 import StoryboardFields from './StoryboardFields';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Save, Send } from 'lucide-react';
-
-const articleFormSchema = z.object({
-  title: z.string().min(5, { message: 'Title must be at least 5 characters long' }),
-  excerpt: z.string().min(10, { message: 'Excerpt must be at least 10 characters long' }),
-  category: z.string(),
-  content: z.string().min(50, { message: 'Content must be at least 50 characters long' }),
-  imageUrl: z.string().url({ message: 'Please provide a valid image URL' }),
-  readingLevel: z.string(),
-  status: z.enum(['draft', 'pending', 'published', 'archived']),
-  // Optional fields based on article type
-  videoUrl: z.string().url().optional(),
-  episodeNumber: z.number().optional(),
-  seriesId: z.string().optional(),
-});
-
-type ArticleFormValues = z.infer<typeof articleFormSchema>;
+import { useZodForm } from '@/hooks/useZodForm';
+import { createArticleSchema } from '@/utils/validation/articleValidation';
+import { createArticle } from '@/services/articleService';
+import logger, { LogSource } from '@/utils/logger';
 
 interface ArticleFormProps {
   articleId?: string;
@@ -50,42 +35,64 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const form = useForm<ArticleFormValues>({
-    resolver: zodResolver(articleFormSchema),
+  const form = useZodForm({
+    schema: createArticleSchema,
     defaultValues: {
       title: '',
       excerpt: '',
       category: '',
       content: '',
       imageUrl: '',
-      readingLevel: 'easy', // Default reading level
+      readingLevel: 'Intermediate', // Default reading level
       status: 'draft',
-      videoUrl: '',
+      articleType: articleType as any,
     },
+    logContext: 'article_form'
   });
 
-  const onSubmit = (data: ArticleFormValues, isDraft: boolean = false) => {
-    // Include the rich text editor content
+  const onSubmit = async (data: any, isDraft: boolean = false) => {
     data.content = content;
     
-    // Set status based on submission type
     if (isDraft) {
       data.status = 'draft';
     } else {
       data.status = isNewArticle ? 'pending' : form.getValues('status');
     }
     
-    // In a real app, we'd save the data to an API
-    console.log('Form submitted:', data);
-    
-    toast({
-      title: isDraft ? "Draft saved" : "Article submitted for review",
-      description: isDraft 
-        ? "Your article has been saved as a draft."
-        : "Your article has been submitted for review.",
-    });
-    
-    navigate('/admin/articles');
+    try {
+      logger.info(LogSource.CLIENT, 'Submitting article form', {
+        isDraft,
+        articleType
+      });
+      
+      const result = await createArticle(data);
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: "There was a problem saving your article.",
+          variant: "destructive"
+        });
+        logger.error(LogSource.CLIENT, "Article submission failed", result.error);
+        return;
+      }
+      
+      toast({
+        title: isDraft ? "Draft saved" : "Article submitted for review",
+        description: isDraft 
+          ? "Your article has been saved as a draft."
+          : "Your article has been submitted for review.",
+      });
+      
+      navigate('/admin/articles');
+    } catch (error) {
+      logger.error(LogSource.CLIENT, "Exception in article submission", error);
+      toast({
+        title: "Error",
+        description: "There was a problem saving your article.",
+        variant: "destructive"
+      });
+    }
   };
 
   const showStoryboardFields = articleType === 'storyboard';
@@ -94,7 +101,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   return (
     <Form {...form}>
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={form.handleSubmit((data) => onSubmit(data, false))}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
             <Card>
@@ -255,16 +262,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onSubmit(form.getValues(), true)}
+            onClick={() => {
+              const formData = form.getValues();
+              onSubmit(formData, true);
+            }}
           >
             <Save className="mr-2 h-4 w-4" /> Save Draft
           </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              form.handleSubmit((data) => onSubmit(data, false))();
-            }}
-          >
+          <Button type="submit">
             <Send className="mr-2 h-4 w-4" /> Submit for Review
           </Button>
         </div>

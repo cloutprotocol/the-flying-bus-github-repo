@@ -2,6 +2,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { fetchArticleWithCache, clearArticleCache } from '@/utils/articleSync';
 import logger, { LogSource } from '@/utils/logger';
+import { validateArticle, validateArticleUpdate } from './validationService';
+import { z } from 'zod';
 
 /**
  * Create a new article in the database
@@ -9,6 +11,18 @@ import logger, { LogSource } from '@/utils/logger';
 export const createArticle = async (articleData: Partial<ArticleProps>): Promise<{ data: any; error: any }> => {
   try {
     logger.info(LogSource.DATABASE, 'Creating new article', { title: articleData.title });
+    
+    // Validate article data
+    const validation = validateArticle(articleData);
+    if (!validation.isValid) {
+      return { 
+        data: null, 
+        error: { 
+          message: 'Invalid article data', 
+          details: validation.errors?.errors 
+        } 
+      };
+    }
     
     const { data, error } = await supabase
       .from('articles')
@@ -44,6 +58,18 @@ export const createArticle = async (articleData: Partial<ArticleProps>): Promise
 export const updateArticle = async (articleId: string, articleData: Partial<ArticleProps>): Promise<{ data: any; error: any }> => {
   try {
     logger.info(LogSource.DATABASE, 'Updating article', { articleId, title: articleData.title });
+    
+    // Validate article update data
+    const validation = validateArticleUpdate({ id: articleId, ...articleData });
+    if (!validation.isValid) {
+      return { 
+        data: null, 
+        error: { 
+          message: 'Invalid article update data', 
+          details: validation.errors?.errors 
+        } 
+      };
+    }
     
     const { data, error } = await supabase
       .from('articles')
