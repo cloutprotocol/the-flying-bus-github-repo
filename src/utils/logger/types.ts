@@ -4,7 +4,9 @@
  * Type definitions for the logging system
  */
 
-// Log levels in order of severity
+/**
+ * Log levels for severity
+ */
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
@@ -13,43 +15,39 @@ export enum LogLevel {
   FATAL = 'fatal'
 }
 
-// Log source
+/**
+ * Log sources to categorize log messages
+ */
 export enum LogSource {
-  // System sources
   APP = 'app',
-  CLIENT = 'client',
   API = 'api',
   AUTH = 'auth',
   DATABASE = 'database',
-  STORAGE = 'storage',
-  BACKGROUND = 'background',
-  
-  // Feature-specific sources
-  EDITOR = 'editor',
-  MEDIA = 'media',
   MODERATION = 'moderation',
-  SAFETY = 'safety'
-}
-
-// Log entry interface
-export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  source: LogSource;
-  timestamp: string;
-  details?: any;
-  userId?: string | null;
-  url?: string;
-  userAgent?: string;
+  EDITOR = 'editor',
+  VALIDATION = 'validation',
+  CLIENT = 'client',
+  SERVER = 'server'
 }
 
 /**
- * Configuration for the logger
+ * Log entry structure
+ */
+export interface LogEntry {
+  level: LogLevel;
+  source: LogSource;
+  message: string;
+  details?: any;
+  timestamp: string;
+}
+
+/**
+ * Logger configuration options
  */
 export interface LoggerConfig {
-  minLevel: LogLevel;  // Minimum level to log
-  consoleOutput: boolean; // Whether to output to console
-  toastOutput: boolean; // Whether to show toast notifications
-  persistToStorage: boolean; // Whether to persist logs to localStorage
-  sendToServer: boolean; // Whether to send logs to server
+  minLevel: LogLevel;
+  consoleOutput: boolean;
+  toastOutput: boolean;
+  persistToStorage: boolean;
+  sendToServer: boolean;
 }
