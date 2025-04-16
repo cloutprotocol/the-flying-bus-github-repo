@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
 import AuthCardHeader from '@/components/auth/AuthCardHeader';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const ReaderAuth = () => {
   const location = useLocation();
@@ -26,6 +26,7 @@ const ReaderAuth = () => {
   // If user is already logged in, redirect to home or the redirect param
   useEffect(() => {
     if (isLoggedIn) {
+      console.log('User is logged in, redirecting to:', redirectParam || '/');
       navigate(redirectParam || '/', { replace: true });
     }
   }, [isLoggedIn, navigate, redirectParam]);

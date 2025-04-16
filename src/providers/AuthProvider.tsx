@@ -29,14 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentSession) {
           setSession(currentSession);
           
-          // Get user profile data
-          const profile = await fetchUserProfile(currentSession.user.id);
-          if (profile) {
-            setCurrentUser(profile);
-          }
+          // Defer profile fetch to avoid potential Supabase auth deadlock
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(currentSession.user.id);
+            if (profile) {
+              console.log('User profile loaded:', profile.displayName);
+              setCurrentUser(profile);
+            } else {
+              console.error('Could not load user profile');
+            }
+          }, 0);
         }
       } catch (error) {
-        console.error('Auth error:', error);
+        console.error('Auth error during initial session check:', error);
         toast({
           title: "Authentication error",
           description: "An error occurred during authentication",
@@ -52,13 +57,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Auth state changed:', event, newSession ? 'Session active' : 'No session');
       setSession(newSession);
       
-      // For real auth, handle session changes
       if (newSession) {
         // Defer profile fetch to avoid potential Supabase auth deadlock
-        setTimeout(() => {
-          fetchUserProfile(newSession.user.id).then(profile => {
-            if (profile) setCurrentUser(profile);
-          });
+        setTimeout(async () => {
+          const profile = await fetchUserProfile(newSession.user.id);
+          if (profile) {
+            console.log('User profile updated after auth change:', profile.displayName);
+            setCurrentUser(profile);
+          } else {
+            console.error('Could not update user profile after auth change');
+          }
         }, 0);
       } else {
         setCurrentUser(null);
@@ -77,7 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Real Supabase authentication
       console.log('Attempting Supabase login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -95,8 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data.session) {
-        console.log('Supabase login successful');
-        // Session will be set by the onAuthStateChange listener
+        console.log('Supabase login successful, session:', data.session.user.id);
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in",
@@ -122,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Real Supabase logout
+      console.log('Attempting to log out user');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -135,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setCurrentUser(null);
         setSession(null);
+        console.log('User successfully logged out');
         toast({
           title: "Signed out",
           description: "You've been successfully signed out",

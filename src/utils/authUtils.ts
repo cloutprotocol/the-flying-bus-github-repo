@@ -1,13 +1,13 @@
 
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
 
 /**
  * Fetches user profile from Supabase
  */
 export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | null> => {
   try {
+    console.log('Fetching profile for user ID:', userId);
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -20,6 +20,7 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
     }
     
     if (profile) {
+      console.log('Profile found:', profile);
       const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
       const userProfile: ReaderProfile = {
         id: profile.id,
@@ -34,6 +35,7 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
       return userProfile;
     }
     
+    console.log('No profile found for user ID:', userId);
     return null;
   } catch (error) {
     console.error('Profile fetch error:', error);
