@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Key, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SignInFormProps {
   onSwitchTab: () => void;
@@ -42,6 +42,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
     setIsSubmitting(true);
     
     try {
+      console.log('Attempting login with:', signInForm.email);
       const success = await login(signInForm.email, signInForm.password);
       
       if (success) {
@@ -57,6 +58,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "An error occurred",
         description: "Please try again later.",

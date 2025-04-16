@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { DrawerFooter } from "@/components/ui/drawer";
 import { Mail, Key } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DrawerSignInFormProps {
   isSubmitting: boolean;
@@ -37,6 +37,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
     setIsSubmitting(true);
     
     try {
+      console.log('Attempting login with:', signInForm.email);
       const success = await login(signInForm.email, signInForm.password);
       
       if (success) {
@@ -58,6 +59,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "An error occurred",
         description: "Please try again later.",
