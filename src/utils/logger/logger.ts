@@ -13,6 +13,14 @@ import { showToastForLog } from './toast';
 // Flag to prevent recursive logging
 let isLogging = false;
 
+// Store original console methods
+const originalConsole = {
+  debug: console.debug,
+  info: console.info,
+  warn: console.warn,
+  error: console.error
+};
+
 /**
  * Log a message with the specified level and source
  */
@@ -24,12 +32,12 @@ export function logMessage(
 ): void {
   // Prevent recursive logging
   if (isLogging) {
-    // Fallback to plain console logging if we're already logging
+    // Fallback to original console logging if we're already logging
     const method = level === LogLevel.DEBUG ? 'debug' :
                   level === LogLevel.INFO ? 'info' :
                   level === LogLevel.WARN ? 'warn' :
                   'error';
-    console[method](`[LOGGER RECURSION PREVENTED]: ${message}`, details || '');
+    originalConsole[method](`[LOGGER RECURSION PREVENTED]: ${message}`, details || '');
     return;
   }
 
@@ -62,7 +70,8 @@ export function logMessage(
                     level === LogLevel.WARN ? 'warn' :
                     'error';
       
-      console[method](formatConsoleMessage(entry), details || '');
+      // Use original console methods to prevent infinite recursion
+      originalConsole[method](formatConsoleMessage(entry), details || '');
     }
 
     // Show toast if enabled and level is warn or higher
