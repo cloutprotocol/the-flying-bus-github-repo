@@ -60,7 +60,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category: propCategory }) =
   
   // Extract and set unique reading levels on component mount
   useEffect(() => {
-    const levels = [...new Set(categoryArticles.map(article => article.readingLevel))];
+    // Extract unique reading levels from articles and ensure they are strings
+    const levels = [...new Set(categoryArticles.map(article => article.readingLevel))] as string[];
     setAvailableReadingLevels(levels);
     // Simulate loading data from an API
     setTimeout(() => setIsLoading(false), 300);
