@@ -6,7 +6,7 @@ import { ArticleSortType, ArticleData, UseArticlePaginationReturn } from './arti
 import { ArticleFilterParams, getDefaultFilters, updateFilters, buildArticleQuery } from './article/articleFilters';
 import { transformArticleData } from './article/transformArticleData';
 
-export { ArticleSortType };
+export type { ArticleSortType, ArticleData, UseArticlePaginationReturn };
 export type { ArticleFilterParams };
 
 export function useArticlePagination(initialFilters: ArticleFilterParams = {}): UseArticlePaginationReturn {
