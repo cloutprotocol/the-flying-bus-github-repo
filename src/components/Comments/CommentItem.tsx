@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ThumbsUp, Award, MessageSquare } from 'lucide-react';
@@ -22,7 +21,7 @@ export interface CommentProps {
   createdAt: Date;
   likes: number;
   replies?: CommentProps[];
-  articleId?: string; // Added for Supabase interaction
+  articleId?: string;
 }
 
 const CommentItem: React.FC<CommentProps> = ({ 
@@ -83,6 +82,8 @@ const CommentItem: React.FC<CommentProps> = ({
     if (!currentUser || !articleId) return;
     
     try {
+      console.log('Submitting reply for article:', articleId, 'parent:', id);
+      
       // Insert the reply to Supabase
       const { data, error } = await supabase
         .from('comments')
@@ -116,7 +117,8 @@ const CommentItem: React.FC<CommentProps> = ({
           avatar: data.profiles.avatar_url || undefined,
           badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
         },
-        likes: 0
+        likes: 0,
+        articleId
       };
       
       // Add the new reply to the local state

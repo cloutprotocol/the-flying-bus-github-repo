@@ -76,7 +76,8 @@ export const useComments = (articleId: string) => {
                 avatar: reply.profiles.avatar_url || undefined,
                 badges: reply.profiles.role !== 'reader' ? [reply.profiles.role] : []
               },
-              likes: 0 // We'll implement this in a future update
+              likes: 0, // We'll implement this in a future update
+              articleId // Add article ID to replies too
             })) : [];
             
             // Return formatted comment with replies
@@ -90,7 +91,8 @@ export const useComments = (articleId: string) => {
                 badges: comment.profiles.role !== 'reader' ? [comment.profiles.role] : []
               },
               likes: 0, // We'll implement this in a future update
-              replies
+              replies,
+              articleId
             };
           })
         );
@@ -112,6 +114,8 @@ export const useComments = (articleId: string) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting comment for article:', articleId);
+      
       // Insert the comment to Supabase
       const { data, error } = await supabase
         .from('comments')
@@ -145,7 +149,8 @@ export const useComments = (articleId: string) => {
           badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
         },
         likes: 0,
-        replies: []
+        replies: [],
+        articleId
       };
       
       setComments([newComment, ...comments]);
