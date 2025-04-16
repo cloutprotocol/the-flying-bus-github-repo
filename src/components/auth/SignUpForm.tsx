@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SignUpFormProps {
   onSwitchTab: () => void;
@@ -17,7 +17,6 @@ interface SignUpFormProps {
 const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login } = useAuth();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signUpForm, setSignUpForm] = useState({
@@ -48,34 +47,50 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
       return;
     }
     
-    // Here we would typically call an API to create the account
-    // For demo, we'll simulate account creation and log the user in
-    
-    setTimeout(async () => {
-      try {
-        // In a real app, we would create the user first, then log them in
-        // For demo, just log them in as "curious_reader"
-        await login("curious_reader", signUpForm.password);
-        
+    try {
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: signUpForm.email,
+        password: signUpForm.password,
+        options: {
+          data: {
+            username: signUpForm.username,
+            display_name: signUpForm.displayName,
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+        toast({
+          title: "Sign up failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
         toast({
           title: "Account created!",
-          description: "Welcome to The Flying Bus! You're now a reader.",
+          description: "Welcome to The Flying Bus! You're now signed in.",
         });
         
         // Redirect to home or specified path
         setTimeout(() => {
           navigate(redirectPath || '/', { replace: true });
         }, 500);
-      } catch (error) {
-        toast({
-          title: "An error occurred",
-          description: "Please try again later.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSubmitting(false);
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast({
+        title: "An error occurred",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

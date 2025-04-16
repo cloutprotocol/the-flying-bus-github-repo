@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
-import { Key, User } from 'lucide-react';
+import { Key, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -21,7 +21,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInForm, setSignInForm] = useState({
-    username: '',
+    email: '',
     password: '',
   });
 
@@ -42,7 +42,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
     setIsSubmitting(true);
     
     try {
-      const success = await login(signInForm.username, signInForm.password);
+      const success = await login(signInForm.email, signInForm.password);
       
       if (success) {
         toast({
@@ -52,7 +52,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
       } else {
         toast({
           title: "Sign in failed",
-          description: "Invalid username or password. Try 'curious_reader' or 'admin_user' for demo.",
+          description: "Invalid email or password.",
           variant: "destructive",
         });
       }
@@ -71,21 +71,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
     <form onSubmit={handleSignIn}>
       <CardContent className="space-y-4 mt-4">
         <div className="space-y-2">
-          <Label htmlFor="signin-username">Username</Label>
+          <Label htmlFor="signin-email">Email</Label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
             <Input 
-              id="signin-username" 
-              name="username"
-              placeholder="Your username" 
+              id="signin-email" 
+              name="email"
+              type="email"
+              placeholder="Your email" 
               className="pl-10"
-              value={signInForm.username}
+              value={signInForm.email}
               onChange={handleSignInChange}
               disabled={isSubmitting}
               required
             />
           </div>
-          <p className="text-xs text-gray-500">Demo: try "curious_reader" (reader) or "admin_user" (admin)</p>
         </div>
         
         <div className="space-y-2">
@@ -104,7 +104,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
               required
             />
           </div>
-          <p className="text-xs text-gray-500">Any password will work in demo mode</p>
         </div>
       </CardContent>
       

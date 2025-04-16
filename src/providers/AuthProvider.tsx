@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { AuthContextType } from '@/types/AuthTypes';
 import { fetchUserProfile, checkRoleAccess } from '@/utils/authUtils';
-import { useDemoAuth } from '@/hooks/useDemoAuth';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -15,7 +14,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
-  const { isDemoEmail, handleDemoLogin, handleDemoLogout, checkDemoSession } = useDemoAuth();
 
   // Check for existing session on mount
   useEffect(() => {
@@ -30,14 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (currentSession) {
           setSession(currentSession);
-          
-          // First check if we're in demo mode
-          const demoUser = checkDemoSession();
-          if (demoUser) {
-            setCurrentUser(demoUser);
-            setIsLoading(false);
-            return;
-          }
           
           // Get user profile data
           const profile = await fetchUserProfile(currentSession.user.id);
@@ -57,24 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     
-    getInitialSession();
-    
     // Set up auth state listener FIRST, before checking the session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       console.log('Auth state changed:', event, newSession ? 'Session active' : 'No session');
       setSession(newSession);
-      
-      // For demo mode, no need to fetch profile
-      const demoUser = checkDemoSession();
-      if (demoUser) {
-        if (!newSession) {
-          console.log('Demo user logged out');
-          setCurrentUser(null);
-        } else {
-          setCurrentUser(demoUser);
-        }
-        return;
-      }
       
       // For real auth, handle session changes
       if (newSession) {
@@ -89,6 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
     
+    getInitialSession();
+    
     // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
@@ -98,16 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
-      // For demonstration, if email includes "demo", use mock data
-      if (isDemoEmail(email)) {
-        const user = handleDemoLogin(email);
-        if (user) {
-          setCurrentUser(user);
-          return true;
-        }
-        return false;
-      }
       
       // Real Supabase authentication
       console.log('Attempting Supabase login for:', email);
@@ -154,14 +122,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Mock data logout
-      if (localStorage.getItem('flyingbus_username')) {
-        handleDemoLogout();
-        setCurrentUser(null);
-        setSession(null);
-        return;
-      }
-      
       // Real Supabase logout
       const { error } = await supabase.auth.signOut();
       

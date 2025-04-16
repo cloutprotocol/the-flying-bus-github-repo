@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { DrawerFooter } from "@/components/ui/drawer";
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DrawerSignUpFormProps {
   isSubmitting: boolean;
@@ -20,7 +20,6 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
   onSuccess
 }) => {
   const { toast } = useToast();
-  const { login } = useAuth();
   
   const [signUpForm, setSignUpForm] = useState({
     username: '',
@@ -50,46 +49,57 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
       return;
     }
     
-    setTimeout(async () => {
-      try {
-        // In a real app, we would create the user first, then log them in
-        // For demo, just log them in as "curious_reader"
-        const success = await login("curious_reader", signUpForm.password);
-        
-        if (success) {
-          toast({
-            title: "Account created!",
-            description: "Welcome to The Flying Bus! You're now a reader.",
-          });
-          
-          // Reset form
-          setSignUpForm({
-            username: '',
-            displayName: '',
-            email: '',
-            password: '',
-            confirmPassword: '',
-          });
-          
-          // Close drawer
-          onSuccess();
-        } else {
-          toast({
-            title: "Sign up failed",
-            description: "There was an error creating your account. Please try again.",
-            variant: "destructive",
-          });
+    try {
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: signUpForm.email,
+        password: signUpForm.password,
+        options: {
+          data: {
+            username: signUpForm.username,
+            display_name: signUpForm.displayName,
+          }
         }
-      } catch (error) {
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
         toast({
-          title: "An error occurred",
-          description: "Please try again later.",
+          title: "Sign up failed",
+          description: error.message,
           variant: "destructive",
         });
-      } finally {
-        setIsSubmitting(false);
+        return;
       }
-    }, 1000);
+      
+      if (data) {
+        toast({
+          title: "Account created!",
+          description: "Welcome to The Flying Bus! You're now signed in.",
+        });
+        
+        // Reset form
+        setSignUpForm({
+          username: '',
+          displayName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        });
+        
+        // Close drawer
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      toast({
+        title: "An error occurred",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

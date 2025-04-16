@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DrawerFooter } from "@/components/ui/drawer";
-import { Mail, Key, User } from 'lucide-react';
+import { Mail, Key } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -23,7 +23,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
   const { login } = useAuth();
   
   const [signInForm, setSignInForm] = useState({
-    username: '',
+    email: '',
     password: '',
   });
 
@@ -37,7 +37,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const success = await login(signInForm.username, signInForm.password);
+      const success = await login(signInForm.email, signInForm.password);
       
       if (success) {
         toast({
@@ -46,14 +46,14 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
         });
         
         // Reset form
-        setSignInForm({ username: '', password: '' });
+        setSignInForm({ email: '', password: '' });
         
         // Call onSuccess to close the drawer
         onSuccess();
       } else {
         toast({
           title: "Sign in failed",
-          description: "Invalid username or password. Try 'curious_reader' for demo.",
+          description: "Invalid email or password.",
           variant: "destructive",
         });
       }
@@ -71,21 +71,21 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
   return (
     <form onSubmit={handleSignIn} className="space-y-4 p-4">
       <div className="space-y-2">
-        <Label htmlFor="signin-username">Username</Label>
+        <Label htmlFor="signin-email">Email</Label>
         <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
           <Input 
-            id="signin-username" 
-            name="username"
-            placeholder="Your username" 
+            id="signin-email" 
+            name="email"
+            type="email"
+            placeholder="Your email" 
             className="pl-10"
-            value={signInForm.username}
+            value={signInForm.email}
             onChange={handleSignInChange}
             disabled={isSubmitting}
             required
           />
         </div>
-        <p className="text-xs text-gray-500">Demo: try "curious_reader"</p>
       </div>
       
       <div className="space-y-2">
@@ -104,14 +104,13 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
             required
           />
         </div>
-        <p className="text-xs text-gray-500">Any password will work in demo mode</p>
       </div>
       
       <DrawerFooter className="px-0">
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </Button>
-        <Button type="button" variant="outline" className="w-full" onClick={() => setSignInForm({ username: '', password: '' })}>
+        <Button type="button" variant="outline" className="w-full" onClick={() => setSignInForm({ email: '', password: '' })}>
           Cancel
         </Button>
       </DrawerFooter>
