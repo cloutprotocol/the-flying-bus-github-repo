@@ -13,9 +13,6 @@ const commentsData: Record<string, CommentProps[]> = {
       content: 'This is such an inspiring article! I\'m going to see if my school can organize something similar.',
       createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
       likes: 12,
-      replyCount: 2,
-      isModerator: false,
-      isVerified: true,
       replies: [
         {
           id: '1-1',
@@ -29,7 +26,9 @@ const commentsData: Record<string, CommentProps[]> = {
           isModerator: true,
           isVerified: true
         }
-      ]
+      ],
+      isModerator: false,
+      isVerified: true
     }
   ]
 };

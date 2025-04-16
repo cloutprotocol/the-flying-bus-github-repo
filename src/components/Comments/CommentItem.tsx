@@ -22,6 +22,8 @@ export interface CommentProps {
   likes: number;
   replies?: CommentProps[];
   articleId?: string;
+  isModerator?: boolean;
+  isVerified?: boolean;
 }
 
 const CommentItem: React.FC<CommentProps> = ({ 
