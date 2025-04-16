@@ -1,12 +1,10 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DrawerFooter } from "@/components/ui/drawer";
-import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import SignUpFormFields from './SignUpFormFields';
+import DrawerFormActions from './DrawerFormActions';
+import { validateSignUpForm } from './utils/formValidation';
 
 interface DrawerSignUpFormProps {
   isSubmitting: boolean;
@@ -14,35 +12,41 @@ interface DrawerSignUpFormProps {
   onSuccess: () => void;
 }
 
+const initialFormState = {
+  username: '',
+  displayName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+};
+
 const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({ 
   isSubmitting, 
   setIsSubmitting,
   onSuccess
 }) => {
   const { toast } = useToast();
-  
-  const [signUpForm, setSignUpForm] = useState({
-    username: '',
-    displayName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const [signUpForm, setSignUpForm] = useState(initialFormState);
 
   const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSignUpForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const resetForm = () => {
+    setSignUpForm(initialFormState);
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Basic validation
-    if (signUpForm.password !== signUpForm.confirmPassword) {
+    // Validate form
+    const validationResult = validateSignUpForm(signUpForm.password, signUpForm.confirmPassword);
+    if (!validationResult.valid) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
+        title: "Validation Error",
+        description: validationResult.errorMessage,
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -79,13 +83,7 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
         });
         
         // Reset form
-        setSignUpForm({
-          username: '',
-          displayName: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-        });
+        resetForm();
         
         // Close drawer
         onSuccess();
@@ -104,110 +102,18 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4 p-4">
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input 
-            id="username" 
-            name="username"
-            placeholder="Pick a username" 
-            className="pl-10"
-            value={signUpForm.username}
-            onChange={handleSignUpChange}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      </div>
+      <SignUpFormFields
+        formValues={signUpForm}
+        onValueChange={handleSignUpChange}
+        isSubmitting={isSubmitting}
+      />
       
-      <div className="space-y-2">
-        <Label htmlFor="displayName">Display Name</Label>
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input 
-            id="displayName" 
-            name="displayName"
-            placeholder="How should we call you?" 
-            className="pl-10"
-            value={signUpForm.displayName}
-            onChange={handleSignUpChange}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input 
-            id="email" 
-            name="email"
-            type="email" 
-            placeholder="your@email.com" 
-            className="pl-10"
-            value={signUpForm.email}
-            onChange={handleSignUpChange}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input 
-            id="password" 
-            name="password"
-            type="password" 
-            placeholder="Create a password" 
-            className="pl-10"
-            value={signUpForm.password}
-            onChange={handleSignUpChange}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <div className="relative">
-          <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-          <Input 
-            id="confirmPassword" 
-            name="confirmPassword"
-            type="password" 
-            placeholder="Confirm your password" 
-            className="pl-10"
-            value={signUpForm.confirmPassword}
-            onChange={handleSignUpChange}
-            disabled={isSubmitting}
-            required
-          />
-        </div>
-      </div>
-      
-      <DrawerFooter className="px-0">
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating Account...' : 'Create Account'}
-        </Button>
-        <Button type="button" variant="outline" className="w-full" onClick={() => {
-          setSignUpForm({
-            username: '',
-            displayName: '',
-            email: '',
-            password: '',
-            confirmPassword: '',
-          });
-        }}>
-          Cancel
-        </Button>
-      </DrawerFooter>
+      <DrawerFormActions
+        isSubmitting={isSubmitting}
+        submitLabel="Create Account"
+        submittingLabel="Creating Account..."
+        onCancel={resetForm}
+      />
     </form>
   );
 };
