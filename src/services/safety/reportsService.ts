@@ -58,20 +58,26 @@ export const getSafetyReports = async (
     const reports: SafetyReport[] = data?.map(item => {
       // Safely extract reporter data if available
       let reporterData = undefined;
-      if (typeof item.reporter === 'object' && item.reporter !== null) {
-        reporterData = { 
-          display_name: item.reporter.display_name || 'Unknown',
-          avatar_url: item.reporter.avatar_url || ''
-        };
+      if (item.reporter && typeof item.reporter === 'object') {
+        const reporter = item.reporter as { display_name?: string; avatar_url?: string } | null;
+        if (reporter) {
+          reporterData = { 
+            display_name: reporter.display_name || 'Unknown',
+            avatar_url: reporter.avatar_url || ''
+          };
+        }
       }
       
       // Safely extract reviewer data if available
       let reviewerData = undefined;
-      if (typeof item.reviewer === 'object' && item.reviewer !== null) {
-        reviewerData = {
-          display_name: item.reviewer.display_name || 'Unknown',
-          avatar_url: item.reviewer.avatar_url || ''
-        };
+      if (item.reviewer && typeof item.reviewer === 'object') {
+        const reviewer = item.reviewer as { display_name?: string; avatar_url?: string } | null;
+        if (reviewer) {
+          reviewerData = {
+            display_name: reviewer.display_name || 'Unknown',
+            avatar_url: reviewer.avatar_url || ''
+          };
+        }
       }
       
       return {
