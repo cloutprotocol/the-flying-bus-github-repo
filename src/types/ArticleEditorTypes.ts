@@ -1,0 +1,26 @@
+
+export interface ArticleFormData {
+  title: string;
+  content: string;
+  excerpt: string;
+  imageUrl: string;
+  categoryId: string;
+  articleType: 'standard' | 'video' | 'debate' | 'storyboard';
+  videoUrl?: string;
+  debateSettings?: {
+    question: string;
+    yesPosition: string;
+    noPosition: string;
+    votingEnabled: boolean;
+    votingEndsAt?: string;
+  };
+}
+
+export interface ArticleDraft extends ArticleFormData {
+  id: string;
+  status: 'draft' | 'pending' | 'published' | 'archived';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DraftSaveStatus = 'idle' | 'saving' | 'saved' | 'error';

@@ -20,11 +20,7 @@ const VideoFormSection: React.FC<VideoFormSectionProps> = ({ form }) => {
           <FormLabel>Video URL</FormLabel>
           <Input 
             placeholder="Enter YouTube or Vimeo URL" 
-            onChange={(e) => {
-              // Store in form data
-              const formData = form.getValues();
-              formData.videoUrl = e.target.value;
-            }} 
+            {...form.register('videoUrl')}
           />
         </div>
       </CardContent>
