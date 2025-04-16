@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import logger, { LogSource } from '@/utils/logger';
 import { ArticleDraft } from '@/types/ArticleEditorTypes';
@@ -149,8 +148,8 @@ export const getDraftById = async (
       status: data.status as any,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      videoUrl: data.video_articles?.length ? data.video_articles[0].video_url : undefined,
-      debateSettings: data.debate_articles?.length ? {
+      videoUrl: data.video_articles && data.video_articles[0] ? data.video_articles[0].video_url : undefined,
+      debateSettings: data.debate_articles && data.debate_articles[0] ? {
         question: data.debate_articles[0].question,
         yesPosition: data.debate_articles[0].yes_position,
         noPosition: data.debate_articles[0].no_position,

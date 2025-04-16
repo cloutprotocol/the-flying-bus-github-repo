@@ -27,10 +27,10 @@ export interface ArticleRevision {
   id: string;
   articleId: string;
   editorId: string;
+  editorName: string; // Added this property to match what's used in RevisionsList
   content: string;
   revisionNote?: string;
   createdAt: string;
 }
 
 export type DraftSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-

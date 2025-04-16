@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Restore, Eye } from 'lucide-react';
+import { RotateCcw, Eye } from 'lucide-react';
 import { ArticleRevision } from '@/types/ArticleEditorTypes';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -83,7 +83,7 @@ const RevisionsList: React.FC<RevisionsListProps> = ({
                   size="sm"
                   onClick={() => onRestoreRevision(revision.content)}
                 >
-                  <Restore className="h-4 w-4 mr-1" /> Restore
+                  <RotateCcw className="h-4 w-4 mr-1" /> Restore
                 </Button>
               </div>
             </div>
