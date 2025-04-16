@@ -6,13 +6,14 @@ import { RainbowButton } from "./rainbow-button"
 import { useAuth } from "@/contexts/AuthContext"
 import UserMenu from "@/components/auth/UserMenu"
 import { DrawerAuth } from "@/components/ui/drawer-auth"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface HeaderButtonsProps {
   className?: string
 }
 
 export const HeaderButtons: React.FC<HeaderButtonsProps> = ({ className }) => {
-  const { isLoggedIn, isLoading } = useAuth();
+  const { isLoggedIn, isLoading, currentUser } = useAuth();
 
   if (isLoading) {
     return (
@@ -28,7 +29,10 @@ export const HeaderButtons: React.FC<HeaderButtonsProps> = ({ className }) => {
   if (isLoggedIn) {
     return (
       <div className={`flex items-center space-x-3 ${className}`}>
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-700">
+            {currentUser?.displayName}
+          </span>
           <UserMenu />
         </div>
       </div>

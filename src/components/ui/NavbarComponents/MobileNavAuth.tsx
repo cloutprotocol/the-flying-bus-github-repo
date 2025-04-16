@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, User, BookOpen, Loader2 } from 'lucide-react';
+import { LogOut, User, BookOpen, Loader2, Settings } from 'lucide-react';
 import { SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { RainbowButton } from '@/components/ui/rainbow-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const MobileNavAuth: React.FC = () => {
   const { isLoggedIn, currentUser, logout, isLoading } = useAuth();
@@ -22,23 +23,52 @@ const MobileNavAuth: React.FC = () => {
 
   if (isLoggedIn && currentUser) {
     return (
-      <div className="space-y-3">
-        <SheetClose asChild>
-          <Link 
-            to={`/profile/${currentUser.username}`}
-            className="flex items-center text-base py-2"
+      <div className="space-y-4 py-2">
+        <div className="flex items-center gap-3 px-2 py-3">
+          <Avatar className="h-10 w-10 border-2 border-gray-100">
+            <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
+            <AvatarFallback className="bg-gray-700 text-white">
+              {currentUser.displayName.split(' ')
+                .map(name => name[0])
+                .join('')
+                .toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">{currentUser.displayName}</span>
+            <span className="text-xs text-gray-500">@{currentUser.username}</span>
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <SheetClose asChild>
+            <Link 
+              to={`/profile/${currentUser.username}`}
+              className="flex items-center text-base py-2"
+            >
+              <User size={16} className="mr-2" />
+              <span>My Profile</span>
+            </Link>
+          </SheetClose>
+          
+          <SheetClose asChild>
+            <Link 
+              to={`/profile/${currentUser.username}/edit`}
+              className="flex items-center text-base py-2"
+            >
+              <Settings size={16} className="mr-2" />
+              <span>Edit Profile</span>
+            </Link>
+          </SheetClose>
+          
+          <button 
+            onClick={() => logout()}
+            className="flex items-center text-base py-2 w-full text-left"
           >
-            <User size={16} className="mr-2" />
-            <span>My Profile</span>
-          </Link>
-        </SheetClose>
-        <button 
-          onClick={() => logout()}
-          className="flex items-center text-base py-2 w-full text-left"
-        >
-          <LogOut size={16} className="mr-2" />
-          <span>Log out</span>
-        </button>
+            <LogOut size={16} className="mr-2" />
+            <span>Log out</span>
+          </button>
+        </div>
       </div>
     );
   }
