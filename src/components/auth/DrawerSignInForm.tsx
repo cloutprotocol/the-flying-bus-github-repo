@@ -44,17 +44,23 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
       const success = await login(signInForm.email, signInForm.password);
       
       if (success) {
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in.",
-        });
+        console.log('Login successful, resetting form and calling onSuccess');
         
         // Reset form
         resetForm();
         
-        // Call onSuccess to close the drawer
-        onSuccess();
+        // Delay closing drawer slightly to allow auth state to update
+        setTimeout(() => {
+          // Call onSuccess to close the drawer
+          onSuccess();
+          
+          toast({
+            title: "Welcome back!",
+            description: "You've successfully signed in.",
+          });
+        }, 300);
       } else {
+        console.log('Login failed');
         toast({
           title: "Sign in failed",
           description: "Invalid email or password.",

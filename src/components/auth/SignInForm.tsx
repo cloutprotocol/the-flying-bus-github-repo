@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
-import { Key, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import SignInFormFields from './SignInFormFields';
 
 interface SignInFormProps {
   onSwitchTab: () => void;
@@ -24,13 +22,15 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
     email: '',
     password: '',
   });
+  const [hasAttemptedLogin, setHasAttemptedLogin] = useState(false);
 
-  // If user is already logged in, redirect
+  // If user is already logged in or becomes logged in after a login attempt, redirect
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && (redirectPath || hasAttemptedLogin)) {
+      console.log('User is logged in, redirecting to:', redirectPath || '/');
       navigate(redirectPath || '/', { replace: true });
     }
-  }, [isLoggedIn, navigate, redirectPath]);
+  }, [isLoggedIn, navigate, redirectPath, hasAttemptedLogin]);
 
   const handleSignInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,12 +45,17 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
       console.log('Attempting login with:', signInForm.email);
       const success = await login(signInForm.email, signInForm.password);
       
+      setHasAttemptedLogin(true);
+      
       if (success) {
+        console.log('Login successful');
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
         });
+        // The useEffect will handle navigation after successful login
       } else {
+        console.log('Login failed');
         toast({
           title: "Sign in failed",
           description: "Invalid email or password.",
@@ -72,41 +77,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
   return (
     <form onSubmit={handleSignIn}>
       <CardContent className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label htmlFor="signin-email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-            <Input 
-              id="signin-email" 
-              name="email"
-              type="email"
-              placeholder="Your email" 
-              className="pl-10"
-              value={signInForm.email}
-              onChange={handleSignInChange}
-              disabled={isSubmitting}
-              required
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="signin-password">Password</Label>
-          <div className="relative">
-            <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-            <Input 
-              id="signin-password" 
-              name="password"
-              type="password" 
-              placeholder="Your password" 
-              className="pl-10"
-              value={signInForm.password}
-              onChange={handleSignInChange}
-              disabled={isSubmitting}
-              required
-            />
-          </div>
-        </div>
+        <SignInFormFields
+          formValues={signInForm}
+          onValueChange={handleSignInChange}
+          isSubmitting={isSubmitting}
+        />
       </CardContent>
       
       <CardFooter className="flex flex-col gap-4">

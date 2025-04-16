@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DrawerSignInForm from "@/components/auth/DrawerSignInForm";
 import DrawerSignUpForm from "@/components/auth/DrawerSignUpForm";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DrawerAuthProps {
   triggerComponent: React.ReactNode;
@@ -32,6 +32,11 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
       setIsOpen(false);
     }
   }, [isLoggedIn, isOpen]);
+
+  const handleFormSuccess = () => {
+    console.log('Form success callback triggered, closing drawer');
+    setIsOpen(false);
+  };
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
@@ -61,10 +66,7 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
               <DrawerSignInForm 
                 isSubmitting={isSubmitting} 
                 setIsSubmitting={setIsSubmitting} 
-                onSuccess={() => {
-                  console.log('Sign-in success callback triggered');
-                  setIsOpen(false);
-                }}
+                onSuccess={handleFormSuccess}
               />
             </TabsContent>
             
@@ -72,10 +74,7 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
               <DrawerSignUpForm 
                 isSubmitting={isSubmitting} 
                 setIsSubmitting={setIsSubmitting}
-                onSuccess={() => {
-                  console.log('Sign-up success callback triggered');
-                  setIsOpen(false);
-                }}
+                onSuccess={handleFormSuccess}
               />
             </TabsContent>
           </Tabs>

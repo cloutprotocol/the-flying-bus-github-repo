@@ -38,7 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
               console.error('Could not load user profile');
             }
+            setIsLoading(false);
           }, 0);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Auth error during initial session check:', error);
@@ -47,7 +50,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "An error occurred during authentication",
           variant: "destructive",
         });
-      } finally {
         setIsLoading(false);
       }
     }
@@ -67,9 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             console.error('Could not update user profile after auth change');
           }
+          setIsLoading(false);
         }, 0);
       } else {
         setCurrentUser(null);
+        setIsLoading(false);
       }
     });
     
@@ -98,18 +102,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
+        setIsLoading(false);
         return false;
       }
       
       if (data.session) {
         console.log('Supabase login successful, session:', data.session.user.id);
+        
+        // We'll let the onAuthStateChange handle setting the user state
+        // This ensures consistent state management
+        
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in",
         });
+        
         return true;
       }
       
+      setIsLoading(false);
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -118,9 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "An unexpected error occurred",
         variant: "destructive",
       });
-      return false;
-    } finally {
       setIsLoading(false);
+      return false;
     }
   };
 
