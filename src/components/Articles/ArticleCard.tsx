@@ -1,149 +1,91 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { getCategoryColor } from '@/utils/categoryColors';
-import { BookOpen } from 'lucide-react';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export interface ArticleProps {
   id: string;
   title: string;
   excerpt: string;
-  imageUrl: string;
+  content?: string;
+  imageUrl?: string;
   category: string;
+  categorySlug?: string;
+  categoryColor?: string;
+  categoryId?: string;
   readingLevel: string;
   readTime: number;
   author: string;
   date: string;
+  publishDate: string;
   commentCount?: number;
-  videoUrl?: string;
-  duration?: string;
-  publishDate?: string;
+  articleType?: string;
 }
 
-const ArticleCard: React.FC<ArticleProps> = ({ 
+interface ArticleCardProps extends ArticleProps {
+  className?: string;
+}
+
+const ArticleCard: React.FC<ArticleCardProps> = ({
   id,
-  title, 
-  excerpt, 
-  imageUrl, 
-  category, 
-  readingLevel, 
+  title,
+  excerpt,
+  imageUrl,
+  category,
+  categoryColor,
+  readingLevel,
   readTime,
   author,
   date,
-  commentCount = 0,
-  videoUrl,
-  duration
+  className,
 }) => {
-  const categoryColor = getCategoryColor(category);
-  
-  const isVideo = !!videoUrl;
-  
-  const getArticleUrl = () => {
-    if (category === 'Storyboard') {
-      return `/storyboard/${id}`;
-    }
-    return `/articles/${id}`;
+  // Get category color class
+  const getCategoryColorClass = (colorName?: string) => {
+    if (!colorName) return 'bg-flyingbus-red';
+    return `bg-flyingbus-${colorName}`;
   };
-  
+
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl shadow-md transition hover:shadow-lg bg-white">
-      <div className="relative">
-        <AspectRatio ratio={16/9} className="bg-gray-100">
-          <img 
-            src={imageUrl} 
+    <Card className={cn("overflow-hidden h-full flex flex-col", className)}>
+      <div className="relative h-40 overflow-hidden">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-        </AspectRatio>
-        
-        <div className="absolute top-0 left-0 m-4">
-          <span 
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${categoryColor}`}
-          >
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-400">No image</span>
+          </div>
+        )}
+        <div className="absolute top-2 left-2">
+          <Badge className={cn("text-white", getCategoryColorClass(categoryColor))}>
             {category}
-          </span>
+          </Badge>
         </div>
-        
-        {isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="rounded-full bg-white/30 p-3 backdrop-blur">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className="text-white drop-shadow-lg"
-              >
-                <polygon points="5 3 19 12 5 21 5 3" fill="white" />
-              </svg>
-            </div>
-          </div>
-        )}
-        
-        {isVideo && duration && (
-          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-            {duration}
-          </div>
-        )}
       </div>
       
-      <div className="flex flex-col gap-2 p-4 flex-grow">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span className="flex items-center">
-            <BookOpen size={12} className="mr-1" />
-            {readTime} min read
-          </span>
-          <span>Reading Level: {readingLevel}</span>
-        </div>
-        
-        <h3 className="font-bold leading-tight text-xl line-clamp-2 text-gray-900 font-display">
-          <Link to={getArticleUrl()} className="hover:text-gray-700">
+      <CardContent className="pt-4 flex-grow">
+        <Link to={`/articles/${id}`}>
+          <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
             {title}
-          </Link>
-        </h3>
-        
-        <p className="text-sm text-gray-600 line-clamp-3 flex-grow">{excerpt}</p>
-        
-        <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
-          <div className="flex items-center">
-            <img
-              src={author}
-              alt={author}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-            <div className="ml-2">
-              <h3 className="text-xs font-medium">{author}</h3>
-              <p className="text-xs text-gray-500">{date}</p>
-            </div>
-          </div>
-          
-          {commentCount > 0 && (
-            <span className="flex items-center text-xs text-gray-500">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className="mr-1"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {commentCount}
-            </span>
-          )}
+          </h3>
+        </Link>
+        <p className="text-gray-600 text-sm line-clamp-3">{excerpt}</p>
+      </CardContent>
+      
+      <CardFooter className="pt-0 pb-4 text-xs text-gray-500 flex items-center justify-between">
+        <div>
+          <span>{author}</span> • <span>{date}</span>
         </div>
-      </div>
-    </div>
+        <div>
+          <span>{readTime} min read</span>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
