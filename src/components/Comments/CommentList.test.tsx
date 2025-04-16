@@ -1,5 +1,5 @@
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@/test/TestRenderer';
 import CommentList from './CommentList';
 
@@ -14,10 +14,10 @@ describe('CommentList', () => {
       },
       content: 'This is comment one',
       createdAt: new Date('2023-01-01'),
-      replyCount: 0,
-      likeCount: 5,
+      likes: 5,
       isLiked: false,
-      replies: []
+      replies: [],
+      articleId: 'article-123'
     },
     {
       id: '2',
@@ -28,10 +28,10 @@ describe('CommentList', () => {
       },
       content: 'This is comment two',
       createdAt: new Date('2023-01-02'),
-      replyCount: 2,
-      likeCount: 10,
+      likes: 10,
       isLiked: true,
-      replies: []
+      replies: [],
+      articleId: 'article-123'
     }
   ];
   

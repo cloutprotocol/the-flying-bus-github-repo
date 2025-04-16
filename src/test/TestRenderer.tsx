@@ -4,8 +4,9 @@ import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthContext } from '@/contexts/AuthContext';
+import { AuthContext } from '@/providers/AuthProvider';
 import { ValidationProvider } from '@/providers/ValidationProvider';
+import { vi } from 'vitest';
 
 // Sample user for testing
 const testUser = {
