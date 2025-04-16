@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const UserMenu = () => {
   const { currentUser, logout } = useAuth();
@@ -52,17 +52,25 @@ const UserMenu = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to={`/profile/${currentUser.username}`} className="flex items-center">
+          <Link to={`/profile/${currentUser.id}`} className="flex items-center">
             <User className="mr-2 h-4 w-4" />
             <span>My Profile</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to={`/profile/${currentUser.username}/edit`} className="flex items-center">
+          <Link to="/profile/edit" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />
             <span>Edit Profile</span>
           </Link>
         </DropdownMenuItem>
+        {currentUser.role !== 'reader' && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin/dashboard" className="flex items-center">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Admin Portal</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />

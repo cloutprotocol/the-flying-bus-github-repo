@@ -10,15 +10,8 @@ interface AdminPortalLayoutProps {
 }
 
 const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }) => {
-  const { currentUser, isLoggedIn, isLoading } = useAuth();
+  const { currentUser } = useAuth();
   
-  // Show loading state while checking auth
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Checking permissions...</div>;
-  }
-
-  // Only render admin portal if user is authenticated and authorized
-  // NOTE: We don't need to handle redirects here since ProtectedRoute will do that
   return (
     <div className="flex flex-col min-h-screen">
       <AuthDebugPanel />

@@ -25,9 +25,11 @@ const ReaderAuth = () => {
 
   // If user is already logged in, redirect to home or the redirect param
   useEffect(() => {
-    if (isLoggedIn && !isLoading) {
+    if (isLoggedIn && !isLoading && currentUser) {
+      console.log('User logged in as:', currentUser.username, 'with role:', currentUser.role);
+      
       // If trying to access admin area, check for proper role first
-      if (redirectParam?.includes('/admin') && currentUser) {
+      if (redirectParam?.includes('/admin')) {
         // Check if user has admin role before redirecting to admin
         const adminRoles = ['admin', 'moderator', 'author'];
         if (adminRoles.includes(currentUser.role)) {
