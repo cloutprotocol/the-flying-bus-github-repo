@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import logger, { LogSource } from '@/utils/logger';
 import { toast } from 'sonner';
@@ -60,22 +59,27 @@ export const getFlaggedComments = async (
     }
     
     // Transform the data for the UI
-    const comments = data?.map(comment => ({
-      id: comment.id,
-      content: comment.content,
-      author: {
-        id: comment.user_id,
-        name: comment.profiles?.display_name || 'Unknown User',
-        avatar: comment.profiles?.avatar_url || '',
-      },
-      articleId: comment.article_id,
-      articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
-      createdAt: new Date(comment.created_at),
-      status: comment.status || 'pending',
-      reason: comment.flagged_content?.length > 0 ? comment.flagged_content[0].reason : '',
-      reportedBy: comment.flagged_content?.length > 0 ? 
-        (comment.flagged_content[0].reporter_id ? 'User' : 'System') : '',
-    })) || [];
+    const comments = data?.map(comment => {
+      // Ensure flagged_content is an array and not empty
+      const flaggedContentArray = Array.isArray(comment.flagged_content) ? comment.flagged_content : [];
+      const firstFlaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {};
+      
+      return {
+        id: comment.id,
+        content: comment.content,
+        author: {
+          id: comment.user_id,
+          name: comment.profiles?.display_name || 'Unknown User',
+          avatar: comment.profiles?.avatar_url || '',
+        },
+        articleId: comment.article_id,
+        articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
+        createdAt: new Date(comment.created_at),
+        status: comment.status || 'pending',
+        reason: firstFlaggedContent.reason || '',
+        reportedBy: firstFlaggedContent.reporter_id ? 'User' : 'System',
+      };
+    }) || [];
     
     logger.info(LogSource.DATABASE, 'Flagged comments fetched successfully', { 
       count, 

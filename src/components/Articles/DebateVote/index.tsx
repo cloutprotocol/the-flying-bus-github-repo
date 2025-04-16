@@ -35,8 +35,9 @@ const DebateVote = ({
     handleVote
   } = useVoting(debateId, initialVotes);
 
+  // Modified this line to pass only one argument as expected by the useVoting hook
   const onVote = (choice: 'yes' | 'no') => {
-    handleVote(choice, isLoggedIn);
+    handleVote(choice);
   };
 
   return (

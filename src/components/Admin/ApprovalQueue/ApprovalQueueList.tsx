@@ -13,13 +13,14 @@ import { Button } from '@/components/ui/button';
 import { Check, XCircle, MessageSquare, Clock, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { StatusType } from '../Status/StatusBadge';
 
-// Data interface for the approval queue
+// Updated the interface to use StatusType from StatusBadge
 export interface ArticleReviewItem {
   id: string;
   title: string;
   author: string;
-  status: 'pending' | 'published' | 'rejected' | 'draft';
+  status: StatusType;
   submittedAt: Date;
   category: string;
   priority: 'low' | 'medium' | 'high';
