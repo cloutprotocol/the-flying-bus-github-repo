@@ -143,16 +143,6 @@ This document serves as a master checklist tracking both completed and pending t
 - [ ] Implement multi-factor authentication for admin accounts
 - [ ] Create account verification workflow
 
-## Teacher Resources
-
-### 🔲 Teacher Resources
-- [ ] Build classroom management tools
-- [ ] Create lesson plan components
-- [ ] Implement class submission system
-- [ ] Add teacher feedback mechanisms
-- [ ] Connect teacher resources to backend data storage
-- [ ] Create classroom activity reporting
-
 ## Safety & Moderation
 
 ### 🔲 Content Moderation
@@ -321,8 +311,6 @@ This document serves as a master checklist tracking both completed and pending t
 - [ ] Create mobile app version
 - [x] Implement social sharing capabilities
 - [ ] Add internationalization support
-- [ ] Build school/classroom networks feature
 - [ ] Create featured journalist spotlights
 - [ ] Implement reader gamification system with achievements and badges
 - [ ] Build reader engagement analytics dashboard
-
