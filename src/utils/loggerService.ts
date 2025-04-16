@@ -90,6 +90,7 @@ function formatConsoleMessage(entry: LogEntry): string {
 
 /**
  * Send log to server
+ * Note: Currently disabled until a logs table is created in the database
  */
 async function sendLogToServer(entry: LogEntry): Promise<void> {
   try {
@@ -105,17 +106,24 @@ async function sendLogToServer(entry: LogEntry): Promise<void> {
     entry.url = window.location.href;
     entry.userAgent = navigator.userAgent;
 
-    // Send to Supabase logs table if it exists
-    // This is a fire-and-forget operation
-    supabase.from('logs').insert([entry]).then(() => {
-      // Successful log submission
-    }).catch(error => {
-      // If error sending log, output to console as fallback
-      console.error('Failed to send log to server:', error);
-    });
+    // Since there's no 'logs' table, we'll store in article_views for now
+    // with minimal information as a fallback
+    if (entry.level === LogLevel.ERROR || entry.level === LogLevel.FATAL) {
+      // Only log errors and fatal errors to article_views as a temporary solution
+      // This is just a fallback mechanism until a proper logs table is created
+      await supabase.from('article_views').insert({
+        article_id: 'system-log', // Special identifier for system logs
+        ip_address: entry.level, // Misusing this field to store log level
+      });
+    }
+    
+    // Rest of logs are stored in localStorage
+    persistLogToStorage(entry);
   } catch (error) {
     // Fallback to console if everything fails
     console.error('Error in logging system:', error);
+    // Ensure logs are at least stored locally
+    persistLogToStorage(entry);
   }
 }
 
@@ -199,9 +207,8 @@ export function logMessage(
 
   // Send to server if enabled and level is info or higher
   if (config.sendToServer) {
-    sendLogToServer(entry).catch(e => {
-      console.error('Failed to send log to server:', e);
-    });
+    // We use void to indicate we're intentionally not waiting for this promise
+    void sendLogToServer(entry);
   }
 }
 
