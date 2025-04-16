@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
@@ -5,7 +6,7 @@ import {
   rejectComment, 
   flagComment 
 } from '@/services/commentService';
-import { logModerationAction } from '@/services/moderation';
+import { logModerationAction } from '@/services/moderationService';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
