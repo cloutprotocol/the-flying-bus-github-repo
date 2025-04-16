@@ -9,20 +9,24 @@ import ArticleSidebar from '@/components/Articles/ArticleSidebar';
 import ArticleFooter from '@/components/Articles/ArticleFooter';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { 
-  fetchArticleById, 
-  trackArticleView, 
   isDebateArticle,
   isStoryboardArticle,
   fetchDebateSettings,
   fetchRelatedArticles 
 } from '@/utils/articleUtils';
+import { 
+  fetchArticleWithCache,
+  trackArticleViewWithRetry
+} from '@/utils/articleSync';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/use-toast';
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [article, setArticle] = useState<ArticleProps | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<ArticleProps[]>([]);
@@ -36,18 +40,23 @@ const ArticlePage = () => {
       setIsLoading(true);
       
       try {
-        // Fetch the article
-        const articleData = await fetchArticleById(articleId);
+        // Fetch the article with caching
+        const articleData = await fetchArticleWithCache(articleId);
         
         if (!articleData) {
           setIsLoading(false);
+          toast({
+            title: "Article not found",
+            description: "We couldn't find the article you're looking for.",
+            variant: "destructive"
+          });
           return;
         }
         
         setArticle(articleData);
         
-        // Track the article view
-        trackArticleView(articleId, user?.id);
+        // Track the article view with retry
+        trackArticleViewWithRetry(articleId, user?.id);
         
         // If it's a debate article, fetch the debate settings
         if (isDebateArticle(articleData.articleType)) {
@@ -62,13 +71,18 @@ const ArticlePage = () => {
         }
       } catch (error) {
         console.error('Error loading article:', error);
+        toast({
+          title: "Error loading article",
+          description: "Something went wrong. Please try again later.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     loadArticle();
-  }, [articleId, user?.id]);
+  }, [articleId, user?.id, toast]);
 
   // Redirect to Storyboard page if it's a storyboard article
   useEffect(() => {

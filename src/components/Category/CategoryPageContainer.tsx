@@ -6,23 +6,17 @@ import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import { getCategoryFromSlug } from '@/components/Category/CategoryHelpers';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
-import { fetchArticlesByCategory, fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
+import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
+import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
 
 interface CategoryPageContainerProps {
   category?: string;
 }
 
-const ARTICLES_PER_PAGE = 6;
-
 const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category: propCategory }) => {
-  // State for sorting, filtering and pagination
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'a-z'>('newest');
+  // State for filtering and category data
   const [selectedReadingLevel, setSelectedReadingLevel] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [paginatedArticles, setPaginatedArticles] = useState<any[]>([]);
-  const [totalArticles, setTotalArticles] = useState(0);
   const [displayCategory, setDisplayCategory] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<any | null>(null);
   
@@ -36,54 +30,52 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   // Use prop category if provided, otherwise use parameter, then path
   const categorySlug = propCategory || categoryId || pathCategory;
 
-  // Load category and articles data
+  // Initialize the article pagination hook
+  const {
+    articles: paginatedArticles,
+    isLoading,
+    totalPages,
+    currentPage,
+    setPage,
+    setSortBy,
+    setCategory,
+    setReadingLevel,
+    clearFilters
+  } = useArticlePagination({
+    sortBy: 'newest' as ArticleSortType,
+    pageSize: 6
+  });
+  
+  // Load category data
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
-      
       try {
         // Fetch category data
         const category = await fetchCategoryBySlug(categorySlug);
         
         if (!category) {
-          setIsLoading(false);
           return;
         }
         
         setCategoryData(category);
         setDisplayCategory(category.name);
+        setCategory(category.id);
         
         // Fetch reading levels
         const levels = await fetchReadingLevelsForCategory(category.id);
         setAvailableReadingLevels(levels);
-        
-        // Fetch articles with server-side filtering
-        const { articles, count } = await fetchArticlesByCategory(
-          category.id,
-          {
-            readingLevel: selectedReadingLevel,
-            sortBy,
-            page: currentPage,
-            itemsPerPage: ARTICLES_PER_PAGE
-          }
-        );
-        
-        setPaginatedArticles(articles);
-        setTotalArticles(count);
       } catch (error) {
         console.error('Error fetching category data:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
     
     fetchData();
-  }, [categorySlug, selectedReadingLevel, sortBy, currentPage]);
+  }, [categorySlug, setCategory]);
   
-  // Reset to first page when filters change
+  // Update reading level filter
   useEffect(() => {
-    setCurrentPage(1);
-  }, [sortBy, selectedReadingLevel]);
+    setReadingLevel(selectedReadingLevel);
+  }, [selectedReadingLevel, setReadingLevel]);
   
   // If no category found, show not found message
   if (!isLoading && !categoryData) {
@@ -96,9 +88,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       </MainLayout>
     );
   }
-  
-  // Calculate total pages
-  const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
   
   // Get category color
   const getCategoryColorClass = (category: string | null): string => {
@@ -115,16 +104,21 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     setSelectedReadingLevel(level);
   };
 
-  // Clear all filters
-  const clearFilters = () => {
-    setSelectedReadingLevel(null);
-    setSortBy('newest');
+  // Handle sort change
+  const handleSortChange = (sort: ArticleSortType) => {
+    setSortBy(sort);
   };
 
-  const hasActiveFilters = selectedReadingLevel !== null || sortBy !== 'newest';
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSelectedReadingLevel(null);
+    clearFilters();
+  };
+
+  const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
   // Render loading skeleton when data is loading
-  if (isLoading) {
+  if (isLoading && !paginatedArticles.length) {
     return <CategoryPageSkeleton />;
   }
 
@@ -138,17 +132,17 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
             { label: 'Home', href: '/' },
             { label: displayCategory || '', active: true }
           ]}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
+          sortBy={isLoading ? 'newest' : 'newest'} // Default to newest
+          onSortChange={handleSortChange}
           availableReadingLevels={availableReadingLevels}
           selectedReadingLevel={selectedReadingLevel}
           onReadingLevelChange={handleReadingLevelChange}
           hasActiveFilters={hasActiveFilters}
-          clearFilters={clearFilters}
+          clearFilters={handleClearFilters}
           paginatedArticles={paginatedArticles}
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={setPage}
         />
       </div>
     </MainLayout>
