@@ -1,3 +1,4 @@
+
 /**
  * Logger Storage
  * Functions for storing logs locally and remotely
@@ -36,12 +37,16 @@ export async function sendLogToServer(entry: LogEntry): Promise<void> {
     const userId = session?.user?.id;
 
     if (userId) {
-      entry.userId = userId;
+      // Add user ID to log entry
+      entry = { ...entry, userId };
     }
 
     // Add browser information
-    entry.url = window.location.href;
-    entry.userAgent = navigator.userAgent;
+    entry = {
+      ...entry,
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    };
 
     // Since there's no 'logs' table, we'll store in article_views for now
     // with minimal information as a fallback

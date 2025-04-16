@@ -27,7 +27,8 @@ export enum LogSource {
   EDITOR = 'editor',
   VALIDATION = 'validation',
   CLIENT = 'client',
-  SERVER = 'server'
+  SERVER = 'server',
+  SAFETY = 'safety'
 }
 
 /**
@@ -39,6 +40,9 @@ export interface LogEntry {
   message: string;
   details?: any;
   timestamp: string;
+  userId?: string;    // User ID for authenticated users
+  url?: string;       // Current page URL
+  userAgent?: string; // Browser user agent
 }
 
 /**
