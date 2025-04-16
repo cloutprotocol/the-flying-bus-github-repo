@@ -28,6 +28,7 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
   // Close drawer when user successfully logs in
   useEffect(() => {
     if (isLoggedIn && isOpen) {
+      console.log('User logged in, closing drawer');
       setIsOpen(false);
     }
   }, [isLoggedIn, isOpen]);
@@ -60,7 +61,10 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
               <DrawerSignInForm 
                 isSubmitting={isSubmitting} 
                 setIsSubmitting={setIsSubmitting} 
-                onSuccess={() => setIsOpen(false)}
+                onSuccess={() => {
+                  console.log('Sign-in success callback triggered');
+                  setIsOpen(false);
+                }}
               />
             </TabsContent>
             
@@ -68,7 +72,10 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
               <DrawerSignUpForm 
                 isSubmitting={isSubmitting} 
                 setIsSubmitting={setIsSubmitting}
-                onSuccess={() => setIsOpen(false)}
+                onSuccess={() => {
+                  console.log('Sign-up success callback triggered');
+                  setIsOpen(false);
+                }}
               />
             </TabsContent>
           </Tabs>

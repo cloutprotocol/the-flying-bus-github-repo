@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { getReaderByUsername } from '@/data/readers';
@@ -33,12 +32,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
+        console.log('Initial auth check:', currentSession ? 'Session found' : 'No session');
+        
         if (currentSession) {
           setSession(currentSession);
           
           // First check if we're in demo mode
           const mockUsername = localStorage.getItem('flyingbus_username');
           if (mockUsername) {
+            console.log('Demo mode active for:', mockUsername);
             const user = getReaderByUsername(mockUsername);
             if (user) {
               setCurrentUser(user);
@@ -93,14 +95,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getInitialSession();
     
     // Set up auth state listener FIRST, before checking the session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      console.log('Auth state changed:', _event, newSession);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log('Auth state changed:', event, newSession ? 'Session active' : 'No session');
       setSession(newSession);
       
       // For demo mode, no need to fetch profile
       const mockUsername = localStorage.getItem('flyingbus_username');
       if (mockUsername) {
         if (!newSession) {
+          console.log('Demo user logged out:', mockUsername);
           setCurrentUser(null);
         }
         return;
@@ -161,13 +164,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // For demonstration, if email includes "demo", use mock data
-      if (email.includes('demo')) {
+      if (email.includes('demo') || email === 'curious_reader') {
+        console.log('Attempting demo login for:', email);
         const mockUsername = email.split('@')[0];
-        const user = getReaderByUsername(mockUsername);
+        const user = getReaderByUsername(mockUsername || email);
         
         if (user) {
+          console.log('Demo login successful:', user.displayName);
           setCurrentUser(user);
-          localStorage.setItem('flyingbus_username', mockUsername);
+          localStorage.setItem('flyingbus_username', user.username);
           
           toast({
             title: "Demo mode",
@@ -180,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Real Supabase authentication
+      console.log('Attempting Supabase login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -196,6 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data.session) {
+        console.log('Supabase login successful');
         // Session will be set by the onAuthStateChange listener
         toast({
           title: "Welcome back!",

@@ -2,6 +2,7 @@
 import React from 'react';
 import ModernHeader from './ModernHeader';
 import Footer from './Footer';
+import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface MainLayoutProps {
 const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
   return (
     <div className="flex flex-col min-h-screen bg-flyingbus-background">
+      <AuthDebugPanel />
       <ModernHeader />
       <main className="flex-grow w-full">
         {fullWidth ? (
@@ -29,4 +31,3 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
 };
 
 export default MainLayout;
-
