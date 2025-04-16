@@ -19,7 +19,7 @@ import { Flag, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
-import { reportContent, ReportType, ContentType } from '@/services/safetyService';
+import { reportContent, ReportType, ContentType } from '@/services/safety';
 import { useValidation } from '@/providers/ValidationProvider';
 import { z } from 'zod';
 

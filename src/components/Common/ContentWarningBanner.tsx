@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   AlertTriangle, 
@@ -12,9 +11,9 @@ import { Button } from '@/components/ui/button';
 import { 
   getContentWarning,
   WarningLevel,
-  WarningCategory
-} from '@/services/safetyService';
-import { ContentType } from '@/services/moderationService';
+  WarningCategory,
+  ContentType
+} from '@/services/safety';
 
 interface ContentWarningBannerProps {
   contentId: string;
@@ -56,7 +55,6 @@ const ContentWarningBanner: React.FC<ContentWarningBannerProps> = ({
     fetchWarning();
   }, [contentId, contentType]);
   
-  // If no warning, or warning dismissed, or still loading, don't show anything
   if (!warning || dismissed || loading || warning.level === 'none') {
     return null;
   }
