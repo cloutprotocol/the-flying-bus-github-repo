@@ -41,6 +41,7 @@ const baseArticleSchema = z.object({
   status: ArticleStatusEnum.optional().default('draft'),
   articleType: ArticleTypeEnum.optional().default('standard'),
   readingLevel: ReadingLevelEnum.optional().default('Intermediate'),
+  videoUrl: urlSchema.optional(), // Added videoUrl to the base schema so it's available everywhere
 });
 
 // Schema for creating a new article

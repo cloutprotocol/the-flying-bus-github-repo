@@ -11,12 +11,17 @@ interface UseZodFormProps<T extends z.ZodType<any, any>> extends Omit<UseFormPro
   logContext?: string;
 }
 
+// Extend the UseFormReturn type to include our custom handleSubmit function
+interface ExtendedUseFormReturn<T> extends UseFormReturn<T> {
+  handleFormSubmit: (onValid?: (data: T) => void) => (e?: React.BaseSyntheticEvent) => Promise<void>;
+}
+
 export function useZodForm<T extends z.ZodType<any, any>>({
   schema,
   onSubmitSuccess,
   logContext = 'form',
   ...formProps
-}: UseZodFormProps<T>): UseFormReturn<z.infer<T>> {
+}: UseZodFormProps<T>): ExtendedUseFormReturn<z.infer<T>> {
   const { validateForm } = useValidation();
   
   const form = useForm<z.infer<T>>({
@@ -25,21 +30,32 @@ export function useZodForm<T extends z.ZodType<any, any>>({
   });
   
   // Custom submit handler with additional validation
-  const onSubmit = form.handleSubmit((data) => {
-    // Double-check validation for extra security
-    const result = validateForm(schema, data, { 
-      context: logContext,
-      showToast: true 
+  const handleFormSubmit = (onValid?: (data: z.infer<T>) => void) => {
+    return form.handleSubmit((data) => {
+      // Double-check validation for extra security
+      const result = validateForm(schema, data, { 
+        context: logContext,
+        showToast: true 
+      });
+      
+      if (result.isValid && result.data) {
+        logger.info(LogSource.CLIENT, `Form submitted successfully: ${logContext}`);
+        
+        // Call the callback provided in this specific submit instance
+        if (onValid) {
+          onValid(result.data);
+        }
+        // Call the general success callback if provided
+        else if (onSubmitSuccess) {
+          onSubmitSuccess(result.data);
+        }
+      }
     });
-    
-    if (result.isValid && result.data && onSubmitSuccess) {
-      logger.info(LogSource.CLIENT, `Form submitted successfully: ${logContext}`);
-      onSubmitSuccess(result.data);
-    }
-  });
+  };
   
+  // Return the form with our custom handleFormSubmit function
   return {
     ...form,
-    onSubmit
+    handleFormSubmit
   };
 }

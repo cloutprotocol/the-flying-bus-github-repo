@@ -23,7 +23,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
   return (
     <FormField
       control={form.control}
-      name="category"
+      name="categoryId" // Changed from 'category' to 'categoryId'
       render={({ field }) => (
         <FormItem className="space-y-3">
           <FormLabel>Category</FormLabel>
