@@ -143,16 +143,7 @@ This document serves as a master checklist tracking both completed and pending t
 - [ ] Implement multi-factor authentication for admin accounts
 - [ ] Create account verification workflow
 
-## Educational Features
-
-### 🔲 Learning Center
-- [ ] Build journalism tutorial sections
-- [ ] Create interactive writing exercises
-- [ ] Implement badge/achievement system
-- [ ] Add writing tips database
-- [ ] Create guided writing templates
-- [ ] Connect learning progress to backend storage
-- [ ] Implement learning analytics system
+## Teacher Resources
 
 ### 🔲 Teacher Resources
 - [ ] Build classroom management tools
@@ -334,3 +325,4 @@ This document serves as a master checklist tracking both completed and pending t
 - [ ] Create featured journalist spotlights
 - [ ] Implement reader gamification system with achievements and badges
 - [ ] Build reader engagement analytics dashboard
+
