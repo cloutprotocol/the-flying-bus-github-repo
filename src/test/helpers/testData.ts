@@ -73,15 +73,30 @@ export function createMockUser(overrides = {}) {
 
 /**
  * Generate an auth session with the given user ID
+ * This creates a more complete mock that matches Supabase's Session type
  */
 export function createMockSession(userId = generateUUID()) {
+  const createdAt = new Date().toISOString();
+  
   return {
     access_token: 'mock-access-token',
     refresh_token: 'mock-refresh-token',
     expires_in: 3600,
     token_type: 'bearer',
     user: {
-      id: userId
+      id: userId,
+      app_metadata: { provider: 'email' },
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: createdAt,
+      updated_at: createdAt,
+      email: 'test@example.com',
+      phone: '',
+      confirmed_at: createdAt,
+      email_confirmed_at: createdAt,
+      phone_confirmed_at: null,
+      last_sign_in_at: createdAt,
+      role: 'authenticated'
     }
   };
 }
