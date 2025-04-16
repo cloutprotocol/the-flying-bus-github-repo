@@ -4,21 +4,28 @@
  * Utility functions for generating consistent test data
  */
 
-import { v4 as uuidv4 } from 'crypto';
+// Generate UUID function for testing
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 /**
  * Generate a mock article with customizable properties
  */
 export function createMockArticle(overrides = {}) {
   return {
-    id: uuidv4(),
+    id: generateUUID(),
     title: 'Test Article',
     content: 'This is test article content',
     slug: 'test-article',
     published_at: new Date().toISOString(),
     status: 'published',
-    category_id: uuidv4(),
-    author_id: uuidv4(),
+    category_id: generateUUID(),
+    author_id: generateUUID(),
     excerpt: 'Test article excerpt',
     featured: false,
     article_type: 'standard',
@@ -34,10 +41,10 @@ export function createMockArticle(overrides = {}) {
  */
 export function createMockComment(overrides = {}) {
   return {
-    id: uuidv4(),
+    id: generateUUID(),
     content: 'This is a test comment',
-    article_id: uuidv4(),
-    user_id: uuidv4(),
+    article_id: generateUUID(),
+    user_id: generateUUID(),
     parent_id: null,
     status: 'published',
     created_at: new Date().toISOString(),
@@ -51,7 +58,7 @@ export function createMockComment(overrides = {}) {
  */
 export function createMockUser(overrides = {}) {
   return {
-    id: uuidv4(),
+    id: generateUUID(),
     email: 'test@example.com',
     username: 'testuser',
     display_name: 'Test User',
@@ -67,8 +74,12 @@ export function createMockUser(overrides = {}) {
 /**
  * Generate an auth session with the given user ID
  */
-export function createMockSession(userId = uuidv4()) {
+export function createMockSession(userId = generateUUID()) {
   return {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
     user: {
       id: userId
     }

@@ -84,6 +84,7 @@ This document outlines the development plan for "The Flying Bus: News for Kids, 
 ### Testing and Quality Assurance
 
 - [x] Unit testing framework
+- [x] Unit tests for services ✓
 - [ ] Integration testing
 - [ ] End-to-end testing
 - [ ] Accessibility testing

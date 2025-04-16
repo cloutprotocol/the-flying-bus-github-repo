@@ -3,11 +3,13 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   getArticleById, 
-  getArticlesByCategory,
-  getRecentArticles,
-  updateArticle
+  updateArticle,
+  createArticle,
+  getArticlesByStatus,
+  updateArticleStatus
 } from '@/services/articleService';
 import { logger } from '@/utils/logger/logger';
+import { createMockArticle } from '@/test/helpers/testData';
 
 // Mock the logger to prevent console spam
 vi.mock('@/utils/logger/logger', () => ({
@@ -21,31 +23,14 @@ vi.mock('@/utils/logger/logger', () => ({
 
 describe('ArticleService', () => {
   // Sample article data for testing
-  const mockArticle = {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    title: 'Test Article',
-    content: 'Test content',
-    slug: 'test-article',
-    published_at: new Date().toISOString(),
-    status: 'published',
-    category_id: '123e4567-e89b-12d3-a456-426614174999',
-    author_id: '123e4567-e89b-12d3-a456-426614174111',
-    excerpt: 'Test excerpt',
-    featured: false,
-    article_type: 'standard',
-    cover_image: 'test-image.jpg',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
+  const mockArticle = createMockArticle();
   const mockArticlesList = [
     mockArticle,
-    {
-      ...mockArticle,
-      id: '223e4567-e89b-12d3-a456-426614174000',
+    createMockArticle({
+      id: 'article-id-2',
       title: 'Test Article 2',
       slug: 'test-article-2'
-    }
+    })
   ];
 
   // Reset all mocks before each test
@@ -79,9 +64,10 @@ describe('ArticleService', () => {
 
       const result = await getArticleById(mockArticle.id);
       
-      // Check if the correct functions were called
+      // We're getting an object with article and error properties
       expect(supabase.from).toHaveBeenCalledWith('articles');
-      expect(result).toEqual(mockArticle);
+      expect(result.article).toEqual(mockArticle);
+      expect(result.error).toBeNull();
     });
 
     it('should return null when article is not found', async () => {
@@ -95,7 +81,8 @@ describe('ArticleService', () => {
       const result = await getArticleById('non-existent-id');
       
       // Should return null when article not found
-      expect(result).toBeNull();
+      expect(result.article).toBeNull();
+      expect(result.error).not.toBeNull();
     });
 
     it('should handle errors and log them', async () => {
@@ -112,35 +99,40 @@ describe('ArticleService', () => {
       // Should log the error
       expect(logger.error).toHaveBeenCalled();
       // Should return null when there's an error
-      expect(result).toBeNull();
+      expect(result.article).toBeNull();
+      expect(result.error).not.toBeNull();
     });
   });
 
-  describe('getArticlesByCategory', () => {
-    it('should return articles for a given category', async () => {
+  describe('getArticlesByStatus', () => {
+    it('should return articles for a given status', async () => {
       // Setup specific mock for this test
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue({ data: mockArticlesList, error: null })
+        range: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: mockArticlesList, error: null, count: 2 })
       } as any);
 
-      const result = await getArticlesByCategory('category-slug', 1, 10);
+      const result = await getArticlesByStatus('published', undefined, 1, 10);
       
       expect(supabase.from).toHaveBeenCalledWith('articles');
-      expect(result).toEqual(mockArticlesList);
+      expect(result.articles).toEqual(expect.any(Array));
+      expect(result.count).toEqual(2);
     });
   });
 
   describe('updateArticle', () => {
     it('should update an article successfully', async () => {
       // Setup specific mock for this test
+      const updatedArticle = { ...mockArticle, title: 'Updated Title' };
       vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ 
-          data: { ...mockArticle, title: 'Updated Title' }, 
+          data: updatedArticle, 
           error: null 
         })
       } as any);
@@ -149,7 +141,53 @@ describe('ArticleService', () => {
       const result = await updateArticle(mockArticle.id, updatedData);
       
       expect(supabase.from).toHaveBeenCalledWith('articles');
-      expect(result).toEqual({ ...mockArticle, title: 'Updated Title' });
+      expect(result.data).toEqual(updatedArticle);
+      expect(result.error).toBeNull();
+    });
+  });
+
+  describe('createArticle', () => {
+    it('should create a new article successfully', async () => {
+      // Setup specific mock for this test
+      vi.mocked(supabase.from).mockReturnValue({
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ 
+          data: mockArticle, 
+          error: null 
+        })
+      } as any);
+
+      const newArticleData = {
+        title: 'New Test Article',
+        content: 'This is a test article',
+        excerpt: 'Test excerpt',
+        categoryId: 'category-1'
+      };
+      
+      const result = await createArticle(newArticleData);
+      
+      expect(supabase.from).toHaveBeenCalledWith('articles');
+      expect(result.data).toEqual(mockArticle);
+      expect(result.error).toBeNull();
+    });
+  });
+
+  describe('updateArticleStatus', () => {
+    it('should update an article status successfully', async () => {
+      // Setup specific mock for this test
+      vi.mocked(supabase.from).mockReturnValue({
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ 
+          error: null 
+        })
+      } as any);
+
+      const result = await updateArticleStatus(mockArticle.id, 'published');
+      
+      expect(supabase.from).toHaveBeenCalledWith('articles');
+      expect(result.success).toBeTruthy();
+      expect(result.error).toBeNull();
     });
   });
 });
