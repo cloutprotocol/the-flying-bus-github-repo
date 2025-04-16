@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
-import { getCategoryFromSlug } from '@/components/Category/CategoryHelpers';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
 import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
+import { handleApiError } from '@/utils/apiErrorHandler';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -19,6 +19,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
   const [displayCategory, setDisplayCategory] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<any | null>(null);
+  const [isLoadingCategory, setIsLoadingCategory] = useState(true);
   
   // Get the categoryId parameter from the URL
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -50,10 +51,13 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoadingCategory(true);
+        
         // Fetch category data
         const category = await fetchCategoryBySlug(categorySlug);
         
         if (!category) {
+          setIsLoadingCategory(false);
           return;
         }
         
@@ -62,10 +66,18 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
         setCategory(category.id);
         
         // Fetch reading levels
-        const levels = await fetchReadingLevelsForCategory(category.id);
-        setAvailableReadingLevels(levels);
+        try {
+          const levels = await fetchReadingLevelsForCategory(category.id);
+          setAvailableReadingLevels(levels);
+        } catch (levelsError) {
+          console.error('Error fetching reading levels:', levelsError);
+          // Don't block category display for reading levels error
+        }
       } catch (error) {
         console.error('Error fetching category data:', error);
+        handleApiError(error);
+      } finally {
+        setIsLoadingCategory(false);
       }
     };
     
@@ -78,7 +90,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   }, [selectedReadingLevel, setReadingLevel]);
   
   // If no category found, show not found message
-  if (!isLoading && !categoryData) {
+  if (!isLoadingCategory && !isLoading && !categoryData) {
     return (
       <MainLayout>
         <NotFoundMessage 
@@ -118,7 +130,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
   // Render loading skeleton when data is loading
-  if (isLoading && !paginatedArticles.length) {
+  if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
     return <CategoryPageSkeleton />;
   }
 

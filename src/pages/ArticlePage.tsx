@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -15,12 +14,13 @@ import {
   fetchRelatedArticles 
 } from '@/utils/articleUtils';
 import { 
-  fetchArticleWithCache,
   trackArticleViewWithRetry
 } from '@/utils/articleSync';
+import { getArticleById } from '@/services/articleService';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
+import { handleApiError, ApiErrorType } from '@/utils/apiErrorHandler';
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
@@ -40,8 +40,12 @@ const ArticlePage = () => {
       setIsLoading(true);
       
       try {
-        // Fetch the article with caching
-        const articleData = await fetchArticleWithCache(articleId);
+        // Fetch the article using our service
+        const { article: articleData, error } = await getArticleById(articleId);
+        
+        if (error) {
+          throw error;
+        }
         
         if (!articleData) {
           setIsLoading(false);
@@ -60,22 +64,28 @@ const ArticlePage = () => {
         
         // If it's a debate article, fetch the debate settings
         if (isDebateArticle(articleData.articleType)) {
-          const debate = await fetchDebateSettings(articleId);
-          setDebateSettings(debate);
+          try {
+            const debate = await fetchDebateSettings(articleId);
+            setDebateSettings(debate);
+          } catch (debateError) {
+            console.error('Error loading debate settings:', debateError);
+            // Don't block article display for debate settings error
+          }
         }
         
         // Fetch related articles
         if (articleData.categoryId) {
-          const related = await fetchRelatedArticles(articleId, articleData.categoryId);
-          setRelatedArticles(related);
+          try {
+            const related = await fetchRelatedArticles(articleId, articleData.categoryId);
+            setRelatedArticles(related);
+          } catch (relatedError) {
+            console.error('Error loading related articles:', relatedError);
+            // Don't block article display for related articles error
+          }
         }
       } catch (error) {
         console.error('Error loading article:', error);
-        toast({
-          title: "Error loading article",
-          description: "Something went wrong. Please try again later.",
-          variant: "destructive"
-        });
+        handleApiError(error);
       } finally {
         setIsLoading(false);
       }
@@ -130,7 +140,7 @@ const ArticlePage = () => {
   }
 
   // If this is a storyboard article, we'll show a loading state briefly before redirect
-  if (isStoryboardArticle(article.articleType)) {
+  if (article && isStoryboardArticle(article.articleType)) {
     return (
       <MainLayout>
         <div className="container mx-auto px-4 py-12 text-center">
@@ -141,32 +151,64 @@ const ArticlePage = () => {
   }
 
   // Check if this is a debate article
-  const isDebate = isDebateArticle(article.articleType);
+  const isDebate = article ? isDebateArticle(article.articleType) : false;
 
   return (
     <MainLayout fullWidth>
-      <div className="w-full bg-white">
-        <ArticleHeader article={article} />
-        
-        <div className="w-full px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
-            <ArticleContent 
-              article={article} 
-              articleContent={article.content || ''} 
-              debateSettings={isDebate ? debateSettings : undefined}
-            />
-            
-            <ArticleSidebar 
-              article={article} 
-              relatedArticles={relatedArticles}
-            />
-            
-            <div className="lg:col-span-8">
-              <ArticleFooter article={article} />
+      {article && (
+        <div className="w-full bg-white">
+          <ArticleHeader article={article} />
+          
+          <div className="w-full px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
+              <ArticleContent 
+                article={article} 
+                articleContent={article.content || ''} 
+                debateSettings={isDebate ? debateSettings : undefined}
+              />
+              
+              <ArticleSidebar 
+                article={article} 
+                relatedArticles={relatedArticles}
+              />
+              
+              <div className="lg:col-span-8">
+                <ArticleFooter article={article} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+      
+      {isLoading && (
+        <div className="container mx-auto px-4 py-12">
+          <Skeleton className="h-12 w-3/4 mb-4" />
+          <Skeleton className="h-6 w-1/2 mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8">
+              <Skeleton className="h-64 w-full mb-6" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4 mb-8" />
+            </div>
+            <div className="lg:col-span-4">
+              <Skeleton className="h-48 w-full mb-4" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {!isLoading && !article && (
+        <div className="container mx-auto px-4 py-12 text-center">
+          <h1 className="text-3xl font-display font-bold mb-4">Article Not Found</h1>
+          <p className="mb-8">Sorry, we couldn't find the article you're looking for.</p>
+          <Button asChild>
+            <Link to="/">Back to Home</Link>
+          </Button>
+        </div>
+      )}
     </MainLayout>
   );
 };

@@ -1,3 +1,4 @@
+
 # The Flying Bus: News for Kids, By Kids - Project Roadmap
 
 This document serves as a master checklist tracking both completed and pending tasks to transform "The Flying Bus" into a fully functional product according to the Product Requirements Document.
@@ -22,7 +23,7 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Create data synchronization strategies between frontend and backend
 - [x] Implement proper error handling for API calls
 - [x] Develop caching mechanism for frequently accessed data
-- [x] Set up data validation on both client and server sides
+- [ ] Set up data validation on both client and server sides
 - [x] Implement pagination for data-heavy requests
 - [ ] Create backend logging system for monitoring and debugging
 
