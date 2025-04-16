@@ -32,16 +32,29 @@ export const ReadingLevelEnum = z.enum([
 
 // Base article schema with common fields
 const baseArticleSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters long').max(150, 'Title is too long'),
-  content: z.string().min(50, 'Content must be at least 50 characters long'),
-  excerpt: z.string().min(10, 'Excerpt must be at least 10 characters').max(300, 'Excerpt is too long').optional(),
+  title: z.string()
+    .min(5, 'Title must be at least 5 characters long')
+    .max(150, 'Title is too long')
+    .refine(title => !title.includes("<script>"), "Title cannot contain script tags"),
+  content: z.string()
+    .min(50, 'Content must be at least 50 characters long')
+    .refine(content => !content.includes("<script>"), "Content cannot contain script tags"),
+  excerpt: z.string()
+    .min(10, 'Excerpt must be at least 10 characters')
+    .max(300, 'Excerpt is too long')
+    .optional()
+    .refine(excerpt => !excerpt || !excerpt.includes("<script>"), "Excerpt cannot contain script tags"),
   categoryId: uuidSchema,
-  imageUrl: urlSchema.optional(),
+  imageUrl: urlSchema
+    .refine(url => url.startsWith('https://'), "Image URL must use HTTPS")
+    .optional(),
   slug: slugSchema.optional(),
   status: ArticleStatusEnum.optional().default('draft'),
   articleType: ArticleTypeEnum.optional().default('standard'),
   readingLevel: ReadingLevelEnum.optional().default('Intermediate'),
-  videoUrl: urlSchema.optional(), // Added videoUrl to the base schema so it's available everywhere
+  videoUrl: urlSchema
+    .refine(url => url.startsWith('https://'), "Video URL must use HTTPS")
+    .optional(),
 });
 
 // Schema for creating a new article
@@ -61,9 +74,15 @@ export const updateArticleStatusSchema = z.object({
 // Schema for debate article
 export const debateArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('debate'),
-  question: z.string().min(10, 'Question must be at least 10 characters long'),
-  yesPosition: z.string().min(50, 'Yes position argument must be at least 50 characters long'),
-  noPosition: z.string().min(50, 'No position argument must be at least 50 characters long'),
+  question: z.string()
+    .min(10, 'Question must be at least 10 characters long')
+    .refine(q => !q.includes("<script>"), "Question cannot contain script tags"),
+  yesPosition: z.string()
+    .min(50, 'Yes position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
+  noPosition: z.string()
+    .min(50, 'No position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
   votingEnabled: z.boolean().optional().default(true),
   votingEndsAt: z.string().datetime().optional()
 });
@@ -71,9 +90,12 @@ export const debateArticleSchema = baseArticleSchema.extend({
 // Schema for video article
 export const videoArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('video'),
-  videoUrl: urlSchema,
+  videoUrl: urlSchema
+    .refine(url => url.startsWith('https://'), "Video URL must use HTTPS"),
   duration: z.number().int().positive().optional(),
-  transcript: z.string().optional()
+  transcript: z.string()
+    .refine(text => !text.includes("<script>"), "Transcript cannot contain script tags")
+    .optional()
 });
 
 // Schema for storyboard article

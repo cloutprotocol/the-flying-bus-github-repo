@@ -17,7 +17,10 @@ export const CommentStatusEnum = z.enum([
 
 // Base comment schema
 const baseCommentSchema = z.object({
-  content: z.string().min(1, 'Comment cannot be empty').max(1000, 'Comment is too long'),
+  content: z.string()
+    .min(1, 'Comment cannot be empty')
+    .max(1000, 'Comment is too long')
+    .refine(content => !content.includes("<script>"), "Comment cannot contain script tags"),
   articleId: z.string(),
   parentId: uuidSchema.optional(),
   status: CommentStatusEnum.optional().default('published')
@@ -29,13 +32,17 @@ export const createCommentSchema = baseCommentSchema;
 // Schema for updating an existing comment
 export const updateCommentSchema = z.object({
   id: uuidSchema,
-  content: z.string().min(1, 'Comment cannot be empty').max(1000, 'Comment is too long')
+  content: z.string()
+    .min(1, 'Comment cannot be empty')
+    .max(1000, 'Comment is too long')
+    .refine(content => !content.includes("<script>"), "Comment cannot contain script tags")
 });
 
 // Schema for comment status update (for moderation)
 export const updateCommentStatusSchema = z.object({
   id: uuidSchema,
-  status: CommentStatusEnum
+  status: CommentStatusEnum,
+  moderationReason: z.string().max(500).optional()
 });
 
 // Schema for liking a comment
@@ -46,5 +53,8 @@ export const likeCommentSchema = z.object({
 // Schema for reporting/flagging a comment
 export const reportCommentSchema = z.object({
   commentId: uuidSchema,
-  reason: z.string().min(3, 'Reason is required').max(500, 'Reason is too long')
+  reason: z.string()
+    .min(3, 'Reason is required')
+    .max(500, 'Reason is too long')
+    .refine(reason => !reason.includes("<script>"), "Report reason cannot contain script tags")
 });

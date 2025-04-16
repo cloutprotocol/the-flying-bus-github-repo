@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { uuidSchema, urlSchema } from './validationUtils';
+import { uuidSchema, urlSchema, emailSchema, passwordSchema } from './validationUtils';
 
 // User role enum
 export const UserRoleEnum = z.enum([
@@ -27,10 +27,19 @@ const baseProfileSchema = z.object({
   username: z.string()
     .min(3, 'Username must be at least 3 characters long')
     .max(30, 'Username is too long')
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
-  displayName: z.string().min(2, 'Display name must be at least 2 characters long').max(50, 'Display name is too long'),
-  bio: z.string().max(500, 'Bio is too long').optional(),
-  avatar: urlSchema.optional()
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
+    .refine(name => !name.includes("<script>"), "Username cannot contain script tags"),
+  displayName: z.string()
+    .min(2, 'Display name must be at least 2 characters long')
+    .max(50, 'Display name is too long')
+    .refine(name => !name.includes("<script>"), "Display name cannot contain script tags"),
+  bio: z.string()
+    .max(500, 'Bio is too long')
+    .refine(bio => !bio || !bio.includes("<script>"), "Bio cannot contain script tags")
+    .optional(),
+  avatar: urlSchema
+    .refine(url => url.startsWith('https://'), "Avatar URL must use HTTPS")
+    .optional()
 });
 
 // Schema for creating/updating a profile
@@ -40,33 +49,45 @@ export const updateProfileSchema = baseProfileSchema;
 export const privacySettingsSchema = z.object({
   profileVisibility: ProfileVisibilityEnum.default('public'),
   showReadingActivity: z.boolean().default(true),
-  showCommentHistory: z.boolean().default(true)
+  showCommentHistory: z.boolean().default(true),
+  contentPreferences: z.array(z.string()).optional()
 });
 
 // Auth schemas
 export const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  username: baseProfileSchema.shape.username
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: z.string(),
+  username: baseProfileSchema.shape.username,
+  displayName: baseProfileSchema.shape.displayName,
+  acceptTerms: z.boolean().refine(val => val === true, "You must accept the terms and conditions")
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
+
+export const parentApprovalSchema = z.object({
+  childUserId: uuidSchema,
+  parentEmail: emailSchema,
+  parentName: z.string().min(2, 'Parent name is required'),
+  relationshipToChild: z.string().min(2, 'Relationship is required'),
+  approvalCode: z.string().min(6, 'Approval code must be at least 6 characters'),
+  approved: z.boolean().default(false)
 });
 
 export const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: emailSchema,
   password: z.string().min(1, 'Password is required')
 });
 
 export const passwordResetSchema = z.object({
-  email: z.string().email('Invalid email address')
+  email: emailSchema
 });
 
 export const passwordUpdateSchema = z.object({
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
+  password: passwordSchema,
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
 });
