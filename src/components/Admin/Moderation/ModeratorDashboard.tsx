@@ -26,7 +26,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  Cell
 } from 'recharts';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const ModeratorDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<any>(null);
@@ -38,7 +42,8 @@ const ModeratorDashboard: React.FC = () => {
     const fetchMetrics = async () => {
       setLoading(true);
       try {
-        const { metrics, error } = await getModerationMetrics(timeframe);
+        logger.info(LogSource.MODERATION, 'Fetching moderation metrics', { timeframe });
+        const { stats, error } = await getModerationMetrics();
         
         if (error) {
           console.error('Error fetching moderation metrics:', error);
@@ -48,7 +53,7 @@ const ModeratorDashboard: React.FC = () => {
             variant: "destructive"
           });
         } else {
-          setMetrics(metrics);
+          setMetrics(stats);
         }
       } catch (err) {
         console.error('Exception fetching moderation metrics:', err);

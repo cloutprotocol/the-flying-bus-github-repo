@@ -14,15 +14,19 @@ import {
 import ValidatedCommentForm from './ValidatedCommentForm';
 import ReportContentButton from '@/components/Common/ReportContentButton';
 
+// CommentData interface for internal use
+export interface CommentAuthor {
+  id?: string; // Made optional to match existing code
+  name: string;
+  avatar?: string;
+  badges?: string[]; // Added badges property
+}
+
 export interface CommentData {
   id: string;
   content: string;
   createdAt: Date;
-  author: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
+  author: CommentAuthor;
   likes: number;
   isLiked?: boolean;
   replies?: CommentData[];

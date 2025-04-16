@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Facebook, Twitter, Linkedin, Mail, Link, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,8 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/use-toast';
-import logger, { LogSource } from '@/utils/logger';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface ShareArticleProps {
   url: string;
@@ -40,7 +42,7 @@ const ShareArticle: React.FC<ShareArticleProps> = ({
   // Log share event
   const logShare = (platform: string) => {
     logger.info(
-      LogSource.CLIENT, 
+      LogSource.APP, 
       `Article shared on ${platform}`, 
       { url: shareUrl, title, platform }
     );
@@ -80,7 +82,7 @@ const ShareArticle: React.FC<ShareArticleProps> = ({
       });
       
       logger.error(
-        LogSource.CLIENT,
+        LogSource.APP,
         "Failed to copy link to clipboard",
         err
       );
@@ -98,7 +100,7 @@ const ShareArticle: React.FC<ShareArticleProps> = ({
       .then(() => logShare('native'))
       .catch((error) => {
         logger.error(
-          LogSource.CLIENT,
+          LogSource.APP,
           "Error sharing via native share API",
           error
         );

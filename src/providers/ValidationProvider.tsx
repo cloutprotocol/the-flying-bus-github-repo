@@ -1,102 +1,118 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext } from 'react';
 import { z } from 'zod';
-import { toast } from '@/components/ui/use-toast';
-import * as validationSchemas from '@/utils/validation';
-import { validateData } from '@/utils/validation/validationUtils';
-import { LogSource } from '@/utils/logger';
-import logger from '@/utils/logger';
+import { useToast } from '@/components/ui/use-toast';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
-// Context type
-type ValidationContextType = {
-  validateForm: <T>(schema: z.ZodType<T>, data: unknown, options?: ValidationOptions) => { 
-    isValid: boolean; 
-    data: T | null;
-    errors: z.ZodError | null;
-  };
-  getFormErrors: (zodError: z.ZodError | null) => Record<string, string> | null;
-  formatZodError: (error: z.ZodError) => string;
-};
-
-type ValidationOptions = {
-  context?: string;
-  showToast?: boolean;
-};
-
-// Create context
-const ValidationContext = createContext<ValidationContextType | null>(null);
-
-// Provider component
-export const ValidationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Format Zod error for display
-  const formatZodError = (error: z.ZodError): string => {
-    return error.errors
-      .map(err => `${err.path.join('.')}: ${err.message}`)
-      .join(', ');
-  };
-
-  // Convert Zod errors to form errors object
-  const getFormErrors = (zodError: z.ZodError | null): Record<string, string> | null => {
-    if (!zodError) return null;
-    
-    const formErrors: Record<string, string> = {};
-    
-    for (const error of zodError.errors) {
-      const path = error.path.join('.');
-      if (path) {
-        formErrors[path] = error.message;
-      }
+interface ValidationContextType {
+  validateForm: <T extends z.ZodType<any, any>>(
+    schema: T,
+    data: any,
+    options?: {
+      context?: string;
+      showToast?: boolean;
     }
-    
-    return formErrors;
-  };
-
-  // Validate form data against a schema
-  const validateForm = <T,>(
-    schema: z.ZodType<T>, 
-    data: unknown, 
-    options?: ValidationOptions
   ) => {
-    const context = options?.context || 'form';
-    const result = validateData(schema, data, context);
-    
-    if (!result.isValid && options?.showToast) {
-      // Show error toast with formatted error message
-      toast({
-        title: "Validation Error",
-        description: result.errors ? formatZodError(result.errors) : "Invalid data",
-        variant: "destructive"
-      });
-      
-      logger.warn(LogSource.CLIENT, `Form validation failed: ${context}`, {
-        errors: result.errors?.errors
-      });
-    }
-    
-    return result;
+    isValid: boolean;
+    data: z.infer<T> | null;
+    errors: Record<string, string> | null;
   };
+}
 
-  const value = {
-    validateForm,
-    getFormErrors,
-    formatZodError
+const ValidationContext = createContext<ValidationContextType | undefined>(undefined);
+
+export function ValidationProvider({ children }: { children: React.ReactNode }) {
+  const { toast } = useToast();
+  
+  const validateForm = <T extends z.ZodType<any, any>>(
+    schema: T,
+    data: any,
+    options?: {
+      context?: string;
+      showToast?: boolean;
+    }
+  ) => {
+    const context = options?.context || 'validation';
+    const showToast = options?.showToast ?? false;
+
+    try {
+      // Parse data with schema
+      const result = schema.safeParse(data);
+      
+      if (result.success) {
+        return {
+          isValid: true,
+          data: result.data,
+          errors: null
+        };
+      } else {
+        // Format errors into a more usable structure
+        const formattedErrors: Record<string, string> = {};
+        
+        result.error.errors.forEach((err) => {
+          const path = err.path.join('.');
+          formattedErrors[path] = err.message;
+        });
+        
+        // Log validation errors
+        logger.info(
+          LogSource.APP,
+          `Validation failed: ${context}`,
+          { errors: formattedErrors }
+        );
+        
+        // Show toast if requested
+        if (showToast) {
+          toast({
+            title: "Validation Error",
+            description: "There are errors in your form. Please check the highlighted fields.",
+            variant: "destructive"
+          });
+        }
+        
+        return {
+          isValid: false,
+          data: null,
+          errors: formattedErrors
+        };
+      }
+    } catch (error) {
+      logger.error(
+        LogSource.APP,
+        `Validation exception: ${context}`,
+        error
+      );
+      
+      if (showToast) {
+        toast({
+          title: "Validation Error",
+          description: "An unexpected error occurred during validation.",
+          variant: "destructive"
+        });
+      }
+      
+      return {
+        isValid: false,
+        data: null,
+        errors: { _error: "Unexpected validation error" }
+      };
+    }
   };
 
   return (
-    <ValidationContext.Provider value={value}>
+    <ValidationContext.Provider value={{ validateForm }}>
       {children}
     </ValidationContext.Provider>
   );
-};
+}
 
-// Hook for using validation
-export const useValidation = () => {
+export function useValidation() {
   const context = useContext(ValidationContext);
-  if (!context) {
+  
+  if (context === undefined) {
     throw new Error('useValidation must be used within a ValidationProvider');
   }
+  
   return context;
-};
-
-// Re-export validation schemas for easy access
-export { validationSchemas };
+}

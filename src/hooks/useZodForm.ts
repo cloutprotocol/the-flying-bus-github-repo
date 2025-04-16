@@ -3,7 +3,8 @@ import { useForm, UseFormProps, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useValidation } from '@/providers/ValidationProvider';
-import logger, { LogSource } from '@/utils/logger';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface UseZodFormProps<T extends z.ZodType<any, any>> extends Omit<UseFormProps<z.infer<T>>, 'resolver'> {
   schema: T;
@@ -39,7 +40,7 @@ export function useZodForm<T extends z.ZodType<any, any>>({
       });
       
       if (result.isValid && result.data) {
-        logger.info(LogSource.CLIENT, `Form submitted successfully: ${logContext}`);
+        logger.info(LogSource.APP, `Form submitted successfully: ${logContext}`);
         
         // Call the callback provided in this specific submit instance
         if (onValid) {
