@@ -55,31 +55,40 @@ export const getSafetyReports = async (
     });
     
     // Transform data to match SafetyReport interface
-    const reports: SafetyReport[] = data?.map(item => ({
-      id: item.id,
-      content_id: item.content_id,
-      content_type: item.content_type as ContentType,
-      reason: item.reason,
-      reporter_id: item.reporter_id,
-      reviewer_id: item.reviewer_id,
-      status: item.status,
-      created_at: item.created_at,
-      updated_at: item.created_at, // Using created_at as updated_at since it's required
-      reviewed_at: item.reviewed_at,
-      // Handle cases where reporter or reviewer might be error objects or null
-      reporter: typeof item.reporter === 'object' && item.reporter !== null 
-        ? { 
-            display_name: item.reporter.display_name || 'Unknown',
-            avatar_url: item.reporter.avatar_url || ''
-          }
-        : undefined,
-      reviewer: typeof item.reviewer === 'object' && item.reviewer !== null
-        ? {
-            display_name: item.reviewer.display_name || 'Unknown',
-            avatar_url: item.reviewer.avatar_url || ''
-          }
-        : undefined
-    })) || [];
+    const reports: SafetyReport[] = data?.map(item => {
+      // Safely extract reporter data if available
+      let reporterData = undefined;
+      if (typeof item.reporter === 'object' && item.reporter !== null) {
+        reporterData = { 
+          display_name: item.reporter.display_name || 'Unknown',
+          avatar_url: item.reporter.avatar_url || ''
+        };
+      }
+      
+      // Safely extract reviewer data if available
+      let reviewerData = undefined;
+      if (typeof item.reviewer === 'object' && item.reviewer !== null) {
+        reviewerData = {
+          display_name: item.reviewer.display_name || 'Unknown',
+          avatar_url: item.reviewer.avatar_url || ''
+        };
+      }
+      
+      return {
+        id: item.id,
+        content_id: item.content_id,
+        content_type: item.content_type as ContentType,
+        reason: item.reason,
+        reporter_id: item.reporter_id,
+        reviewer_id: item.reviewer_id,
+        status: item.status,
+        created_at: item.created_at,
+        updated_at: item.created_at, // Using created_at as updated_at since it's required
+        reviewed_at: item.reviewed_at,
+        reporter: reporterData,
+        reviewer: reviewerData
+      };
+    }) || [];
     
     return { 
       reports, 
