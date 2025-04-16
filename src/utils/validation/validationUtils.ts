@@ -23,7 +23,7 @@ export const validateData = <T>(
     if (error instanceof z.ZodError) {
       // Log validation errors
       logger.warn(
-        LogSource.APP, 
+        LogSource.CLIENT, 
         `Validation error in ${context}: ${JSON.stringify(error.errors)}`,
         { errors: error.errors }
       );
@@ -32,7 +32,7 @@ export const validateData = <T>(
     
     // Log unexpected errors
     logger.error(
-      LogSource.APP, 
+      LogSource.CLIENT, 
       `Unexpected validation error in ${context}`,
       error
     );

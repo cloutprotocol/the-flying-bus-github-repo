@@ -8,7 +8,8 @@
  */
 
 // Re-export everything from the new logger module structure
-export * from './logger/types';
-export * from './logger/logger';
-export * from './logger/config';
+export { LogLevel, LogSource } from './logger/types';
+export type { LogEntry, LoggerConfig } from './logger/types';
+export { configureLogger } from './logger/config';
+export { logMessage, logger } from './logger/logger';
 export { default } from './logger/logger';

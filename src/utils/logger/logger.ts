@@ -4,11 +4,14 @@
  * Core logger functionality
  */
 
-import { LogLevel, LogSource, LogEntry, LoggerConfig } from './types';
+import { LogLevel, LogSource, LogEntry } from './types';
 import { getLoggerConfig } from './config';
 import { getSeverityLevel, formatConsoleMessage } from './formatters';
 import { persistLogToStorage, sendLogToServer } from './storage';
 import { showToastForLog } from './toast';
+
+// Flag to prevent recursive logging
+let isLogging = false;
 
 /**
  * Log a message with the specified level and source
@@ -19,45 +22,61 @@ export function logMessage(
   message: string, 
   details?: any
 ): void {
-  const config = getLoggerConfig();
-  
-  // Check if we should log based on minimum level
-  if (getSeverityLevel(level) < getSeverityLevel(config.minLevel)) {
-    return;
-  }
-
-  const entry: LogEntry = {
-    level,
-    source,
-    message,
-    details,
-    timestamp: new Date().toISOString()
-  };
-
-  // Output to console if enabled
-  if (config.consoleOutput) {
+  // Prevent recursive logging
+  if (isLogging) {
+    // Fallback to plain console logging if we're already logging
     const method = level === LogLevel.DEBUG ? 'debug' :
                    level === LogLevel.INFO ? 'info' :
                    level === LogLevel.WARN ? 'warn' :
                    'error';
+    console[method](`[LOGGER RECURSION PREVENTED]: ${message}`, details || '');
+    return;
+  }
+
+  try {
+    isLogging = true;
+    const config = getLoggerConfig();
     
-    console[method](formatConsoleMessage(entry), details || '');
-  }
+    // Check if we should log based on minimum level
+    if (getSeverityLevel(level) < getSeverityLevel(config.minLevel)) {
+      return;
+    }
 
-  // Show toast if enabled and level is warn or higher
-  if (config.toastOutput && getSeverityLevel(level) >= getSeverityLevel(LogLevel.WARN)) {
-    showToastForLog(entry);
-  }
+    const entry: LogEntry = {
+      level,
+      source,
+      message,
+      details,
+      timestamp: new Date().toISOString()
+    };
 
-  // Persist to storage if enabled
-  if (config.persistToStorage) {
-    persistLogToStorage(entry);
-  }
+    // Output to console if enabled
+    if (config.consoleOutput) {
+      const method = level === LogLevel.DEBUG ? 'debug' :
+                    level === LogLevel.INFO ? 'info' :
+                    level === LogLevel.WARN ? 'warn' :
+                    'error';
+      
+      console[method](formatConsoleMessage(entry), details || '');
+    }
 
-  // Send to server if enabled
-  if (config.sendToServer) {
-    // We use void to indicate we're intentionally not waiting for this promise
-    void sendLogToServer(entry);
+    // Show toast if enabled and level is warn or higher
+    if (config.toastOutput && getSeverityLevel(level) >= getSeverityLevel(LogLevel.WARN)) {
+      showToastForLog(entry);
+    }
+
+    // Persist to storage if enabled
+    if (config.persistToStorage) {
+      persistLogToStorage(entry);
+    }
+
+    // Send to server if enabled
+    if (config.sendToServer) {
+      // We use void to indicate we're intentionally not waiting for this promise
+      void sendLogToServer(entry);
+    }
+  } finally {
+    isLogging = false;
   }
 }
 

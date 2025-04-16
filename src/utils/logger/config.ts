@@ -16,18 +16,18 @@ export const defaultConfig: LoggerConfig = {
 };
 
 // Current configuration (initialized with default)
-let config: LoggerConfig = { ...defaultConfig };
+let currentConfig: LoggerConfig = { ...defaultConfig };
 
 /**
  * Configure the logger
  */
 export function configureLogger(newConfig: Partial<LoggerConfig>): void {
-  config = { ...config, ...newConfig };
+  currentConfig = { ...currentConfig, ...newConfig };
 }
 
 /**
  * Get the current logger configuration
  */
 export function getLoggerConfig(): LoggerConfig {
-  return { ...config };
+  return { ...currentConfig };
 }
