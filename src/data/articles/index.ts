@@ -1,39 +1,69 @@
 
-// Export all article data and utility functions
+import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { headlinersArticles } from './headliners';
-import { debatesArticles } from './debates';
-import { spiceItUpArticles } from './spice-it-up';
-import { storyboardArticles, StoryboardArticleProps } from './storyboard';
-import { neighborhoodArticles } from './neighborhood';
-import { learningArticles } from './learning';
-import { schoolNewsArticles } from './school-news';
 
-// Combine all articles into a single array
-export const mockArticles: (ArticleProps | StoryboardArticleProps)[] = [
-  ...headlinersArticles,
-  ...debatesArticles,
-  ...spiceItUpArticles,
-  ...storyboardArticles,
-  ...neighborhoodArticles,
-  ...learningArticles,
-  ...schoolNewsArticles
-];
+export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
+  const { data, error } = await supabase
+    .from('articles')
+    .select(`
+      id, 
+      title, 
+      excerpt, 
+      content, 
+      cover_image, 
+      categories(name), 
+      profiles(display_name),
+      created_at
+    `)
+    .eq('featured', true)
+    .eq('status', 'published')
+    .limit(1)
+    .single();
 
-export const getCategoryArticles = (category: string, limit: number = 3) => {
-  return mockArticles
-    .filter(article => article.category === category)
-    .slice(0, limit);
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    title: data.title,
+    excerpt: data.excerpt,
+    imageUrl: data.cover_image,
+    category: data.categories.name,
+    readingLevel: 'Intermediate', // Default for now
+    readTime: 5, // Default reading time
+    author: data.profiles.display_name,
+    date: new Date(data.created_at).toLocaleDateString(),
+    publishDate: new Date(data.created_at).toLocaleDateString()
+  };
 };
 
-export const getHeadlineArticle = () => {
-  return headlinersArticles[0];
-};
+export const getCategoryArticles = async (categoryName: string): Promise<ArticleProps[]> => {
+  const { data, error } = await supabase
+    .from('articles')
+    .select(`
+      id, 
+      title, 
+      excerpt, 
+      cover_image, 
+      categories(name), 
+      profiles(display_name),
+      created_at
+    `)
+    .eq('categories.name', categoryName)
+    .eq('status', 'published')
+    .limit(6);
 
-export const getArticleById = (id: string) => {
-  return mockArticles.find(article => article.id === id);
-};
+  if (error || !data) return [];
 
-export const isStoryboardArticle = (article: ArticleProps | StoryboardArticleProps): article is StoryboardArticleProps => {
-  return article.category === 'Storyboard' && 'episodes' in article;
+  return data.map(article => ({
+    id: article.id,
+    title: article.title,
+    excerpt: article.excerpt,
+    imageUrl: article.cover_image,
+    category: article.categories.name,
+    readingLevel: 'Intermediate', // Default for now
+    readTime: 5, // Default reading time
+    author: article.profiles.display_name,
+    date: new Date(article.created_at).toLocaleDateString(),
+    publishDate: new Date(article.created_at).toLocaleDateString()
+  }));
 };

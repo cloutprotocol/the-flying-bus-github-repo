@@ -1,12 +1,16 @@
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import MainLayout from '@/components/Layout/MainLayout';
 import FeatureArticle from '@/components/Articles/FeatureArticle';
 import CategorySection from '@/components/Articles/CategorySection';
 import { getHeadlineArticle, getCategoryArticles } from '@/data/articles';
+import { ArticleProps } from '@/components/Articles/ArticleCard';
 
 const Index = () => {
-  const headlineArticle = getHeadlineArticle();
+  const [headlineArticle, setHeadlineArticle] = useState<ArticleProps | null>(null);
+  const [categoryArticles, setCategoryArticles] = useState<Record<string, ArticleProps[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
   const categoryMapping = [
     { title: 'Headliners', slug: 'headliners', color: 'red' },
     { title: 'Debates', slug: 'debates', color: 'orange' },
@@ -18,9 +22,36 @@ const Index = () => {
   ];
 
   useEffect(() => {
+    const fetchArticles = async () => {
+      const headline = await getHeadlineArticle();
+      setHeadlineArticle(headline);
+
+      const articlePromises = categoryMapping.map(async (category) => {
+        const articles = await getCategoryArticles(category.title);
+        return { [category.title]: articles };
+      });
+
+      const articleResults = await Promise.all(articlePromises);
+      const articlesMap = articleResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+      setCategoryArticles(articlesMap);
+      setIsLoading(false);
+    };
+
+    fetchArticles();
+
     const headerHeight = document.querySelector('header')?.offsetHeight || 80;
     document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
   }, []);
+
+  if (isLoading) {
+    return (
+      <MainLayout fullWidth={true}>
+        <div className="flex justify-center items-center h-screen">
+          Loading articles...
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout fullWidth={true}>
@@ -37,7 +68,7 @@ const Index = () => {
               key={category.slug}
               title={category.title}
               slug={category.slug}
-              articles={getCategoryArticles(category.title)}
+              articles={categoryArticles[category.title] || []}
               color={category.color}
             />
           ))}
@@ -49,7 +80,7 @@ const Index = () => {
               key={category.slug}
               title={category.title}
               slug={category.slug}
-              articles={getCategoryArticles(category.title)}
+              articles={categoryArticles[category.title] || []}
               color={category.color}
             />
           ))}
