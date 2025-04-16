@@ -11,5 +11,13 @@ module.exports = function(packageJson) {
   packageJson.scripts["test:ui"] = "vitest --ui";
   packageJson.scripts["test:services"] = "vitest run src/services/__tests__";
   
+  // Add CI/CD scripts
+  packageJson.scripts.typecheck = "tsc --noEmit";
+  packageJson.scripts.lint = "eslint --ext .ts,.tsx src";
+  packageJson.scripts["build:ci"] = "node scripts/build.js";
+  packageJson.scripts["deploy:dev"] = "node scripts/deploy.js development";
+  packageJson.scripts["deploy:staging"] = "node scripts/deploy.js staging";
+  packageJson.scripts["deploy:prod"] = "node scripts/deploy.js production";
+  
   return packageJson;
 };

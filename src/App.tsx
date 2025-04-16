@@ -30,9 +30,11 @@ import { configureLogger } from '@/utils/logger/config';
 import { logger } from '@/utils/logger/logger';
 import '@/styles/index';
 import { ValidationProvider } from './providers/ValidationProvider';
+import { registerPerformanceObservers } from './services/monitoringService';
 
 function App() {
   useEffect(() => {
+    // Configure the logger
     configureLogger({
       minLevel: import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO,
       consoleOutput: true,
@@ -40,6 +42,9 @@ function App() {
       persistToStorage: true,
       sendToServer: true
     });
+    
+    // Initialize performance monitoring
+    registerPerformanceObservers();
     
     logger.info(LogSource.APP, 'Application initialized', {
       version: '1.0.0',
