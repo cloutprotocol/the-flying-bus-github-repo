@@ -69,20 +69,14 @@ export const fetchArticlesByCategory = async (
       excerpt, 
       content, 
       cover_image, 
-      categories!inner(id, name, slug), 
+      categories(id, name, slug), 
       profiles(id, display_name),
       created_at,
-      published_at,
-      count: count() over ()
-    `, { count: 'exact' })
-    .eq('categories.id', categoryId)
+      published_at
+    `)
+    .eq('category_id', categoryId)
     .eq('status', 'published');
     
-  // Apply reading level filter if provided
-  if (readingLevel) {
-    query = query.eq('reading_level', readingLevel);
-  }
-  
   // Apply sorting
   switch (sortBy) {
     case 'newest':
@@ -96,12 +90,23 @@ export const fetchArticlesByCategory = async (
       break;
   }
   
+  // Get total count in a separate query
+  const { count: totalCount, error: countError } = await supabase
+    .from('articles')
+    .select('id', { count: 'exact', head: true })
+    .eq('category_id', categoryId)
+    .eq('status', 'published');
+  
+  if (countError) {
+    console.error('Error counting articles:', countError);
+  }
+  
   // Apply pagination
   const from = (page - 1) * itemsPerPage;
   const to = from + itemsPerPage - 1;
   query = query.range(from, to);
   
-  const { data, error, count } = await query;
+  const { data, error } = await query;
   
   if (error) {
     console.error('Error fetching articles by category:', error);
@@ -122,7 +127,7 @@ export const fetchArticlesByCategory = async (
     publishDate: new Date(article.published_at || article.created_at).toLocaleDateString()
   }));
   
-  return { articles, count: count || 0 };
+  return { articles, count: totalCount || 0 };
 };
 
 /**
@@ -131,18 +136,7 @@ export const fetchArticlesByCategory = async (
 export const fetchReadingLevelsForCategory = async (categoryId: string | null) => {
   if (!categoryId) return [];
   
-  const { data, error } = await supabase
-    .from('articles')
-    .select('reading_level')
-    .eq('category_id', categoryId)
-    .eq('status', 'published');
-    
-  if (error) {
-    console.error('Error fetching reading levels:', error);
-    return [];
-  }
-  
-  // Extract unique reading levels
-  const uniqueLevels = [...new Set(data.map(item => item.reading_level).filter(Boolean))];
-  return uniqueLevels;
+  // Since we don't have reading_level column yet, return default levels
+  // TODO: Once reading_level column is added to articles table, implement proper query
+  return ['Beginner', 'Intermediate', 'Advanced'];
 };
