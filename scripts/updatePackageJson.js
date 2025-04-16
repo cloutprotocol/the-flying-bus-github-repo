@@ -9,6 +9,7 @@ module.exports = function(packageJson) {
   packageJson.scripts["test:watch"] = "vitest";
   packageJson.scripts["test:coverage"] = "vitest run --coverage";
   packageJson.scripts["test:ui"] = "vitest --ui";
+  packageJson.scripts["test:services"] = "vitest run src/services/__tests__";
   
   return packageJson;
 };
