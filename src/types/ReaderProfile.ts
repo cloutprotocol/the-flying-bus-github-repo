@@ -9,4 +9,8 @@ export interface ReaderProfile {
   avatar: string;
   joinedDate: Date;
   badges?: string[];
+  // Add missing properties
+  readingStreak?: number;
+  commentCount?: number;
+  achievements?: string[];
 }
