@@ -7,7 +7,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   MessageSquare,
   Search, 
@@ -25,6 +24,8 @@ import ModerationCommentList from '@/components/Admin/Moderation/ModerationComme
 import { getFlaggedComments } from '@/services/commentService';
 import { useModeration } from '@/hooks/useModeration';
 import ModeratorDashboard from '@/components/Admin/Moderation/ModeratorDashboard';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const CommentModeration = () => {
   const [filter, setFilter] = useState('flagged');
@@ -39,9 +40,10 @@ const CommentModeration = () => {
     const fetchComments = async () => {
       setLoading(true);
       try {
+        logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm });
         const { comments, count, error } = await getFlaggedComments(filter, searchTerm);
         if (error) {
-          console.error('Error fetching comments:', error);
+          logger.error(LogSource.MODERATION, 'Error fetching comments', { error });
           toast({
             title: "Error",
             description: "Could not load comments for moderation",
@@ -50,9 +52,10 @@ const CommentModeration = () => {
         } else {
           setComments(comments);
           setTotalCount(count);
+          logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count });
         }
       } catch (err) {
-        console.error('Error in fetching comments:', err);
+        logger.error(LogSource.MODERATION, 'Exception fetching comments', err);
         toast({
           title: "Error",
           description: "An unexpected error occurred",
@@ -67,6 +70,7 @@ const CommentModeration = () => {
   }, [filter, searchTerm, toast]);
 
   const onApprove = async (commentId: string) => {
+    logger.info(LogSource.MODERATION, 'Approving comment', { commentId });
     await handleApprove(commentId, (id) => {
       // Remove the comment from the list after successful approval
       setComments(prev => prev.filter(comment => comment.id !== id));
@@ -75,6 +79,7 @@ const CommentModeration = () => {
   };
 
   const onReject = async (commentId: string) => {
+    logger.info(LogSource.MODERATION, 'Rejecting comment', { commentId });
     await handleReject(commentId, undefined, (id) => {
       // Remove the comment from the list after successful rejection
       setComments(prev => prev.filter(comment => comment.id !== id));
@@ -162,7 +167,7 @@ const CommentModeration = () => {
                     </Card>
                   ) : (
                     <ModerationCommentList 
-                      comments={comments}
+                      items={comments}
                       onApprove={onApprove}
                       onReject={onReject}
                       processingIds={processingIds}

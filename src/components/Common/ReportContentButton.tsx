@@ -1,15 +1,6 @@
 
 import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  Flag,
-  AlertCircle,
-  X,
-  MessageSquare,
-  FileText,
-  User,
-  CheckCircle
-} from 'lucide-react';
+import { Flag, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,201 +11,183 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { reportContent } from '@/services/moderationService';
-import { reportSafetyConcern, ReportType } from '@/services/safetyService';
-import { ContentType } from '@/services/moderationService';
 import { useToast } from '@/components/ui/use-toast';
+import { Label } from '@/components/ui/label';
+import { useModeration } from '@/hooks/useModeration';
 import { useAuth } from '@/hooks/useAuth';
+
+type ContentType = 'article' | 'comment' | 'profile' | 'media';
 
 interface ReportContentButtonProps {
   contentId: string;
   contentType: ContentType;
-  variant?: 'default' | 'ghost' | 'outline' | 'subtle';
+  variant?: 'default' | 'ghost' | 'outline' | 'secondary' | 'destructive' | 'link';
   buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
+  onReportSubmitted?: () => void;
 }
 
 const ReportContentButton: React.FC<ReportContentButtonProps> = ({
   contentId,
   contentType,
-  variant = 'ghost',
+  variant = 'outline',
   buttonSize = 'sm',
+  onReportSubmitted,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [reportType, setReportType] = useState<ReportType>('inappropriate');
-  const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [reason, setReason] = useState<string>('');
+  const [reasonCategory, setReasonCategory] = useState<string>('');
+  const [otherReason, setOtherReason] = useState<string>('');
   const { toast } = useToast();
-  const { currentUser } = useAuth();
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+  const { isLoggedIn } = useAuth();
+  const { handleFlag, processingIds } = useModeration();
+  const isProcessing = processingIds.includes(contentId);
+  
+  const reasonOptions = [
+    { value: 'inappropriate', label: 'Inappropriate content' },
+    { value: 'harmful', label: 'Harmful or dangerous' },
+    { value: 'misinformation', label: 'Misinformation' },
+    { value: 'privacy', label: 'Violates privacy' },
+    { value: 'other', label: 'Other reason' },
+  ];
+  
+  const handleReportSubmit = async () => {
+    if (!reasonCategory) {
+      toast({
+        title: "Please select a reason",
+        description: "We need to understand why you're reporting this content",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const reportReason = reasonCategory === 'other' 
+      ? otherReason 
+      : reasonOptions.find(option => option.value === reasonCategory)?.label || '';
+    
+    if (reasonCategory === 'other' && !otherReason.trim()) {
+      toast({
+        title: "Please provide details",
+        description: "We need more information about your report",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
-      // First report as safety concern
-      const safetyResult = await reportSafetyConcern(
-        contentId,
-        contentType,
-        reportType,
-        description,
-        currentUser?.id
-      );
-      
-      // Also flag content for moderation
-      const moderationResult = await reportContent(
-        contentId,
-        contentType,
-        `User reported - ${reportType}: ${description}`,
-        currentUser?.id
-      );
-      
-      if (safetyResult.success && moderationResult.success) {
-        setIsSuccess(true);
-        toast({
-          title: "Report submitted",
-          description: "Thank you for helping keep our platform safe. Our team will review this content.",
-        });
-        
-        // Reset form after a delay
-        setTimeout(() => {
-          setIsOpen(false);
-          setIsSuccess(false);
-          setReportType('inappropriate');
-          setDescription('');
-        }, 2000);
+      if (contentType === 'comment') {
+        await handleFlag(contentId, reportReason);
       } else {
-        throw new Error('Failed to submit report');
+        // For other content types, we'd have different handlers
+        toast({
+          title: "Content reported",
+          description: "Thank you for helping keep our platform safe",
+        });
+      }
+      
+      setIsOpen(false);
+      setReason('');
+      setReasonCategory('');
+      setOtherReason('');
+      
+      if (onReportSubmitted) {
+        onReportSubmitted();
       }
     } catch (error) {
       console.error('Error submitting report:', error);
       toast({
-        title: "Error submitting report",
-        description: "There was a problem submitting your report. Please try again.",
+        title: "Error",
+        description: "There was a problem submitting your report",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const getContentTypeIcon = () => {
-    switch (contentType) {
-      case 'article':
-        return <FileText className="h-4 w-4 mr-2" />;
-      case 'comment':
-        return <MessageSquare className="h-4 w-4 mr-2" />;
-      case 'profile':
-        return <User className="h-4 w-4 mr-2" />;
-      default:
-        return <AlertCircle className="h-4 w-4 mr-2" />;
-    }
-  };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant} size={buttonSize}>
-          <Flag className={buttonSize === 'icon' ? 'h-4 w-4' : 'h-4 w-4 mr-2'} />
-          {buttonSize !== 'icon' && 'Report'}
+        <Button 
+          variant={variant} 
+          size={buttonSize}
+          className="text-muted-foreground"
+          disabled={isProcessing || !isLoggedIn}
+        >
+          {buttonSize === 'icon' ? (
+            <Flag className="h-4 w-4" />
+          ) : (
+            <>
+              <Flag className="h-4 w-4 mr-2" />
+              Report
+            </>
+          )}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        {isSuccess ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="bg-green-100 p-3 rounded-full mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <DialogTitle>Thank You</DialogTitle>
-            <DialogDescription className="text-center mt-2">
-              Your report has been submitted. Our team will review the content.
-            </DialogDescription>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Report Content
+          </DialogTitle>
+          <DialogDescription>
+            Help us understand why this content should be reviewed by our moderation team.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason for reporting</Label>
+            <Select 
+              value={reasonCategory} 
+              onValueChange={setReasonCategory}
+            >
+              <SelectTrigger id="reason">
+                <SelectValue placeholder="Select a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                {reasonOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Report Content</DialogTitle>
-              <DialogDescription>
-                Help us keep The Flying Bus safe. Tell us what's wrong with this {contentType}.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>What's the problem?</Label>
-                <RadioGroup 
-                  value={reportType} 
-                  onValueChange={(value) => setReportType(value as ReportType)}
-                  className="flex flex-col space-y-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="inappropriate" id="inappropriate" />
-                    <Label htmlFor="inappropriate" className="flex items-center">
-                      <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
-                      Inappropriate content
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="harassment" id="harassment" />
-                    <Label htmlFor="harassment" className="flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-2 text-red-500" />
-                      Harassment or bullying
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="privacy" id="privacy" />
-                    <Label htmlFor="privacy" className="flex items-center">
-                      <User className="h-4 w-4 mr-2 text-blue-500" />
-                      Privacy concern
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="misinformation" id="misinformation" />
-                    <Label htmlFor="misinformation" className="flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-purple-500" />
-                      Misinformation
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="other" id="other" />
-                    <Label htmlFor="other" className="flex items-center">
-                      <Flag className="h-4 w-4 mr-2 text-gray-500" />
-                      Something else
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Additional details</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Please explain what's wrong with this content..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
+          
+          {reasonCategory === 'other' && (
+            <div className="space-y-2">
+              <Label htmlFor="details">Please provide details</Label>
+              <Textarea
+                id="details"
+                placeholder="Tell us more about why you're reporting this content..."
+                value={otherReason}
+                onChange={e => setOtherReason(e.target.value)}
+                className="min-h-[100px]"
+              />
             </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsOpen(false)}
-                disabled={isSubmitting}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting || description.trim().length < 3}
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                {isSubmitting ? 'Submitting...' : 'Submit Report'}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleReportSubmit}
+            disabled={isProcessing}
+          >
+            {isProcessing ? 'Submitting...' : 'Submit Report'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

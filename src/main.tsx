@@ -6,8 +6,10 @@ import './styles/index.ts'
 import './App.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { logger } from '@/utils/logger/logger'
+import { LogSource } from '@/utils/logger/types'
 
-console.log('Main.tsx is loading');
+logger.info(LogSource.APP, 'Main.tsx is loading');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from '@/pages/Index';
@@ -24,7 +25,9 @@ import ContentFlagging from '@/pages/Admin/ContentFlagging';
 import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
-import { configureLogger, LogLevel, logger, LogSource } from '@/utils/logger';
+import { LogLevel, LogSource } from '@/utils/logger/types';
+import { configureLogger } from '@/utils/logger/config';
+import { logger } from '@/utils/logger/logger';
 import '@/styles/index';
 import { ValidationProvider } from './providers/ValidationProvider';
 
@@ -38,7 +41,7 @@ function App() {
       sendToServer: true
     });
     
-    logger.info(LogSource.CLIENT, 'Application initialized', {
+    logger.info(LogSource.APP, 'Application initialized', {
       version: '1.0.0',
       environment: import.meta.env.MODE,
       buildTime: new Date().toISOString()
@@ -46,12 +49,12 @@ function App() {
     
     const originalError = console.error;
     console.error = (...args) => {
-      logger.error(LogSource.CLIENT, 'Uncaught console error', args);
+      logger.error(LogSource.APP, 'Uncaught console error', args);
       originalError.apply(console, args);
     };
     
     window.addEventListener('error', (event) => {
-      logger.error(LogSource.CLIENT, 'Uncaught global error', {
+      logger.error(LogSource.APP, 'Uncaught global error', {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
@@ -61,7 +64,7 @@ function App() {
     });
     
     window.addEventListener('unhandledrejection', (event) => {
-      logger.error(LogSource.CLIENT, 'Unhandled promise rejection', {
+      logger.error(LogSource.APP, 'Unhandled promise rejection', {
         reason: event.reason
       });
     });

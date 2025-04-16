@@ -28,8 +28,7 @@ export interface CommentData {
   replies?: CommentData[];
 }
 
-interface CommentItemProps {
-  comment: CommentData;
+export interface CommentProps extends CommentData {
   articleId: string;
   isReply?: boolean;
   depth?: number;
@@ -37,8 +36,14 @@ interface CommentItemProps {
   onReply?: (commentId: string, content: string) => void;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({
-  comment,
+const CommentItem: React.FC<CommentProps> = ({
+  id,
+  content,
+  createdAt,
+  author,
+  likes,
+  isLiked,
+  replies,
   articleId,
   isReply = false,
   depth = 0,
@@ -48,12 +53,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { currentUser, isLoggedIn } = useAuth();
   
-  const isAuthor = currentUser?.id === comment.author.id;
+  const isAuthor = currentUser?.id === author.id;
   const maxDepth = 3; // Maximum nesting level for replies
   
   const handleLike = () => {
     if (onLike) {
-      onLike(comment.id);
+      onLike(id);
     }
   };
   
@@ -65,22 +70,22 @@ const CommentItem: React.FC<CommentItemProps> = ({
     <div className={`comment-item ${isReply ? 'pl-6 border-l border-gray-100' : ''}`}>
       <div className="flex gap-3">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
-          <AvatarFallback>{comment.author.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarImage src={author.avatar} alt={author.name} />
+          <AvatarFallback>{author.name.slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         
         <div className="flex-1 space-y-1">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <div>
-              <span className="font-medium text-sm">{comment.author.name}</span>
+              <span className="font-medium text-sm">{author.name}</span>
               <span className="text-xs text-muted-foreground ml-2">
-                {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+                {formatDistanceToNow(createdAt, { addSuffix: true })}
               </span>
             </div>
             
             <div className="flex items-center">
               <ReportContentButton
-                contentId={comment.id}
+                contentId={id}
                 contentType="comment"
                 variant="ghost"
                 buttonSize="icon"
@@ -102,7 +107,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
             </div>
           </div>
           
-          <div className="text-sm">{comment.content}</div>
+          <div className="text-sm">{content}</div>
           
           <div className="flex items-center gap-2 pt-1">
             <Button 
@@ -112,8 +117,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
               onClick={handleLike}
               disabled={!isLoggedIn}
             >
-              <ThumbsUp className={`h-4 w-4 mr-1 ${comment.isLiked ? 'fill-current text-blue-500' : ''}`} />
-              {comment.likes > 0 && comment.likes}
+              <ThumbsUp className={`h-4 w-4 mr-1 ${isLiked ? 'fill-current text-blue-500' : ''}`} />
+              {likes > 0 && likes}
             </Button>
             
             {depth < maxDepth && (
@@ -134,19 +139,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
             <div className="mt-3">
               <ValidatedCommentForm
                 articleId={articleId}
-                parentId={comment.id}
+                parentId={id}
                 onCommentSubmitted={handleReplySubmitted}
-                placeholder={`Reply to ${comment.author.name}...`}
+                placeholder={`Reply to ${author.name}...`}
               />
             </div>
           )}
           
-          {comment.replies && comment.replies.length > 0 && (
+          {replies && replies.length > 0 && (
             <div className="mt-4 space-y-4">
-              {comment.replies.map((reply) => (
+              {replies.map((reply) => (
                 <CommentItem
                   key={reply.id}
-                  comment={reply}
+                  {...reply}
                   articleId={articleId}
                   isReply={true}
                   depth={depth + 1}
