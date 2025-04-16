@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for debate voting functionality
  */
@@ -56,6 +57,47 @@ export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted:
     hasVoted: false,
     userChoice: null
   };
+};
+
+/**
+ * Fetches the current vote counts for a debate
+ * @param debateId The debate ID
+ * @returns Object with vote counts for yes and no
+ */
+export const fetchVoteCounts = async (debateId: string): Promise<{yes: number, no: number}> => {
+  try {
+    // Get the yes votes
+    const { count: yesCount, error: yesError } = await supabase
+      .from('article_votes')
+      .select('*', { count: 'exact', head: true })
+      .eq('article_id', debateId)
+      .eq('vote', 'yes');
+      
+    if (yesError) {
+      console.error('Error fetching yes votes:', yesError);
+      return { yes: 0, no: 0 };
+    }
+    
+    // Get the no votes
+    const { count: noCount, error: noError } = await supabase
+      .from('article_votes')
+      .select('*', { count: 'exact', head: true })
+      .eq('article_id', debateId)
+      .eq('vote', 'no');
+      
+    if (noError) {
+      console.error('Error fetching no votes:', noError);
+      return { yes: 0, no: 0 };
+    }
+    
+    return {
+      yes: yesCount || 0,
+      no: noCount || 0
+    };
+  } catch (error) {
+    console.error('Error fetching vote counts:', error);
+    return { yes: 0, no: 0 };
+  }
 };
 
 /**
@@ -138,6 +180,40 @@ export const recordVote = async (debateId: string, choice: 'yes' | 'no'): Promis
     console.error('Error recording vote:', error);
     toast.error('There was a problem saving your vote');
   }
+};
+
+/**
+ * Subscribes to real-time vote updates for a debate
+ * @param debateId The debate ID
+ * @param callback Function to call when votes change
+ * @returns Unsubscribe function
+ */
+export const subscribeToVoteUpdates = (
+  debateId: string, 
+  callback: (votes: {yes: number, no: number}) => void
+): (() => void) => {
+  // Set up realtime subscription for votes
+  const votesChannel = supabase
+    .channel(`debate_votes_${debateId}`)
+    .on('postgres_changes', 
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'article_votes',
+        filter: `article_id=eq.${debateId}` 
+      }, 
+      async () => {
+        // Fetch latest vote counts when changes occur
+        const counts = await fetchVoteCounts(debateId);
+        callback(counts);
+      }
+    )
+    .subscribe();
+    
+  // Return unsubscribe function
+  return () => {
+    supabase.removeChannel(votesChannel);
+  };
 };
 
 /**

@@ -78,7 +78,7 @@ export const useComments = (articleId: string) => {
                 avatar: reply.profiles.avatar_url || undefined,
                 badges: reply.profiles.role !== 'reader' ? [reply.profiles.role] : []
               },
-              likes: 0, // We'll implement this in a future update
+              likes: 0, // Will be updated with real counts in a future step
               articleId // Add article ID to replies too
             })) : [];
             
@@ -92,7 +92,7 @@ export const useComments = (articleId: string) => {
                 avatar: comment.profiles.avatar_url || undefined,
                 badges: comment.profiles.role !== 'reader' ? [comment.profiles.role] : []
               },
-              likes: 0, // We'll implement this in a future update
+              likes: 0, // Will be updated with real counts in a future step
               replies,
               articleId
             };
@@ -108,7 +108,140 @@ export const useComments = (articleId: string) => {
     };
     
     fetchComments();
-  }, [articleId]);
+
+    // Set up realtime subscription for new comments
+    const commentsChannel = supabase
+      .channel('public:comments')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'comments',
+          filter: `article_id=eq.${articleId}` 
+        }, 
+        async (payload) => {
+          console.log('New comment received:', payload);
+          
+          // Only process top-level comments here
+          if (payload.new.parent_id === null) {
+            // Fetch the complete comment data with author profile
+            const { data, error } = await supabase
+              .from('comments')
+              .select(`
+                id,
+                content,
+                created_at,
+                user_id,
+                profiles:user_id (
+                  display_name,
+                  username,
+                  avatar_url,
+                  role
+                )
+              `)
+              .eq('id', payload.new.id)
+              .single();
+              
+            if (error) {
+              console.error('Error fetching new comment details:', error);
+              return;
+            }
+            
+            // Format the new comment
+            const newComment: CommentProps = {
+              id: data.id,
+              content: data.content,
+              createdAt: new Date(data.created_at),
+              author: {
+                name: data.profiles.display_name,
+                avatar: data.profiles.avatar_url || undefined,
+                badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
+              },
+              likes: 0,
+              replies: [],
+              articleId
+            };
+            
+            // Add the new comment to the state (only if it's not from the current user)
+            if (currentUser?.id !== payload.new.user_id) {
+              setComments(prevComments => [newComment, ...prevComments]);
+            }
+          }
+        }
+      )
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments',
+          filter: `parent_id=is.not.null`
+        },
+        async (payload) => {
+          console.log('New reply received:', payload);
+          
+          // Check if this reply belongs to a comment in this article
+          if (payload.new.article_id === articleId) {
+            // Fetch the complete reply data with author profile
+            const { data, error } = await supabase
+              .from('comments')
+              .select(`
+                id,
+                content,
+                created_at,
+                user_id,
+                parent_id,
+                profiles:user_id (
+                  display_name,
+                  username,
+                  avatar_url,
+                  role
+                )
+              `)
+              .eq('id', payload.new.id)
+              .single();
+              
+            if (error) {
+              console.error('Error fetching new reply details:', error);
+              return;
+            }
+            
+            // Format the new reply
+            const newReply: CommentProps = {
+              id: data.id,
+              content: data.content,
+              createdAt: new Date(data.created_at),
+              author: {
+                name: data.profiles.display_name,
+                avatar: data.profiles.avatar_url || undefined,
+                badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
+              },
+              likes: 0,
+              articleId
+            };
+            
+            // Add the new reply to its parent comment (only if it's not from the current user)
+            if (currentUser?.id !== payload.new.user_id) {
+              setComments(prevComments => 
+                prevComments.map(comment => 
+                  comment.id === payload.new.parent_id 
+                    ? { 
+                        ...comment, 
+                        replies: [...(comment.replies || []), newReply] 
+                      } 
+                    : comment
+                )
+              );
+            }
+          }
+        }
+      )
+      .subscribe();
+      
+    // Clean up subscription on component unmount
+    return () => {
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [articleId, currentUser?.id]);
 
   const handleSubmitComment = useCallback(async (content: string) => {
     if (!currentUser) {
@@ -188,7 +321,7 @@ export const useComments = (articleId: string) => {
         description: 'Please sign in to reply to comments',
         variant: 'default'
       });
-      return;
+      return false;
     }
     
     try {
@@ -214,7 +347,7 @@ export const useComments = (articleId: string) => {
           description: 'There was an error posting your reply. Please try again.',
           variant: 'destructive'
         });
-        return;
+        return false;
       }
       
       // Create the new reply object

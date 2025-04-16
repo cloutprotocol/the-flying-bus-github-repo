@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import VoteButtons from './VoteButtons';
 import VoteResults from './VoteResults';
 import VoteStatus from './VoteStatus';
-import { checkIfUserHasVoted, simulateIpCheck, recordVote } from './voteUtils';
+import { 
+  checkIfUserHasVoted, 
+  simulateIpCheck, 
+  recordVote, 
+  fetchVoteCounts,
+  subscribeToVoteUpdates
+} from './voteUtils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DebateVoteProps {
@@ -35,16 +41,36 @@ const DebateVote = ({
   const noPercentage = totalVotes > 0 ? Math.round((votes.no / totalVotes) * 100) : 0;
 
   useEffect(() => {
-    const checkVote = async () => {
+    let unsubscribe: (() => void) | null = null;
+    
+    const initializeVotes = async () => {
+      // Check if user has already voted
       const result = await checkIfUserHasVoted(debateId);
       if (result.hasVoted) {
         setHasVoted(true);
         setUserChoice(result.userChoice);
         setResultsVisible(true);
       }
+      
+      // Fetch initial vote counts from backend
+      const currentVotes = await fetchVoteCounts(debateId);
+      if (currentVotes.yes > 0 || currentVotes.no > 0) {
+        setVotes(currentVotes);
+      }
+      
+      // Subscribe to real-time vote updates
+      unsubscribe = subscribeToVoteUpdates(debateId, (updatedVotes) => {
+        console.log('Vote update received:', updatedVotes);
+        setVotes(updatedVotes);
+      });
     };
     
-    checkVote();
+    initializeVotes();
+    
+    // Clean up subscription on component unmount
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [debateId]);
 
   const handleVote = async (choice: 'yes' | 'no') => {
@@ -68,12 +94,13 @@ const DebateVote = ({
     setResultsVisible(false);
 
     try {
-      // Check if this debate ID has been voted on already (stored in localStorage)
+      // Check if this debate ID has been voted on already
       const voteResult = await checkIfUserHasVoted(debateId);
       
       if (voteResult.hasVoted) {
         toast.warning("You've already voted on this debate!");
         setHasVoted(true);
+        setUserChoice(voteResult.userChoice);
         setIsVoting(false);
         setResultsVisible(true);
         return;
@@ -90,15 +117,16 @@ const DebateVote = ({
         return;
       }
 
-      // Record the vote
-      const newVotes = { ...votes };
-      newVotes[choice] += 1;
-      setVotes(newVotes);
-      setUserChoice(choice);
-      
-      // Save vote to localStorage
+      // Record the vote - this will trigger the real-time subscription
       await recordVote(debateId, choice);
       
+      // Optimistically update UI
+      setVotes(prev => ({
+        ...prev,
+        [choice]: prev[choice] + 1
+      }));
+      
+      setUserChoice(choice);
       setHasVoted(true);
       
       // Short delay before showing results for a smoother transition
