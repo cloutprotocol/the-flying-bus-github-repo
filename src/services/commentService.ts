@@ -1,0 +1,239 @@
+
+import { supabase } from '@/integrations/supabase/client';
+import logger, { LogSource } from '@/utils/logger';
+import { toast } from 'sonner';
+
+/**
+ * Fetch comments that need moderation
+ */
+export const getFlaggedComments = async (
+  filter = 'flagged',
+  searchTerm = '',
+  page = 1,
+  limit = 10
+): Promise<{ comments: any[]; count: number; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Fetching flagged comments', { filter, page });
+    
+    let query = supabase
+      .from('comments')
+      .select(`
+        id,
+        content,
+        created_at,
+        article_id,
+        user_id,
+        status,
+        profiles(id, display_name, avatar_url),
+        flagged_content(*)
+      `, { count: 'exact' });
+    
+    // Apply filters
+    if (filter !== 'all') {
+      if (filter === 'flagged') {
+        // Get comments that have flagged_content entries with status 'pending'
+        query = query.neq('flagged_content.status', null);
+      } else if (filter === 'reported') {
+        // Get comments reported by users
+        query = query.eq('flagged_content.content_type', 'comment');
+      } else {
+        // Filter by comment status
+        query = query.eq('status', filter);
+      }
+    }
+    
+    // Apply search if provided
+    if (searchTerm) {
+      query = query.ilike('content', `%${searchTerm}%`);
+    }
+    
+    // Apply pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to).order('created_at', { ascending: false });
+    
+    const { data, error, count } = await query;
+    
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error fetching flagged comments', { error });
+      throw error;
+    }
+    
+    // Transform the data for the UI
+    const comments = data?.map(comment => ({
+      id: comment.id,
+      content: comment.content,
+      author: {
+        id: comment.user_id,
+        name: comment.profiles?.display_name || 'Unknown User',
+        avatar: comment.profiles?.avatar_url || '',
+      },
+      articleId: comment.article_id,
+      articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
+      createdAt: new Date(comment.created_at),
+      status: comment.status || 'pending',
+      reason: comment.flagged_content?.length > 0 ? comment.flagged_content[0].reason : '',
+      reportedBy: comment.flagged_content?.length > 0 ? 
+        (comment.flagged_content[0].reporter_id ? 'User' : 'System') : '',
+    })) || [];
+    
+    logger.info(LogSource.DATABASE, 'Flagged comments fetched successfully', { 
+      count, 
+      filter
+    });
+    
+    return { comments, count: count || 0, error: null };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception fetching flagged comments', e);
+    return { comments: [], count: 0, error: e };
+  }
+};
+
+/**
+ * Approve a comment
+ */
+export const approveComment = async (commentId: string): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Approving comment', { commentId });
+    
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    const moderatorId = session?.user?.id;
+    
+    if (!moderatorId) {
+      return { success: false, error: new Error('Authentication required') };
+    }
+    
+    // Update comment status to published
+    const { error } = await supabase
+      .from('comments')
+      .update({ status: 'published' })
+      .eq('id', commentId);
+      
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error approving comment', { error, commentId });
+      return { success: false, error };
+    }
+    
+    // Update any flagged content records for this comment
+    const { error: flagError } = await supabase
+      .from('flagged_content')
+      .update({ 
+        status: 'resolved',
+        reviewer_id: moderatorId,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('content_id', commentId)
+      .eq('content_type', 'comment');
+      
+    if (flagError) {
+      logger.warn(LogSource.DATABASE, 'Error updating flagged content record', { error: flagError, commentId });
+      // Don't fail the operation for this secondary update
+    }
+    
+    logger.info(LogSource.DATABASE, 'Comment approved successfully', { commentId });
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception approving comment', { error: e, commentId });
+    return { success: false, error: e };
+  }
+};
+
+/**
+ * Reject a comment
+ */
+export const rejectComment = async (commentId: string): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Rejecting comment', { commentId });
+    
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    const moderatorId = session?.user?.id;
+    
+    if (!moderatorId) {
+      return { success: false, error: new Error('Authentication required') };
+    }
+    
+    // Update comment status to rejected
+    const { error } = await supabase
+      .from('comments')
+      .update({ status: 'rejected' })
+      .eq('id', commentId);
+      
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error rejecting comment', { error, commentId });
+      return { success: false, error };
+    }
+    
+    // Update any flagged content records for this comment
+    const { error: flagError } = await supabase
+      .from('flagged_content')
+      .update({ 
+        status: 'resolved',
+        reviewer_id: moderatorId,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('content_id', commentId)
+      .eq('content_type', 'comment');
+      
+    if (flagError) {
+      logger.warn(LogSource.DATABASE, 'Error updating flagged content record', { error: flagError, commentId });
+      // Don't fail the operation for this secondary update
+    }
+    
+    logger.info(LogSource.DATABASE, 'Comment rejected successfully', { commentId });
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception rejecting comment', { error: e, commentId });
+    return { success: false, error: e };
+  }
+};
+
+/**
+ * Flag a comment
+ */
+export const flagComment = async (
+  commentId: string,
+  reason: string
+): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Flagging comment', { commentId, reason });
+    
+    // Get current user if logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    // Insert flagged content record
+    const { error } = await supabase
+      .from('flagged_content')
+      .insert({
+        content_id: commentId,
+        content_type: 'comment',
+        reason,
+        reporter_id: userId || null,
+        status: 'pending'
+      });
+      
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error flagging comment', { error, commentId });
+      return { success: false, error };
+    }
+    
+    // Update comment status to flagged
+    const { error: updateError } = await supabase
+      .from('comments')
+      .update({ status: 'flagged' })
+      .eq('id', commentId);
+      
+    if (updateError) {
+      logger.warn(LogSource.DATABASE, 'Error updating comment status', { error: updateError, commentId });
+      // Don't fail if just the status update fails
+    }
+    
+    logger.info(LogSource.DATABASE, 'Comment flagged successfully', { commentId });
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception flagging comment', { error: e, commentId });
+    return { success: false, error: e };
+  }
+};

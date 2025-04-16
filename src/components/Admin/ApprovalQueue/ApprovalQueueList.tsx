@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Table,
   TableBody,
@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/table';
 import StatusBadge from '../Status/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Check, XCircle, MessageSquare, Clock, Eye } from 'lucide-react';
+import { Check, XCircle, MessageSquare, Clock, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-// Mock data interface for the approval queue
+// Data interface for the approval queue
 export interface ArticleReviewItem {
   id: string;
   title: string;
@@ -28,29 +28,23 @@ export interface ArticleReviewItem {
 interface ApprovalQueueListProps {
   articles: ArticleReviewItem[];
   onStatusChange: (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => void;
+  processingIds?: string[]; // Track articles being processed
 }
 
 const ApprovalQueueList: React.FC<ApprovalQueueListProps> = ({ 
   articles, 
-  onStatusChange 
+  onStatusChange,
+  processingIds = []
 }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleApprove = (articleId: string) => {
     onStatusChange(articleId, 'published');
-    toast({
-      title: "Article approved",
-      description: "The article has been published",
-    });
   };
 
   const handleReject = (articleId: string) => {
     onStatusChange(articleId, 'rejected');
-    toast({
-      title: "Article rejected",
-      description: "The article has been rejected and returned to the author",
-    });
   };
 
   const handleView = (articleId: string) => {
@@ -95,63 +89,79 @@ const ApprovalQueueList: React.FC<ApprovalQueueListProps> = ({
         </TableHeader>
         <TableBody>
           {sortedArticles.length > 0 ? (
-            sortedArticles.map((article) => (
-              <TableRow key={article.id}>
-                <TableCell className="font-medium">{article.title}</TableCell>
-                <TableCell>{article.author}</TableCell>
-                <TableCell>{article.category}</TableCell>
-                <TableCell>
-                  <StatusBadge status={article.status} size="sm" />
-                </TableCell>
-                <TableCell>
-                  {new Date(article.submittedAt).toLocaleDateString()}{' '}
-                  {new Date(article.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityClass(article.priority)}`}>
-                    {article.priority.charAt(0).toUpperCase() + article.priority.slice(1)}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      size="icon" 
-                      variant="outline" 
-                      onClick={() => handleView(article.id)}
-                      title="View Article"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="outline" 
-                      onClick={() => handleComment(article.id)}
-                      title="Add Review Comments"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="outline" 
-                      className="text-green-600 hover:bg-green-50" 
-                      onClick={() => handleApprove(article.id)}
-                      title="Approve"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="outline" 
-                      className="text-red-600 hover:bg-red-50"
-                      onClick={() => handleReject(article.id)}
-                      title="Reject"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
+            sortedArticles.map((article) => {
+              const isProcessing = processingIds.includes(article.id);
+              
+              return (
+                <TableRow key={article.id}>
+                  <TableCell className="font-medium">{article.title}</TableCell>
+                  <TableCell>{article.author}</TableCell>
+                  <TableCell>{article.category}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={article.status} size="sm" />
+                  </TableCell>
+                  <TableCell>
+                    {new Date(article.submittedAt).toLocaleDateString()}{' '}
+                    {new Date(article.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityClass(article.priority)}`}>
+                      {article.priority.charAt(0).toUpperCase() + article.priority.slice(1)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        onClick={() => handleView(article.id)}
+                        title="View Article"
+                        disabled={isProcessing}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        onClick={() => handleComment(article.id)}
+                        title="Add Review Comments"
+                        disabled={isProcessing}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        className="text-green-600 hover:bg-green-50" 
+                        onClick={() => handleApprove(article.id)}
+                        title="Approve"
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        className="text-red-600 hover:bg-red-50"
+                        onClick={() => handleReject(article.id)}
+                        title="Reject"
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <XCircle className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">

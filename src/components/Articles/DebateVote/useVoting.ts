@@ -8,18 +8,39 @@ import {
   fetchVoteCounts,
   subscribeToVoteUpdates
 } from './voteUtils';
+import { supabase } from '@/integrations/supabase/client';
 
-export const useVoting = (debateId: string, initialVotes = { yes: 50, no: 50 }) => {
+export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) => {
   const [votes, setVotes] = useState(initialVotes);
   const [hasVoted, setHasVoted] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
   const [userChoice, setUserChoice] = useState<'yes' | 'no' | null>(null);
   const [resultsVisible, setResultsVisible] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Calculate percentages
   const totalVotes = votes.yes + votes.no;
   const yesPercentage = totalVotes > 0 ? Math.round((votes.yes / totalVotes) * 100) : 0;
   const noPercentage = totalVotes > 0 ? Math.round((votes.no / totalVotes) * 100) : 0;
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -35,9 +56,7 @@ export const useVoting = (debateId: string, initialVotes = { yes: 50, no: 50 }) 
       
       // Fetch initial vote counts from backend
       const currentVotes = await fetchVoteCounts(debateId);
-      if (currentVotes.yes > 0 || currentVotes.no > 0) {
-        setVotes(currentVotes);
-      }
+      setVotes(currentVotes);
       
       // Subscribe to real-time vote updates
       unsubscribe = subscribeToVoteUpdates(debateId, (updatedVotes) => {
@@ -54,7 +73,7 @@ export const useVoting = (debateId: string, initialVotes = { yes: 50, no: 50 }) 
     };
   }, [debateId]);
 
-  const handleVote = async (choice: 'yes' | 'no', isLoggedIn: boolean) => {
+  const handleVote = async (choice: 'yes' | 'no') => {
     if (!isLoggedIn) {
       toast.error("Please sign in to vote on debates!", {
         description: "Create an account or sign in to participate in debates.",
@@ -82,17 +101,6 @@ export const useVoting = (debateId: string, initialVotes = { yes: 50, no: 50 }) 
         toast.warning("You've already voted on this debate!");
         setHasVoted(true);
         setUserChoice(voteResult.userChoice);
-        setIsVoting(false);
-        setResultsVisible(true);
-        return;
-      }
-
-      // Simulate checking if IP has voted
-      const hasIpVoted = await simulateIpCheck(debateId);
-      
-      if (hasIpVoted) {
-        toast.warning("A vote from your location has already been recorded!");
-        setHasVoted(true);
         setIsVoting(false);
         setResultsVisible(true);
         return;
@@ -134,6 +142,7 @@ export const useVoting = (debateId: string, initialVotes = { yes: 50, no: 50 }) 
     yesPercentage,
     noPercentage,
     handleVote,
-    setResultsVisible
+    setResultsVisible,
+    isLoggedIn
   };
 };

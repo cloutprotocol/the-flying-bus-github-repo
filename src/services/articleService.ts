@@ -4,6 +4,7 @@ import { fetchArticleWithCache, clearArticleCache } from '@/utils/articleSync';
 import logger, { LogSource } from '@/utils/logger';
 import { validateArticle, validateArticleUpdate } from './validationService';
 import { z } from 'zod';
+import { toast } from 'sonner';
 
 /**
  * Create a new article in the database
@@ -319,5 +320,134 @@ export const trackArticleShare = async (
     // For now, we'll just log it
   } catch (e) {
     logger.error(LogSource.API, 'Error tracking article share', { error: e, articleId, platform });
+  }
+};
+
+/**
+ * Submit an article for review (transition from draft to pending)
+ */
+export const submitArticleForReview = async (
+  articleId: string
+): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Submitting article for review', { articleId });
+    
+    // Validate that the current status is draft
+    const { data: article, error: checkError } = await supabase
+      .from('articles')
+      .select('status')
+      .eq('id', articleId)
+      .single();
+      
+    if (checkError) {
+      logger.error(LogSource.DATABASE, 'Error checking article status', { error: checkError, articleId });
+      return { success: false, error: checkError };
+    }
+    
+    if (article.status !== 'draft') {
+      const statusError = new Error(`Article cannot be submitted as it is not in draft status (current: ${article.status})`);
+      logger.error(LogSource.DATABASE, 'Invalid status for submission', { articleId, status: article.status });
+      return { success: false, error: statusError };
+    }
+    
+    // Update article status to pending
+    const { error } = await supabase
+      .from('articles')
+      .update({ 
+        status: 'pending',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', articleId);
+
+    // Clear the cache when status changes
+    if (!error) {
+      clearArticleCache(articleId);
+      logger.info(LogSource.DATABASE, 'Article submitted for review successfully', { articleId });
+      
+      // Create an article review record to track the submission
+      const { error: reviewError } = await supabase
+        .from('article_reviews')
+        .insert({
+          article_id: articleId,
+          reviewer_id: null, // Will be filled when a moderator reviews it
+          status: 'pending', 
+          feedback: ''
+        });
+        
+      if (reviewError) {
+        logger.warn(LogSource.DATABASE, 'Error creating review record', { error: reviewError, articleId });
+        // We don't fail the operation if just the review record fails
+      }
+    } else {
+      logger.error(LogSource.DATABASE, 'Error submitting article for review', { error, articleId });
+    }
+
+    return { success: !error, error };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception submitting article for review', { error: e, articleId });
+    return { success: false, error: e };
+  }
+};
+
+/**
+ * Review an article (approve or reject with feedback)
+ */
+export const reviewArticle = async (
+  articleId: string, 
+  reviewData: { 
+    status: 'published' | 'rejected' | 'draft',
+    feedback?: string 
+  }
+): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.DATABASE, 'Reviewing article', { articleId, reviewStatus: reviewData.status });
+    
+    // Get current user 
+    const { data: { session } } = await supabase.auth.getSession();
+    const reviewerId = session?.user?.id;
+    
+    if (!reviewerId) {
+      return { success: false, error: new Error('You must be logged in to review articles') };
+    }
+    
+    // Update article status based on review decision
+    const { error } = await supabase
+      .from('articles')
+      .update({ 
+        status: reviewData.status,
+        // If publishing, set the published_at timestamp
+        ...(reviewData.status === 'published' && { published_at: new Date().toISOString() }),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', articleId);
+
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error updating article status during review', { error, articleId });
+      return { success: false, error };
+    }
+    
+    // Record the review in article_reviews table
+    const { error: reviewError } = await supabase
+      .from('article_reviews')
+      .insert({
+        article_id: articleId,
+        reviewer_id: reviewerId,
+        status: reviewData.status,
+        feedback: reviewData.feedback || ''
+      });
+      
+    if (reviewError) {
+      logger.error(LogSource.DATABASE, 'Error recording article review', { error: reviewError, articleId });
+      // Don't fail if just the review recording fails
+    }
+
+    // Clear the cache when status changes
+    clearArticleCache(articleId);
+    logger.info(LogSource.DATABASE, 'Article reviewed successfully', { articleId, status: reviewData.status });
+
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.DATABASE, 'Exception reviewing article', { error: e, articleId });
+    return { success: false, error: e };
   }
 };

@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Check, XCircle, Eye } from 'lucide-react';
+import { ArrowLeft, Check, XCircle, Eye, Loader2 } from 'lucide-react';
 import StatusDropdown from '@/components/Admin/Status/StatusDropdown';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
 import ReviewForm from '@/components/Admin/Reviews/ReviewForm';
@@ -12,62 +12,56 @@ import ReviewsList from '@/components/Admin/Reviews/ReviewsList';
 import { ReviewCommentType } from '@/components/Admin/Reviews/ReviewComment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-
-// Mock article data
-const MOCK_ARTICLE = {
-  id: '1',
-  title: 'The Future of Ocean Conservation',
-  author: 'Jamie Smith',
-  status: 'pending' as StatusType,
-  excerpt: 'Exploring the latest technologies and initiatives helping to protect our oceans for future generations.',
-  content: 'Lorem ipsum dolor sit amet...',
-  submittedAt: new Date('2025-04-10T10:30:00'),
-  category: 'Headliners',
-};
-
-// Mock review comments
-const MOCK_COMMENTS: ReviewCommentType[] = [
-  {
-    id: '1',
-    authorName: 'Editor Alice',
-    content: 'Please add more details about the conservation technologies discussed in paragraph 3.',
-    createdAt: new Date('2025-04-12T14:30:00'),
-    isPrivate: false,
-  },
-  {
-    id: '2',
-    authorName: 'Moderator Bob',
-    content: 'This article needs citations for the statistics presented in the introduction.',
-    createdAt: new Date('2025-04-11T09:15:00'),
-    isPrivate: false,
-  },
-  {
-    id: '3',
-    authorName: 'Admin Charlie',
-    content: 'Internal note: This is a high-priority piece for our environmental focus week.',
-    createdAt: new Date('2025-04-10T16:45:00'),
-    isPrivate: true,
-  }
-];
+import { getDraftById } from '@/services/draftService';
+import { reviewArticle } from '@/services/articleService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ArticleReview = () => {
-  const { articleId } = useParams<{ articleId: string }>();
+  const { articleId = '' } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [status, setStatus] = useState<StatusType>(MOCK_ARTICLE.status);
-  const [comments, setComments] = useState<ReviewCommentType[]>(MOCK_COMMENTS);
+  const [status, setStatus] = useState<StatusType>('pending');
+  const [comments, setComments] = useState<ReviewCommentType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [article, setArticle] = useState<any>(null);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
-  // In a real app, we would fetch the article and comments based on articleId
+  useEffect(() => {
+    const fetchArticle = async () => {
+      if (!articleId) return;
+
+      setLoading(true);
+      try {
+        const { draft, error } = await getDraftById(articleId);
+        
+        if (error) {
+          console.error('Error fetching article:', error);
+          toast({
+            title: "Error",
+            description: "Could not load the article for review",
+            variant: "destructive"
+          });
+        } else if (draft) {
+          setArticle(draft);
+          setStatus(draft.status as StatusType);
+        }
+      } catch (err) {
+        console.error('Exception fetching article:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArticle();
+    
+    // TODO: Fetch review comments from the backend
+    // This would be implemented in a separate service function
+  }, [articleId, toast]);
 
   const handleStatusChange = (newStatus: StatusType) => {
     setStatus(newStatus);
-    // In a real app, update status in the database
-    
-    toast({
-      title: "Status updated",
-      description: `Article status changed to ${newStatus}`,
-    });
+    // We'll use our reviewArticle function for the actual approval/rejection
   };
 
   const handleSubmitReview = (content: string, isPrivate: boolean) => {
@@ -102,17 +96,137 @@ const ArticleReview = () => {
     });
   };
 
-  const handleApprove = () => {
-    handleStatusChange('published');
-    // Navigate back after a short delay
-    setTimeout(() => navigate('/admin/approval-queue'), 500);
+  const handleApprove = async () => {
+    if (!articleId) return;
+    
+    setActionInProgress(true);
+    try {
+      const { success, error } = await reviewArticle(articleId, { 
+        status: 'published',
+        feedback: 'Article approved for publication' 
+      });
+      
+      if (success) {
+        setStatus('published');
+        toast({
+          title: "Article published",
+          description: "The article has been approved and published",
+        });
+        
+        // Navigate back after a short delay
+        setTimeout(() => navigate('/admin/approval-queue'), 1000);
+      } else {
+        console.error('Error approving article:', error);
+        toast({
+          title: "Error",
+          description: "There was a problem publishing the article",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Exception approving article:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setActionInProgress(false);
+    }
   };
 
-  const handleReject = () => {
-    handleStatusChange('rejected');
-    // Navigate back after a short delay
-    setTimeout(() => navigate('/admin/approval-queue'), 500);
+  const handleReject = async () => {
+    if (!articleId) return;
+    
+    setActionInProgress(true);
+    try {
+      const { success, error } = await reviewArticle(articleId, { 
+        status: 'rejected',
+        feedback: 'Article requires revisions before it can be published' 
+      });
+      
+      if (success) {
+        setStatus('rejected');
+        toast({
+          title: "Article rejected",
+          description: "The article has been rejected and returned to the author",
+        });
+        
+        // Navigate back after a short delay
+        setTimeout(() => navigate('/admin/approval-queue'), 1000);
+      } else {
+        console.error('Error rejecting article:', error);
+        toast({
+          title: "Error",
+          description: "There was a problem rejecting the article",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error('Exception rejecting article:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setActionInProgress(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <AdminPortalLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon"
+                disabled
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Review Article</h1>
+                <p className="text-muted-foreground">
+                  Provide feedback and review the article before publication
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-8 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div>
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </div>
+      </AdminPortalLayout>
+    );
+  }
 
   return (
     <AdminPortalLayout>
@@ -139,6 +253,7 @@ const ArticleReview = () => {
               currentStatus={status} 
               onStatusChange={handleStatusChange}
               userRole="moderator"
+              articleId={articleId}
             />
             
             <Button 
@@ -153,16 +268,26 @@ const ArticleReview = () => {
               variant="outline" 
               className="text-red-600 border-red-200 hover:bg-red-50"
               onClick={handleReject}
+              disabled={actionInProgress}
             >
-              <XCircle className="h-4 w-4 mr-2" />
+              {actionInProgress ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-2" />
+              )}
               Reject
             </Button>
             
             <Button 
               className="bg-green-600 hover:bg-green-700"
               onClick={handleApprove}
+              disabled={actionInProgress}
             >
-              <Check className="h-4 w-4 mr-2" />
+              {actionInProgress ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
               Approve
             </Button>
           </div>
@@ -172,13 +297,13 @@ const ArticleReview = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>{MOCK_ARTICLE.title}</CardTitle>
+                <CardTitle>{article?.title || 'Untitled Article'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="font-medium">By {MOCK_ARTICLE.author}</p>
-                  <p className="text-muted-foreground">{MOCK_ARTICLE.excerpt}</p>
-                  <p>{MOCK_ARTICLE.content}</p>
+                  <p className="font-medium">By {article?.author || 'Unknown Author'}</p>
+                  <p className="text-muted-foreground">{article?.excerpt || 'No excerpt available'}</p>
+                  <div dangerouslySetInnerHTML={{ __html: article?.content || 'No content available' }} />
                 </div>
               </CardContent>
             </Card>

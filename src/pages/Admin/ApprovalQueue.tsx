@@ -1,88 +1,92 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ApprovalQueueList, { ArticleReviewItem } from '@/components/Admin/ApprovalQueue/ApprovalQueueList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
-
-// Mock data for the approval queue
-const MOCK_ARTICLES: ArticleReviewItem[] = [
-  {
-    id: '1',
-    title: 'The Future of Ocean Conservation',
-    author: 'Jamie Smith',
-    status: 'pending',
-    submittedAt: new Date('2025-04-10T10:30:00'),
-    category: 'Headliners',
-    priority: 'high'
-  },
-  {
-    id: '2',
-    title: 'Should Video Games Be Taught in Schools?',
-    author: 'Alex Johnson',
-    status: 'pending',
-    submittedAt: new Date('2025-04-09T14:15:00'),
-    category: 'Debates',
-    priority: 'medium'
-  },
-  {
-    id: '3',
-    title: 'Interview with a Young Chef',
-    author: 'Taylor Brown',
-    status: 'pending',
-    submittedAt: new Date('2025-04-08T09:45:00'),
-    category: 'Spice It Up',
-    priority: 'low'
-  },
-  {
-    id: '4',
-    title: 'The Mystery of the Missing Library Book: Part 1',
-    author: 'Riley Wilson',
-    status: 'draft',
-    submittedAt: new Date('2025-04-07T16:20:00'),
-    category: 'Storyboard',
-    priority: 'medium'
-  },
-  {
-    id: '5',
-    title: "Our School's New Recycling Program", // Use double quotes to escape the apostrophe
-    author: 'Casey Miller',
-    status: 'rejected',
-    submittedAt: new Date('2025-04-06T11:10:00'),
-    category: 'School News',
-    priority: 'low'
-  },
-  {
-    id: '6',
-    title: 'How Plants Communicate',
-    author: 'Jordan Lee',
-    status: 'published',
-    submittedAt: new Date('2025-04-05T13:40:00'),
-    category: 'Learning',
-    priority: 'medium'
-  }
-];
+import { Search, Loader2 } from 'lucide-react';
+import { getArticlesForApproval } from '@/services/approvalService';
+import { useToast } from '@/components/ui/use-toast';
+import { reviewArticle } from '@/services/articleService';
 
 const ApprovalQueue = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('pending');
+  const [articles, setArticles] = useState<ArticleReviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const { toast } = useToast();
   
-  const filteredArticles = MOCK_ARTICLES.filter(article => {
-    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         article.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || article.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || article.status === statusFilter;
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setLoading(true);
+      try {
+        const { articles: fetchedArticles, error } = await getArticlesForApproval(
+          statusFilter, 
+          categoryFilter, 
+          searchTerm
+        );
+        
+        if (error) {
+          console.error('Error fetching approval queue:', error);
+          toast({
+            title: "Error",
+            description: "Could not load the approval queue",
+            variant: "destructive"
+          });
+        } else {
+          setArticles(fetchedArticles);
+        }
+      } catch (err) {
+        console.error('Exception fetching approval queue:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+    fetchArticles();
+  }, [statusFilter, categoryFilter, searchTerm, toast]);
 
-  const handleStatusChange = (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => {
-    // In a real app, this would update the database
-    console.log(`Article ${articleId} status changed to ${newStatus}`);
-    // For the mock data, we'd update the state here
+  const handleStatusChange = async (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => {
+    setProcessingIds(prev => [...prev, articleId]);
+    
+    try {
+      const { success, error } = await reviewArticle(articleId, {
+        status: newStatus,
+        feedback: `Article status changed to ${newStatus}`
+      });
+      
+      if (success) {
+        // Update local state
+        setArticles(prevArticles => 
+          prevArticles.filter(article => article.id !== articleId)
+        );
+        
+        toast({
+          title: `Article ${newStatus}`,
+          description: `The article has been ${newStatus === 'published' ? 'published' : 
+                         newStatus === 'rejected' ? 'rejected' : 'moved to drafts'}`,
+        });
+      } else {
+        console.error(`Error changing article status to ${newStatus}:`, error);
+        toast({
+          title: "Error",
+          description: `Could not change article status to ${newStatus}`,
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error(`Exception changing article status to ${newStatus}:`, err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== articleId));
+    }
   };
 
   return (
@@ -136,10 +140,17 @@ const ApprovalQueue = () => {
             </TabsList>
             
             <TabsContent value={statusFilter} className="mt-4">
-              <ApprovalQueueList 
-                articles={filteredArticles} 
-                onStatusChange={handleStatusChange} 
-              />
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <ApprovalQueueList 
+                  articles={articles} 
+                  onStatusChange={handleStatusChange}
+                  processingIds={processingIds}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
