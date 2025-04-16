@@ -4,8 +4,8 @@
  * Main export file for the logger system
  */
 
-// Re-export types
-export { LogLevel, LogSource, LogEntry, LoggerConfig } from './types';
+// Re-export types with proper 'export type' syntax for isolatedModules
+export type { LogLevel, LogSource, LogEntry, LoggerConfig } from './types';
 
 // Re-export configuration
 export { configureLogger } from './config';
@@ -14,4 +14,5 @@ export { configureLogger } from './config';
 export { logMessage, logger } from './logger';
 
 // Default export
+import { logger } from './logger';
 export default logger;
