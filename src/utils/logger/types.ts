@@ -15,12 +15,20 @@ export enum LogLevel {
 
 // Log source
 export enum LogSource {
+  // System sources
+  APP = 'app',
   CLIENT = 'client',
   API = 'api',
   AUTH = 'auth',
   DATABASE = 'database',
   STORAGE = 'storage',
-  BACKGROUND = 'background'
+  BACKGROUND = 'background',
+  
+  // Feature-specific sources
+  EDITOR = 'editor',
+  MEDIA = 'media',
+  MODERATION = 'moderation',
+  SAFETY = 'safety'
 }
 
 // Log entry interface

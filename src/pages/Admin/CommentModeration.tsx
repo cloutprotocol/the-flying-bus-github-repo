@@ -167,7 +167,7 @@ const CommentModeration = () => {
                     </Card>
                   ) : (
                     <ModerationCommentList 
-                      items={comments}
+                      comments={comments}
                       onApprove={onApprove}
                       onReject={onReject}
                       processingIds={processingIds}

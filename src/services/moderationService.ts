@@ -77,7 +77,29 @@ export const getModerationStats = async (): Promise<{
     const { data: flaggedCountsByStatus, error: countError } = await supabase
       .from('flagged_content')
       .select('status, count(*)')
-      .group('status');
+      .then(response => {
+        // Handle count aggregation manually since .group() might not be supported
+        if (response.error) {
+          return { data: null, error: response.error };
+        }
+        
+        // Process data to group by status
+        const counts = {};
+        response.data.forEach(item => {
+          if (!counts[item.status]) {
+            counts[item.status] = 0;
+          }
+          counts[item.status]++;
+        });
+        
+        // Convert to expected format
+        const result = Object.entries(counts).map(([status, count]) => ({ 
+          status, 
+          count 
+        }));
+        
+        return { data: result, error: null };
+      });
       
     if (countError) {
       logger.error(LogSource.MODERATION, 'Error fetching flagged content counts', countError);
@@ -88,7 +110,29 @@ export const getModerationStats = async (): Promise<{
     const { data: flaggedCountsByType, error: typeError } = await supabase
       .from('flagged_content')
       .select('content_type, count(*)')
-      .group('content_type');
+      .then(response => {
+        // Handle count aggregation manually
+        if (response.error) {
+          return { data: null, error: response.error };
+        }
+        
+        // Process data to group by content_type
+        const counts = {};
+        response.data.forEach(item => {
+          if (!counts[item.content_type]) {
+            counts[item.content_type] = 0;
+          }
+          counts[item.content_type]++;
+        });
+        
+        // Convert to expected format
+        const result = Object.entries(counts).map(([content_type, count]) => ({ 
+          content_type, 
+          count 
+        }));
+        
+        return { data: result, error: null };
+      });
       
     if (typeError) {
       logger.error(LogSource.MODERATION, 'Error fetching content type counts', typeError);
@@ -146,11 +190,32 @@ export const getModeratorPerformance = async (): Promise<{
       .from('flagged_content')
       .select(`
         reviewer_id,
-        count(*),
         profiles:reviewer_id (display_name, avatar_url)
       `)
       .not('reviewer_id', 'is', null)
-      .group('reviewer_id, profiles:reviewer_id (display_name, avatar_url)');
+      .then(response => {
+        if (response.error) {
+          return { data: null, error: response.error };
+        }
+        
+        // Process data to group by reviewer
+        const countsByReviewer = {};
+        response.data.forEach(item => {
+          if (!countsByReviewer[item.reviewer_id]) {
+            countsByReviewer[item.reviewer_id] = {
+              reviewer_id: item.reviewer_id,
+              count: 0,
+              profiles: item.profiles
+            };
+          }
+          countsByReviewer[item.reviewer_id].count++;
+        });
+        
+        return { 
+          data: Object.values(countsByReviewer), 
+          error: null 
+        };
+      });
       
     if (countError) {
       logger.error(LogSource.MODERATION, 'Error fetching moderator counts', countError);
@@ -168,3 +233,6 @@ export const getModeratorPerformance = async (): Promise<{
     return { performance: null, error: e };
   }
 };
+
+// Utility function to simulate function calls
+export const getModerationMetrics = getModerationStats;

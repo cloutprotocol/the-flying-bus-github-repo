@@ -78,3 +78,7 @@ export const logger = {
   fatal: (source: LogSource, message: string, details?: any) => 
     logMessage(LogLevel.FATAL, source, message, details)
 };
+
+// Create a default export of the logger
+const defaultLogger = logger;
+export default defaultLogger;

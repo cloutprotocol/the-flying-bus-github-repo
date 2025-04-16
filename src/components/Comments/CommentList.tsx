@@ -1,6 +1,7 @@
 
 import React from 'react';
-import CommentItem, { CommentProps } from './CommentItem';
+import CommentItem from './CommentItem';
+import { CommentProps } from './CommentItem';
 
 interface CommentListProps {
   comments: CommentProps[];
