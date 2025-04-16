@@ -1,116 +1,161 @@
 
 import React, { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import ProfileLink from './ProfileLink';
-import ReplyForm from './ReplyForm';
-import { useCommentLikes } from '@/hooks/useCommentLikes';
 import { useAuth } from '@/hooks/useAuth';
-import CommentBadges from './CommentBadges';
-import CommentActions from './CommentActions';
-import CommentReplies from './CommentReplies';
-import { useComments } from '@/hooks/useComments';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
+import { MessageSquare, ThumbsUp, Flag, MoreVertical } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import ValidatedCommentForm from './ValidatedCommentForm';
+import ReportContentButton from '@/components/Common/ReportContentButton';
 
-export interface CommentProps {
+export interface CommentData {
   id: string;
-  author: {
-    name: string;
-    avatar?: string;
-    badges?: string[];
-  };
   content: string;
   createdAt: Date;
+  author: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
   likes: number;
-  replies?: CommentProps[];
-  articleId?: string;
-  isModerator?: boolean;
-  isVerified?: boolean;
+  isLiked?: boolean;
+  replies?: CommentData[];
 }
 
-const CommentItem: React.FC<CommentProps> = ({ 
-  id, 
-  author, 
-  content, 
-  createdAt, 
-  likes: initialLikes, 
-  replies = [],
-  articleId
-}) => {
-  const [isReplying, setIsReplying] = useState(false);
-  const [showReplies, setShowReplies] = useState(false);
-  const [localReplies, setLocalReplies] = useState<CommentProps[]>(replies);
-  const { isLoggedIn } = useAuth();
-  const { likes, hasLiked, handleLike } = useCommentLikes(initialLikes, id);
-  const { handleSubmitReply } = useComments(articleId || '');
-  
-  const handleReplyClick = () => {
-    if (!isLoggedIn) return;
-    
-    setIsReplying(!isReplying);
-    if (!showReplies && localReplies.length > 0) {
-      setShowReplies(true);
-    }
-  };
-  
-  const handleReplySubmit = async (replyContent: string) => {
-    if (!articleId) return;
-    
-    const success = await handleSubmitReply(replyContent, id);
-    
-    if (success) {
-      setIsReplying(false);
-      setShowReplies(true);
-      
-      // The parent useComments hook now handles updating the comment list
-      // so we don't need to manually add the reply here
-    }
-  };
+interface CommentItemProps {
+  comment: CommentData;
+  articleId: string;
+  isReply?: boolean;
+  depth?: number;
+  onLike?: (commentId: string) => void;
+  onReply?: (commentId: string, content: string) => void;
+}
 
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  articleId,
+  isReply = false,
+  depth = 0,
+  onLike,
+  onReply,
+}) => {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const { currentUser, isLoggedIn } = useAuth();
+  
+  const isAuthor = currentUser?.id === comment.author.id;
+  const maxDepth = 3; // Maximum nesting level for replies
+  
+  const handleLike = () => {
+    if (onLike) {
+      onLike(comment.id);
+    }
+  };
+  
+  const handleReplySubmitted = () => {
+    setShowReplyForm(false);
+  };
+  
   return (
-    <div className="py-4 border-b border-neutral-100 last:border-0">
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-1">
-            <div className="flex items-center gap-2">
-              <ProfileLink 
-                name={author.name}
-                avatar={author.avatar}
-                className="font-medium text-sm"
+    <div className={`comment-item ${isReply ? 'pl-6 border-l border-gray-100' : ''}`}>
+      <div className="flex gap-3">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+          <AvatarFallback>{comment.author.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 space-y-1">
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <div>
+              <span className="font-medium text-sm">{comment.author.name}</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+              </span>
+            </div>
+            
+            <div className="flex items-center">
+              <ReportContentButton
+                contentId={comment.id}
+                contentType="comment"
+                variant="ghost"
+                buttonSize="icon"
               />
               
-              <CommentBadges badges={author.badges} />
+              {isAuthor && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            <span className="text-xs text-neutral-500">
-              {formatDistanceToNow(createdAt, { addSuffix: true })}
-            </span>
           </div>
           
-          <p className="text-sm text-neutral-700 mb-3">{content}</p>
+          <div className="text-sm">{comment.content}</div>
           
-          <CommentActions 
-            isLoggedIn={isLoggedIn}
-            hasLiked={hasLiked}
-            likes={likes}
-            onLike={handleLike}
-            onReply={handleReplyClick}
-            showReplies={showReplies}
-            toggleReplies={() => setShowReplies(!showReplies)}
-            replyCount={localReplies.length}
-          />
+          <div className="flex items-center gap-2 pt-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2 text-muted-foreground"
+              onClick={handleLike}
+              disabled={!isLoggedIn}
+            >
+              <ThumbsUp className={`h-4 w-4 mr-1 ${comment.isLiked ? 'fill-current text-blue-500' : ''}`} />
+              {comment.likes > 0 && comment.likes}
+            </Button>
+            
+            {depth < maxDepth && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2 text-muted-foreground"
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                disabled={!isLoggedIn}
+              >
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Reply
+              </Button>
+            )}
+          </div>
           
-          {isReplying && (
+          {showReplyForm && (
             <div className="mt-3">
-              <ReplyForm 
-                parentId={id} 
-                onSubmit={handleReplySubmit} 
-                onCancel={() => setIsReplying(false)}
+              <ValidatedCommentForm
+                articleId={articleId}
+                parentId={comment.id}
+                onCommentSubmitted={handleReplySubmitted}
+                placeholder={`Reply to ${comment.author.name}...`}
               />
             </div>
           )}
           
-          <CommentReplies 
-            replies={localReplies} 
-            showReplies={showReplies} 
-          />
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {comment.replies.map((reply) => (
+                <CommentItem
+                  key={reply.id}
+                  comment={reply}
+                  articleId={articleId}
+                  isReply={true}
+                  depth={depth + 1}
+                  onLike={onLike}
+                  onReply={onReply}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
