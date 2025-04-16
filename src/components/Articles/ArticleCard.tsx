@@ -22,6 +22,8 @@ export interface ArticleProps {
   publishDate: string;
   commentCount?: number;
   articleType?: string;
+  videoUrl?: string;
+  duration?: string;
 }
 
 interface ArticleCardProps extends ArticleProps {

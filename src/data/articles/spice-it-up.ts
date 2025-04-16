@@ -9,6 +9,7 @@ export const spiceItUpArticles: ArticleProps[] = [
     category: 'Spice It Up',
     author: 'Jacob Williams, 9',
     date: 'Apr 5, 2025',
+    publishDate: 'Apr 5, 2025',
     imageUrl: 'https://images.unsplash.com/photo-1517685352821-92cf88aee5a5?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8ZGlub3NhdXJ8ZW58MHx8MHx8fDA%3D',
     videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // Sample YouTube embed URL
     readingLevel: 'Ages 8-10',
@@ -23,6 +24,7 @@ export const spiceItUpArticles: ArticleProps[] = [
     category: 'Spice It Up',
     author: 'Michael Chen, 14',
     date: 'Mar 26, 2025',
+    publishDate: 'Mar 26, 2025',
     imageUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8cm9ib3RpY3N8ZW58MHx8MHx8fDA%3D',
     readingLevel: 'Ages 10-12',
     readTime: 6,
