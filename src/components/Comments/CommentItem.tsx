@@ -3,7 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ThumbsUp, Award, MessageSquare } from 'lucide-react';
 import ProfileLink from './ProfileLink';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import ReplyForm from './ReplyForm';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -154,25 +154,27 @@ const CommentItem: React.FC<CommentProps> = ({
               />
               
               {author.badges && author.badges.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex items-center">
-                      <Award className="h-3.5 w-3.5 text-amber-500" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium">Reader Badges:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {author.badges.map((badge, index) => (
-                          <Badge key={index} variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                            {badge}
-                          </Badge>
-                        ))}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center">
+                        <Award className="h-3.5 w-3.5 text-amber-500" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Reader Badges:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {author.badges.map((badge, index) => (
+                            <Badge key={index} variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                              {badge}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             <span className="text-xs text-neutral-500">
