@@ -66,8 +66,19 @@ export const getSafetyReports = async (
       created_at: item.created_at,
       updated_at: item.created_at, // Using created_at as updated_at since it's required
       reviewed_at: item.reviewed_at,
-      reporter: item.reporter,
-      reviewer: item.reviewer
+      // Handle cases where reporter or reviewer might be error objects or null
+      reporter: typeof item.reporter === 'object' && item.reporter !== null 
+        ? { 
+            display_name: item.reporter.display_name || 'Unknown',
+            avatar_url: item.reporter.avatar_url || ''
+          }
+        : undefined,
+      reviewer: typeof item.reviewer === 'object' && item.reviewer !== null
+        ? {
+            display_name: item.reviewer.display_name || 'Unknown',
+            avatar_url: item.reviewer.avatar_url || ''
+          }
+        : undefined
     })) || [];
     
     return { 
