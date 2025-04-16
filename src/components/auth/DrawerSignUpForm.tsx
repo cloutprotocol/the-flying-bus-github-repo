@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DrawerClose, DrawerFooter } from "@/components/ui/drawer";
+import { DrawerFooter } from "@/components/ui/drawer";
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,11 +11,13 @@ import { useAuth } from '@/contexts/AuthContext';
 interface DrawerSignUpFormProps {
   isSubmitting: boolean;
   setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
+  onSuccess: () => void;
 }
 
 const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({ 
   isSubmitting, 
-  setIsSubmitting 
+  setIsSubmitting,
+  onSuccess
 }) => {
   const { toast } = useToast();
   const { login } = useAuth();
@@ -52,23 +54,32 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
       try {
         // In a real app, we would create the user first, then log them in
         // For demo, just log them in as "curious_reader"
-        await login("curious_reader", signUpForm.password);
+        const success = await login("curious_reader", signUpForm.password);
         
-        toast({
-          title: "Account created!",
-          description: "Welcome to The Flying Bus! You're now a reader.",
-        });
-        
-        // Reset form
-        setSignUpForm({
-          username: '',
-          displayName: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-        });
-        
-        // Close drawer is handled by the DrawerClose component
+        if (success) {
+          toast({
+            title: "Account created!",
+            description: "Welcome to The Flying Bus! You're now a reader.",
+          });
+          
+          // Reset form
+          setSignUpForm({
+            username: '',
+            displayName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+          });
+          
+          // Close drawer
+          onSuccess();
+        } else {
+          toast({
+            title: "Sign up failed",
+            description: "There was an error creating your account. Please try again.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         toast({
           title: "An error occurred",
@@ -172,16 +183,20 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
       </div>
       
       <DrawerFooter className="px-0">
-        <DrawerClose asChild>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Account...' : 'Create Account'}
-          </Button>
-        </DrawerClose>
-        <DrawerClose asChild>
-          <Button type="button" variant="outline" className="w-full">
-            Cancel
-          </Button>
-        </DrawerClose>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Creating Account...' : 'Create Account'}
+        </Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => {
+          setSignUpForm({
+            username: '',
+            displayName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+          });
+        }}>
+          Cancel
+        </Button>
       </DrawerFooter>
     </form>
   );

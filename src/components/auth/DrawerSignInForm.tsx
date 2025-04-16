@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DrawerClose, DrawerFooter } from "@/components/ui/drawer";
+import { DrawerFooter } from "@/components/ui/drawer";
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,11 +11,13 @@ import { useAuth } from '@/contexts/AuthContext';
 interface DrawerSignInFormProps {
   isSubmitting: boolean;
   setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
+  onSuccess: () => void;
 }
 
 const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({ 
   isSubmitting, 
-  setIsSubmitting 
+  setIsSubmitting,
+  onSuccess
 }) => {
   const { toast } = useToast();
   const { login } = useAuth();
@@ -24,7 +26,6 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
     username: '',
     password: '',
   });
-  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const handleSignInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -39,7 +40,6 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
       const success = await login(signInForm.username, signInForm.password);
       
       if (success) {
-        setLoginSuccess(true);
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
@@ -47,6 +47,9 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
         
         // Reset form
         setSignInForm({ username: '', password: '' });
+        
+        // Call onSuccess to close the drawer
+        onSuccess();
       } else {
         toast({
           title: "Sign in failed",
@@ -105,24 +108,12 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
       </div>
       
       <DrawerFooter className="px-0">
-        {loginSuccess ? (
-          <DrawerClose asChild>
-            <Button type="button" className="w-full">
-              Close
-            </Button>
-          </DrawerClose>
-        ) : (
-          <>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
-            </Button>
-            <DrawerClose asChild>
-              <Button type="button" variant="outline" className="w-full">
-                Cancel
-              </Button>
-            </DrawerClose>
-          </>
-        )}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? 'Signing in...' : 'Sign In'}
+        </Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => setSignInForm({ username: '', password: '' })}>
+          Cancel
+        </Button>
       </DrawerFooter>
     </form>
   );
