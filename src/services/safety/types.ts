@@ -34,6 +34,7 @@ export interface SafetyReport {
   status: string;
   created_at: string;
   updated_at: string;
+  reviewed_at?: string;
   reporter?: {
     display_name: string;
     avatar_url: string;

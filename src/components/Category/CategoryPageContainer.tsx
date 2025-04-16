@@ -7,7 +7,7 @@ import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
 import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
-import { handleApiError } from '@/utils/apiErrorHandler';
+import { handleApiError } from '@/utils/errors';
 import logger, { LogSource } from '@/utils/loggerService';
 
 interface CategoryPageContainerProps {

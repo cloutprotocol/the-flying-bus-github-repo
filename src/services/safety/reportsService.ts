@@ -54,9 +54,25 @@ export const getSafetyReports = async (
       count: data?.length
     });
     
+    // Transform data to match SafetyReport interface
+    const reports: SafetyReport[] = data?.map(item => ({
+      id: item.id,
+      content_id: item.content_id,
+      content_type: item.content_type as ContentType,
+      reason: item.reason,
+      reporter_id: item.reporter_id,
+      reviewer_id: item.reviewer_id,
+      status: item.status,
+      created_at: item.created_at,
+      updated_at: item.created_at, // Using created_at as updated_at since it's required
+      reviewed_at: item.reviewed_at,
+      reporter: item.reporter,
+      reviewer: item.reviewer
+    })) || [];
+    
     return { 
-      reports: data || [], 
-      totalCount: count || data?.length || 0, 
+      reports, 
+      totalCount: count || reports.length || 0, 
       error: null 
     };
   } catch (e) {
