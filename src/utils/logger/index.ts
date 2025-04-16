@@ -4,8 +4,11 @@
  * Main export file for the logger system
  */
 
-// Re-export types with proper 'export type' syntax for isolatedModules
-export type { LogLevel, LogSource, LogEntry, LoggerConfig } from './types';
+// Export enums directly since they're values, not just types
+export { LogLevel, LogSource } from './types';
+
+// Export interfaces using 'export type' for isolatedModules
+export type { LogEntry, LoggerConfig } from './types';
 
 // Re-export configuration
 export { configureLogger } from './config';
