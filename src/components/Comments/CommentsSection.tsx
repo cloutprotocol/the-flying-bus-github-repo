@@ -1,217 +1,50 @@
 
-import React, { useState, useEffect } from 'react';
-import CommentItem, { CommentProps } from './CommentItem';
-import CommentForm from './CommentForm';
+import React from 'react';
 import { Card } from '@/components/ui/card';
-import { MessageCircle, UserRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DrawerAuth } from '@/components/ui/drawer-auth';
-import { useToast } from '@/components/ui/use-toast';
+import CommentForm from './CommentForm';
+import CommentList from './CommentList';
+import CommentsHeader from './CommentsHeader';
+import EmptyCommentsState from './EmptyCommentsState';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useComments } from '@/hooks/useComments';
 
 interface CommentsSectionProps {
   articleId: string;
 }
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
-  const [comments, setComments] = useState<CommentProps[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn, currentUser } = useAuth();
-  const { toast } = useToast();
+  const { comments, isLoading, isSubmitting, handleSubmitComment } = useComments(articleId);
 
-  // Fetch comments from Supabase
-  useEffect(() => {
-    const fetchComments = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('comments')
-          .select(`
-            id,
-            content,
-            created_at,
-            user_id,
-            parent_id,
-            profiles:user_id (
-              display_name,
-              username,
-              avatar_url,
-              role
-            )
-          `)
-          .eq('article_id', articleId)
-          .is('parent_id', null)
-          .eq('status', 'published')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching comments:', error);
-          return;
-        }
-        
-        // Format comments to match CommentProps
-        const formattedComments: CommentProps[] = await Promise.all(
-          data.map(async (comment) => {
-            // Fetch replies for this comment
-            const { data: repliesData, error: repliesError } = await supabase
-              .from('comments')
-              .select(`
-                id,
-                content,
-                created_at,
-                user_id,
-                profiles:user_id (
-                  display_name,
-                  username,
-                  avatar_url,
-                  role
-                )
-              `)
-              .eq('parent_id', comment.id)
-              .eq('status', 'published')
-              .order('created_at', { ascending: true });
-            
-            if (repliesError) {
-              console.error('Error fetching replies:', repliesError);
-            }
-            
-            // Format replies
-            const replies = repliesData ? repliesData.map(reply => ({
-              id: reply.id,
-              content: reply.content,
-              createdAt: new Date(reply.created_at),
-              author: {
-                name: reply.profiles.display_name,
-                avatar: reply.profiles.avatar_url || undefined,
-                badges: reply.profiles.role !== 'reader' ? [reply.profiles.role] : []
-              },
-              likes: 0 // We'll implement this in a future update
-            })) : [];
-            
-            // Return formatted comment with replies
-            return {
-              id: comment.id,
-              content: comment.content,
-              createdAt: new Date(comment.created_at),
-              author: {
-                name: comment.profiles.display_name,
-                avatar: comment.profiles.avatar_url || undefined,
-                badges: comment.profiles.role !== 'reader' ? [comment.profiles.role] : []
-              },
-              likes: 0, // We'll implement this in a future update
-              replies
-            };
-          })
-        );
-        
-        setComments(formattedComments);
-      } catch (error) {
-        console.error('Error processing comments:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchComments();
-  }, [articleId]);
-
-  const handleSubmitComment = async (content: string) => {
-    if (!currentUser || !isLoggedIn) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Insert the comment to Supabase
-      const { data, error } = await supabase
-        .from('comments')
-        .insert({
-          article_id: articleId,
-          user_id: currentUser.id,
-          content,
-          status: 'published'
-        })
-        .select('*, profiles:user_id (display_name, username, avatar_url, role)')
-        .single();
-      
-      if (error) {
-        console.error('Error submitting comment:', error);
-        toast({
-          title: 'Failed to post comment',
-          description: 'There was an error posting your comment. Please try again.',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      // Add the new comment to the state
-      const newComment: CommentProps = {
-        id: data.id,
-        content: data.content,
-        createdAt: new Date(data.created_at),
-        author: {
-          name: data.profiles.display_name,
-          avatar: data.profiles.avatar_url || undefined,
-          badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
-        },
-        likes: 0,
-        replies: []
-      };
-      
-      setComments([newComment, ...comments]);
-      
-      toast({
-        title: 'Comment posted',
-        description: 'Your comment has been posted successfully.'
-      });
-      
-    } catch (error) {
-      console.error('Error in comment submission:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSubmitting(false);
+  const onSubmitComment = (content: string) => {
+    if (isLoggedIn && currentUser) {
+      handleSubmitComment(content, currentUser);
     }
   };
 
   return (
     <Card className="mt-8 pt-4 px-6 pb-6 bg-gray-50/50">
-      <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-        <MessageCircle className="h-5 w-5 text-neutral-600" />
-        Discussion ({comments.length})
-      </h3>
+      <CommentsHeader commentCount={comments.length} />
       
-      <CommentForm onSubmit={handleSubmitComment} isSubmitting={isSubmitting} />
+      <CommentForm onSubmit={onSubmitComment} isSubmitting={isSubmitting} />
       
       {isLoading ? (
         <div className="text-center py-8 text-gray-500">
           <p>Loading comments...</p>
         </div>
       ) : comments.length > 0 ? (
-        <div className="space-y-1 mt-6">
-          {comments.map((comment) => (
-            <CommentItem key={comment.id} {...comment} articleId={articleId} />
-          ))}
-        </div>
+        <CommentList 
+          comments={comments} 
+          isLoading={isLoading} 
+          articleId={articleId}
+          isLoggedIn={isLoggedIn} 
+        />
       ) : (
-        <div className="text-center py-8 text-gray-500">
-          <p className="mb-4">No comments yet. Be the first to comment!</p>
-          {!isLoggedIn && (
-            <DrawerAuth 
-              triggerComponent={
-                <Button variant="outline" size="sm" className="inline-flex items-center gap-2">
-                  <UserRound className="h-4 w-4" />
-                  Create an account to join the discussion
-                </Button>
-              }
-              defaultTab="sign-up"
-            />
-          )}
-        </div>
+        !isLoggedIn ? <EmptyCommentsState /> : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No comments yet. Be the first to comment!</p>
+          </div>
+        )
       )}
     </Card>
   );
