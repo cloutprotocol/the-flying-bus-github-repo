@@ -36,9 +36,9 @@ This document outlines the development plan for "The Flying Bus: News for Kids, 
 
 ### Interactive Features
 
-- [ ] Comments and discussions
-- [ ] Moderated feedback system
-- [ ] "Like" and reaction functionality
+- [x] Comments and discussions ✓
+- [x] Moderated feedback system ✓
+- [x] "Like" and reaction functionality ✓
 - [ ] Polls and surveys
 - [ ] Reading progress tracking
 - [ ] Achievement and gamification elements
@@ -137,8 +137,8 @@ This document outlines the development plan for "The Flying Bus: News for Kids, 
 
 ### Phase 2: Core Features
 
-- 🔄 Interactive elements (comments, likes)
-- 🔄 Enhanced moderation tools
+- ✅ Interactive elements (comments, likes)
+- ✅ Enhanced moderation tools
 - ⬜ Educational components
 - ⬜ Young journalist tools
 - 🔄 Testing framework

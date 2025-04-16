@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,6 +13,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ValidatedCommentForm from './ValidatedCommentForm';
 import ReportContentButton from '@/components/Common/ReportContentButton';
+import { useCommentLikes } from '@/hooks/useCommentLikes';
+import ReplyForm from './ReplyForm';
 
 export interface CommentAuthor {
   id?: string;
@@ -45,8 +48,8 @@ const CommentItem: React.FC<CommentProps> = ({
   content,
   createdAt,
   author,
-  likes,
-  isLiked,
+  likes: initialLikes,
+  isLiked: initialIsLiked,
   replies,
   articleId,
   isReply = false,
@@ -56,22 +59,25 @@ const CommentItem: React.FC<CommentProps> = ({
 }) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const { currentUser, isLoggedIn } = useAuth();
+  const { likes, hasLiked, handleLike } = useCommentLikes(initialLikes, id);
+  const [showReplies, setShowReplies] = useState(true);
   
   const isAuthor = currentUser?.id === author.id;
   const maxDepth = 3;
   
-  const handleLike = () => {
-    if (onLike) {
-      onLike(id);
+  const handleReplySubmit = async (content: string) => {
+    if (onReply) {
+      await onReply(id, content);
+      setShowReplyForm(false);
     }
   };
   
-  const handleReplySubmitted = () => {
-    setShowReplyForm(false);
+  const toggleReplies = () => {
+    setShowReplies(!showReplies);
   };
   
   return (
-    <div className={`comment-item ${isReply ? 'pl-6 border-l border-gray-100' : ''}`}>
+    <div className={`comment-item ${isReply ? 'pl-6 border-l border-gray-100 mt-4' : 'mb-6'}`}>
       <div className="flex gap-3">
         <Avatar className="h-8 w-8">
           <AvatarImage src={author.avatar} alt={author.name} />
@@ -117,11 +123,11 @@ const CommentItem: React.FC<CommentProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 px-2 text-muted-foreground"
+              className={`h-8 px-2 ${hasLiked ? 'text-blue-600' : 'text-muted-foreground'}`}
               onClick={handleLike}
               disabled={!isLoggedIn}
             >
-              <ThumbsUp className={`h-4 w-4 mr-1 ${isLiked ? 'fill-current text-blue-500' : ''}`} />
+              <ThumbsUp className={`h-4 w-4 mr-1 ${hasLiked ? 'fill-current text-blue-500' : ''}`} />
               {likes > 0 && likes}
             </Button>
             
@@ -137,20 +143,30 @@ const CommentItem: React.FC<CommentProps> = ({
                 Reply
               </Button>
             )}
+            
+            {replies && replies.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground"
+                onClick={toggleReplies}
+              >
+                {showReplies ? 'Hide Replies' : `Show Replies (${replies.length})`}
+              </Button>
+            )}
           </div>
           
           {showReplyForm && (
             <div className="mt-3">
-              <ValidatedCommentForm
-                articleId={articleId}
+              <ReplyForm
                 parentId={id}
-                onCommentSubmitted={handleReplySubmitted}
-                placeholder={`Reply to ${author.name}...`}
+                onSubmit={handleReplySubmit}
+                onCancel={() => setShowReplyForm(false)}
               />
             </div>
           )}
           
-          {replies && replies.length > 0 && (
+          {replies && replies.length > 0 && showReplies && (
             <div className="mt-4 space-y-4">
               {replies.map((reply) => (
                 <CommentItem

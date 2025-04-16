@@ -4,6 +4,9 @@ import { CommentProps } from '@/components/Comments/CommentItem';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { handleApiError } from '@/utils/errors';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export const useComments = (articleId: string) => {
   const [comments, setComments] = useState<CommentProps[]>([]);
@@ -17,6 +20,8 @@ export const useComments = (articleId: string) => {
     const fetchComments = async () => {
       setIsLoading(true);
       try {
+        logger.info(LogSource.CONTENT, 'Fetching comments for article', { articleId });
+        
         const { data, error } = await supabase
           .from('comments')
           .select(`
@@ -38,7 +43,7 @@ export const useComments = (articleId: string) => {
           .order('created_at', { ascending: false });
         
         if (error) {
-          console.error('Error fetching comments:', error);
+          handleApiError(error, true);
           return;
         }
         
@@ -65,7 +70,7 @@ export const useComments = (articleId: string) => {
               .order('created_at', { ascending: true });
             
             if (repliesError) {
-              console.error('Error fetching replies:', repliesError);
+              handleApiError(repliesError, false);
             }
             
             // Format replies
@@ -100,8 +105,9 @@ export const useComments = (articleId: string) => {
         );
         
         setComments(formattedComments);
+        logger.info(LogSource.CONTENT, 'Comments loaded successfully', { count: formattedComments.length });
       } catch (error) {
-        console.error('Error processing comments:', error);
+        handleApiError(error, true);
       } finally {
         setIsLoading(false);
       }
@@ -120,7 +126,7 @@ export const useComments = (articleId: string) => {
           filter: `article_id=eq.${articleId}` 
         }, 
         async (payload) => {
-          console.log('New comment received:', payload);
+          logger.debug(LogSource.REALTIME, 'New comment received:', payload);
           
           // Only process top-level comments here
           if (payload.new.parent_id === null) {
@@ -143,7 +149,7 @@ export const useComments = (articleId: string) => {
               .single();
               
             if (error) {
-              console.error('Error fetching new comment details:', error);
+              handleApiError(error, false);
               return;
             }
             
@@ -177,7 +183,7 @@ export const useComments = (articleId: string) => {
           filter: `parent_id=is.not.null`
         },
         async (payload) => {
-          console.log('New reply received:', payload);
+          logger.debug(LogSource.REALTIME, 'New reply received:', payload);
           
           // Check if this reply belongs to a comment in this article
           if (payload.new.article_id === articleId) {
@@ -201,7 +207,7 @@ export const useComments = (articleId: string) => {
               .single();
               
             if (error) {
-              console.error('Error fetching new reply details:', error);
+              handleApiError(error, false);
               return;
             }
             
@@ -256,7 +262,7 @@ export const useComments = (articleId: string) => {
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting comment for article:', articleId);
+      logger.info(LogSource.CONTENT, 'Submitting comment for article', { articleId });
       
       // Insert the comment to Supabase
       const { data, error } = await supabase
@@ -271,12 +277,7 @@ export const useComments = (articleId: string) => {
         .single();
       
       if (error) {
-        console.error('Error submitting comment:', error);
-        toast({
-          title: 'Failed to post comment',
-          description: 'There was an error posting your comment. Please try again.',
-          variant: 'destructive'
-        });
+        handleApiError(error, true);
         return;
       }
       
@@ -303,12 +304,7 @@ export const useComments = (articleId: string) => {
       });
       
     } catch (error) {
-      console.error('Error in comment submission:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
+      handleApiError(error, true);
     } finally {
       setIsSubmitting(false);
     }
@@ -325,7 +321,7 @@ export const useComments = (articleId: string) => {
     }
     
     try {
-      console.log('Submitting reply for article:', articleId, 'parent:', parentId);
+      logger.info(LogSource.CONTENT, 'Submitting reply for article', { articleId, parentId });
       
       // Insert the reply to Supabase
       const { data, error } = await supabase
@@ -341,12 +337,7 @@ export const useComments = (articleId: string) => {
         .single();
       
       if (error) {
-        console.error('Error submitting reply:', error);
-        toast({
-          title: 'Failed to post reply',
-          description: 'There was an error posting your reply. Please try again.',
-          variant: 'destructive'
-        });
+        handleApiError(error, true);
         return false;
       }
       
@@ -383,12 +374,7 @@ export const useComments = (articleId: string) => {
       
       return true;
     } catch (error) {
-      console.error('Error in reply submission:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
+      handleApiError(error, true);
       return false;
     }
   }, [articleId, currentUser, toast]);

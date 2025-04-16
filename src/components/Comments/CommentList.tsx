@@ -7,12 +7,14 @@ interface CommentListProps {
   comments: CommentProps[];
   isLoading: boolean;
   articleId: string;
+  onReply?: (commentId: string, content: string) => Promise<boolean>;
 }
 
 const CommentList: React.FC<CommentListProps> = ({ 
   comments, 
   isLoading, 
-  articleId 
+  articleId,
+  onReply
 }) => {
   if (isLoading) {
     return (
@@ -31,9 +33,13 @@ const CommentList: React.FC<CommentListProps> = ({
   }
   
   return (
-    <div className="space-y-1 mt-6">
+    <div className="space-y-6 mt-6">
       {comments.map((comment) => (
-        <CommentItem key={comment.id} {...comment} />
+        <CommentItem 
+          key={comment.id} 
+          {...comment}
+          onReply={onReply}
+        />
       ))}
     </div>
   );

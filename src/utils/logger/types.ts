@@ -1,57 +1,42 @@
 
 /**
- * Logger Types
- * Type definitions for the logging system
+ * Logger types
+ * Type definitions for the logger system
  */
 
-/**
- * Log levels for severity
- */
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
   WARN = 'warn',
-  ERROR = 'error',
-  FATAL = 'fatal'
+  ERROR = 'error'
 }
 
-/**
- * Log sources to categorize log messages
- */
 export enum LogSource {
   APP = 'app',
   API = 'api',
   AUTH = 'auth',
-  DATABASE = 'database',
+  CONTENT = 'content',
+  MEDIA = 'media',
   MODERATION = 'moderation',
-  EDITOR = 'editor',
+  SAFETY = 'safety',
   VALIDATION = 'validation',
-  CLIENT = 'client',
-  SERVER = 'server',
-  SAFETY = 'safety'
+  VOTING = 'voting',
+  REALTIME = 'realtime'
 }
 
-/**
- * Log entry structure
- */
 export interface LogEntry {
+  timestamp: string;
   level: LogLevel;
   source: LogSource;
   message: string;
-  details?: any;
-  timestamp: string;
-  userId?: string;    // User ID for authenticated users
-  url?: string;       // Current page URL
-  userAgent?: string; // Browser user agent
+  data?: any;
 }
 
-/**
- * Logger configuration options
- */
-export interface LoggerConfig {
-  minLevel: LogLevel;
-  consoleOutput: boolean;
-  toastOutput: boolean;
-  persistToStorage: boolean;
-  sendToServer: boolean;
+export interface LoggerInterface {
+  debug: (source: LogSource, message: string, data?: any) => void;
+  info: (source: LogSource, message: string, data?: any) => void;
+  warn: (source: LogSource, message: string, data?: any) => void;
+  error: (source: LogSource, message: string, data?: any) => void;
+  getEntries: () => LogEntry[];
+  clear: () => void;
 }

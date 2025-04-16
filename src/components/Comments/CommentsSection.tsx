@@ -14,7 +14,13 @@ interface CommentsSectionProps {
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
   const { isLoggedIn } = useAuth();
-  const { comments, isLoading, isSubmitting, handleSubmitComment } = useComments(articleId);
+  const { 
+    comments, 
+    isLoading, 
+    isSubmitting, 
+    handleSubmitComment,
+    handleSubmitReply
+  } = useComments(articleId);
 
   return (
     <Card className="mt-8 pt-4 px-6 pb-6 bg-gray-50/50">
@@ -31,6 +37,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
           comments={comments} 
           isLoading={isLoading} 
           articleId={articleId}
+          onReply={handleSubmitReply}
         />
       ) : (
         !isLoggedIn ? <EmptyCommentsState /> : (
