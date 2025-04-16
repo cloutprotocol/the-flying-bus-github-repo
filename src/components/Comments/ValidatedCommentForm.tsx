@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { createCommentSchema } from '@/utils/validation';
+import { createCommentSchema } from '@/utils/validation/commentValidation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import ValidatedForm from '@/components/common/ValidatedForm';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -22,13 +22,13 @@ const ValidatedCommentForm: React.FC<CommentFormProps> = ({
   onCommentSubmitted,
   placeholder = 'Share your thoughts...',
 }) => {
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isLoggedIn } = useAuth();
   const { toast } = useToast();
   
   const handleSubmit = async (data: {
     content: string;
   }) => {
-    if (!isAuthenticated || !currentUser) {
+    if (!isLoggedIn || !currentUser) {
       toast({
         title: 'Please sign in',
         description: 'You need to be signed in to post a comment.',
@@ -80,36 +80,34 @@ const ValidatedCommentForm: React.FC<CommentFormProps> = ({
           defaultValues={{ content: '' }}
           className="flex-1"
         >
-          {({ control, formState }) => (
+          {(methods) => (
             <>
-              <Form>
-                <FormField
-                  control={control}
-                  name="content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder={placeholder}
-                          rows={3}
-                          className="resize-none bg-gray-50 border-gray-200 focus:bg-white"
-                          disabled={!isAuthenticated}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Form>
+              <FormField
+                control={methods.control}
+                name="content"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder={placeholder}
+                        rows={3}
+                        className="resize-none bg-gray-50 border-gray-200 focus:bg-white"
+                        disabled={!isLoggedIn}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <div className="flex justify-end mt-2">
                 <Button 
                   type="submit"
-                  disabled={!isAuthenticated || formState.isSubmitting}
+                  disabled={!isLoggedIn || methods.formState.isSubmitting}
                   className="bg-flyingbus-purple hover:bg-flyingbus-purple/90"
                 >
-                  {formState.isSubmitting ? 'Submitting...' : 'Post Comment'}
+                  {methods.formState.isSubmitting ? 'Submitting...' : 'Post Comment'}
                 </Button>
               </div>
             </>
