@@ -1,17 +1,12 @@
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
-import { mockArticles } from '@/data/articles';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
-import { 
-  filterAndSortArticles, 
-  paginateArticles, 
-  getCategoryFromSlug 
-} from '@/components/Category/CategoryHelpers';
+import { getCategoryFromSlug } from '@/components/Category/CategoryHelpers';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
-import { getCategoryColor } from '@/components/Category/getCategoryColor';
+import { fetchArticlesByCategory, fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -26,6 +21,10 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const [currentPage, setCurrentPage] = useState(1);
   const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [paginatedArticles, setPaginatedArticles] = useState<any[]>([]);
+  const [totalArticles, setTotalArticles] = useState(0);
+  const [displayCategory, setDisplayCategory] = useState<string | null>(null);
+  const [categoryData, setCategoryData] = useState<any | null>(null);
   
   // Get the categoryId parameter from the URL
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -36,17 +35,58 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   
   // Use prop category if provided, otherwise use parameter, then path
   const categorySlug = propCategory || categoryId || pathCategory;
-  
-  // Get the display category name from the slug
-  const displayCategory = getCategoryFromSlug(categorySlug);
-  
-  // Filter articles by category - wrapped in useMemo to avoid unnecessary recalculations
-  const categoryArticles = useMemo(() => {
-    return mockArticles.filter(article => article.category === displayCategory);
-  }, [displayCategory]);
 
+  // Load category and articles data
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Fetch category data
+        const category = await fetchCategoryBySlug(categorySlug);
+        
+        if (!category) {
+          setIsLoading(false);
+          return;
+        }
+        
+        setCategoryData(category);
+        setDisplayCategory(category.name);
+        
+        // Fetch reading levels
+        const levels = await fetchReadingLevelsForCategory(category.id);
+        setAvailableReadingLevels(levels);
+        
+        // Fetch articles with server-side filtering
+        const { articles, count } = await fetchArticlesByCategory(
+          category.id,
+          {
+            readingLevel: selectedReadingLevel,
+            sortBy,
+            page: currentPage,
+            itemsPerPage: ARTICLES_PER_PAGE
+          }
+        );
+        
+        setPaginatedArticles(articles);
+        setTotalArticles(count);
+      } catch (error) {
+        console.error('Error fetching category data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [categorySlug, selectedReadingLevel, sortBy, currentPage]);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy, selectedReadingLevel]);
+  
   // If no category found, show not found message
-  if (!displayCategory || categoryArticles.length === 0) {
+  if (!isLoading && !categoryData) {
     return (
       <MainLayout>
         <NotFoundMessage 
@@ -57,42 +97,17 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     );
   }
   
-  // Extract and set unique reading levels on component mount
-  useEffect(() => {
-    // Extract unique reading levels from articles
-    const levels = [...new Set(categoryArticles.map(article => article.readingLevel))] as string[];
-    setAvailableReadingLevels(levels);
-    // Simulate loading data from an API
-    setTimeout(() => setIsLoading(false), 300);
-  }, [categoryArticles]);
-
-  // Apply filters and sorting - wrapped in useMemo for performance
-  const filteredAndSortedArticles = useMemo(() => {
-    return filterAndSortArticles(
-      categoryArticles,
-      selectedReadingLevel,
-      sortBy
-    );
-  }, [categoryArticles, selectedReadingLevel, sortBy]);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [sortBy, selectedReadingLevel]);
-
-  // Calculate pagination with useMemo
-  const { paginatedArticles, totalPages } = useMemo(() => {
-    return {
-      paginatedArticles: paginateArticles(
-        filteredAndSortedArticles,
-        currentPage,
-        ARTICLES_PER_PAGE
-      ),
-      totalPages: Math.ceil(filteredAndSortedArticles.length / ARTICLES_PER_PAGE)
-    };
-  }, [filteredAndSortedArticles, currentPage]);
+  // Calculate total pages
+  const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
   
   // Get category color
+  const getCategoryColorClass = (category: string | null): string => {
+    if (!category) return '';
+    if (!categoryData?.color) return '';
+    
+    return categoryData.color.replace('bg-flyingbus-', '');
+  };
+  
   const colorClass = getCategoryColorClass(displayCategory);
   
   // Handle reading level filter change
@@ -121,7 +136,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
           colorClass={colorClass}
           breadcrumbItems={[
             { label: 'Home', href: '/' },
-            { label: displayCategory, active: true }
+            { label: displayCategory || '', active: true }
           ]}
           sortBy={sortBy}
           onSortChange={setSortBy}
@@ -138,13 +153,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       </div>
     </MainLayout>
   );
-};
-
-// Helper function to get the category color class
-const getCategoryColorClass = (category: string | null): string => {
-  if (!category) return '';
-  const colorClass = getCategoryColor(category).split(' ')[0] || '';
-  return colorClass.replace('bg-flyingbus-', '');
 };
 
 export default CategoryPageContainer;

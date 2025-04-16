@@ -19,7 +19,7 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Set up database schema for articles, comments, and user profiles
 - [x] Create API endpoints for article CRUD operations
 - [x] Develop moderation queue system in backend
-- [ ] Implement real-time updates for comments and voting
+- [x] Implement real-time updates for comments and voting
 - [ ] Create data synchronization strategies between frontend and backend
 - [ ] Implement proper error handling for API calls
 - [ ] Develop caching mechanism for frequently accessed data
@@ -37,8 +37,8 @@ This document serves as a master checklist tracking both completed and pending t
 - [x] Implement category-specific pages with filtering and sorting
 - [x] Optimize category page performance with lazy loading and skeleton UI
 - [x] Add category descriptions to improve user understanding of content types
-- [ ] Connect categories to backend data source
-- [ ] Implement backend filtering and sorting for categories
+- [x] Connect categories to backend data source
+- [x] Implement backend filtering and sorting for categories
 
 ### ✅ Article System
 - [x] Design article card components

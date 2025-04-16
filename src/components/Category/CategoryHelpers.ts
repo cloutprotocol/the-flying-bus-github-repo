@@ -1,41 +1,46 @@
 
 import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { fetchCategoryBySlug } from '@/utils/categoryUtils';
 
 /**
  * Convert a slug to a display category name
  * @param slug The URL slug to convert
  * @returns The formatted category name
  */
-export const getCategoryFromSlug = (slug: string | undefined): string | null => {
+export const getCategoryFromSlug = async (slug: string | undefined): Promise<string | null> => {
   if (!slug) return null;
   
-  // Map of URL slugs to category display names
-  const categoryMap: Record<string, string> = {
-    'headliners': 'Headliners',
-    'debates': 'Debates',
-    'spice-it-up': 'Spice It Up',
-    'storyboard': 'Storyboard',
-    'in-the-neighborhood': 'In the Neighborhood',
-    'learning': 'Learning',
-    'school-news': 'School News',
-    // Add aliases for hyphenated URLs
-    'neighborhood': 'In the Neighborhood',
-    'spice': 'Spice It Up',
-    'school': 'School News'
-  };
-  
-  // Convert to lowercase to make the lookup case-insensitive
-  const normalizedSlug = slug.toLowerCase();
-  
-  return categoryMap[normalizedSlug] || null;
+  try {
+    const category = await fetchCategoryBySlug(slug);
+    return category?.name || null;
+  } catch (error) {
+    console.error('Error getting category from slug:', error);
+    
+    // Fallback to local mapping if API fails
+    const categoryMap: Record<string, string> = {
+      'headliners': 'Headliners',
+      'debates': 'Debates',
+      'spice-it-up': 'Spice It Up',
+      'storyboard': 'Storyboard',
+      'in-the-neighborhood': 'In the Neighborhood',
+      'learning': 'Learning',
+      'school-news': 'School News',
+      'neighborhood': 'In the Neighborhood',
+      'spice': 'Spice It Up',
+      'school': 'School News'
+    };
+    
+    // Convert to lowercase to make the lookup case-insensitive
+    const normalizedSlug = slug.toLowerCase();
+    
+    return categoryMap[normalizedSlug] || null;
+  }
 };
 
 /**
  * Filter and sort articles based on selected criteria
- * @param articles The articles to filter and sort
- * @param readingLevel The reading level to filter by (or null for all)
- * @param sortBy The sorting criteria
- * @returns Filtered and sorted articles
+ * This is kept for backward compatibility
+ * The actual filtering now happens on the server side
  */
 export const filterAndSortArticles = (
   articles: ArticleProps[],
@@ -64,10 +69,8 @@ export const filterAndSortArticles = (
 
 /**
  * Paginate articles based on current page and items per page
- * @param articles The articles to paginate
- * @param currentPage The current page number (1-based)
- * @param itemsPerPage Number of items per page
- * @returns Paginated articles for the current page
+ * This is kept for backward compatibility
+ * The actual pagination now happens on the server side
  */
 export const paginateArticles = (
   articles: ArticleProps[],
