@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,12 +13,11 @@ import {
 import ValidatedCommentForm from './ValidatedCommentForm';
 import ReportContentButton from '@/components/Common/ReportContentButton';
 
-// CommentData interface for internal use
 export interface CommentAuthor {
-  id?: string; // Made optional to match existing code
+  id?: string;
   name: string;
   avatar?: string;
-  badges?: string[]; // Added badges property
+  badges?: string[];
 }
 
 export interface CommentData {
@@ -30,12 +28,12 @@ export interface CommentData {
   likes: number;
   isLiked?: boolean;
   replies?: CommentData[];
+  articleId: string;
   isModerator?: boolean;
   isVerified?: boolean;
 }
 
 export interface CommentProps extends CommentData {
-  articleId: string;
   isReply?: boolean;
   depth?: number;
   onLike?: (commentId: string) => void;
@@ -60,7 +58,7 @@ const CommentItem: React.FC<CommentProps> = ({
   const { currentUser, isLoggedIn } = useAuth();
   
   const isAuthor = currentUser?.id === author.id;
-  const maxDepth = 3; // Maximum nesting level for replies
+  const maxDepth = 3;
   
   const handleLike = () => {
     if (onLike) {
