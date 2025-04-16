@@ -12,6 +12,9 @@ export default defineConfig({
     coverage: {
       reporter: ['text', 'json', 'html'],
     },
+    deps: {
+      inline: [/@testing-library\/jest-dom/],
+    },
   },
   resolve: {
     alias: {
