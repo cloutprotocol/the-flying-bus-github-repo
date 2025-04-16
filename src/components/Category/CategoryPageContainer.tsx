@@ -3,13 +3,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { mockArticles } from '@/data/articles';
-import Breadcrumb from '@/components/Navigation/Breadcrumb';
-import CategoryFilter from '@/components/Navigation/CategoryFilter';
-import CategoryHeader from '@/components/Category/CategoryHeader';
-import ActiveFilters from '@/components/Category/ActiveFilters';
-import ArticlesGrid from '@/components/Category/ArticlesGrid';
-import PaginationControls from '@/components/Category/PaginationControls';
-import { Skeleton } from '@/components/ui/skeleton';
+import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import { 
   filterAndSortArticles, 
   paginateArticles, 
@@ -17,6 +11,7 @@ import {
 } from '@/components/Category/CategoryHelpers';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
+import { getCategoryColor } from '@/components/Category/getCategoryColor';
 
 interface CategoryPageContainerProps {
   category?: string;
