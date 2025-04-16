@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 const ReaderAuth = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isLoading, currentUser } = useAuth();
   
   // Get the tab and redirect from URL query parameters
   const searchParams = new URLSearchParams(location.search);
@@ -25,11 +25,25 @@ const ReaderAuth = () => {
 
   // If user is already logged in, redirect to home or the redirect param
   useEffect(() => {
-    if (isLoggedIn) {
-      console.log('User is logged in, redirecting to:', redirectParam || '/');
-      navigate(redirectParam || '/', { replace: true });
+    if (isLoggedIn && !isLoading) {
+      // If trying to access admin area, check for proper role first
+      if (redirectParam?.includes('/admin') && currentUser) {
+        // Check if user has admin role before redirecting to admin
+        const adminRoles = ['admin', 'moderator', 'author'];
+        if (adminRoles.includes(currentUser.role)) {
+          console.log('User has admin role, redirecting to:', redirectParam);
+          navigate(redirectParam, { replace: true });
+        } else {
+          console.log('User lacks admin role, redirecting to homepage');
+          navigate('/', { replace: true });
+        }
+      } else {
+        // For non-admin redirects, just go to the redirect path or home
+        console.log('User is logged in, redirecting to:', redirectParam || '/');
+        navigate(redirectParam || '/', { replace: true });
+      }
     }
-  }, [isLoggedIn, navigate, redirectParam]);
+  }, [isLoggedIn, navigate, redirectParam, isLoading, currentUser]);
 
   // Update activeTab when URL parameters change
   useEffect(() => {
@@ -46,6 +60,17 @@ const ReaderAuth = () => {
   const handleSwitchToSignIn = () => {
     setActiveTab('sign-in');
   };
+
+  // Show loading state while auth check is happening
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center py-10">
+          <div>Checking authentication status...</div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
