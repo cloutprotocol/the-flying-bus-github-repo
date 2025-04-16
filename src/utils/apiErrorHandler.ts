@@ -1,6 +1,6 @@
 
 import { toast } from '@/components/ui/use-toast';
-import logger, { LogSource } from '@/utils/loggerService';
+import logger, { LogSource } from '@/utils/logger';
 
 /**
  * API Error types

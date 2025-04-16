@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Facebook, Twitter, Linkedin, Mail, Link, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/use-toast';
-import logger, { LogSource } from '@/utils/loggerService';
+import logger, { LogSource } from '@/utils/logger';
 
 interface ShareArticleProps {
   url: string;

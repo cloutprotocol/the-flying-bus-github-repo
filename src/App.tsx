@@ -25,7 +25,7 @@ import ContentFlagging from '@/pages/Admin/ContentFlagging';
 import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
-import { configureLogger, LogLevel, logger, LogSource } from '@/utils/loggerService';
+import { configureLogger, LogLevel, logger, LogSource } from '@/utils/logger';
 import '@/styles/index';
 
 function App() {

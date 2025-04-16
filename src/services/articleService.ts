@@ -1,8 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { fetchArticleWithCache, clearArticleCache } from '@/utils/articleSync';
-import logger, { LogSource } from '@/utils/loggerService';
+import logger, { LogSource } from '@/utils/logger';
 
 /**
  * Create a new article in the database
