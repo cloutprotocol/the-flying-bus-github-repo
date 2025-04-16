@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { User, BookOpen } from "lucide-react"
+import { User, BookOpen, Loader2 } from "lucide-react"
 import { NavButton } from "./nav-button"
 import { RainbowButton } from "./rainbow-button"
 import { useAuth } from "@/contexts/AuthContext"
@@ -15,7 +15,14 @@ export const HeaderButtons: React.FC<HeaderButtonsProps> = ({ className }) => {
   const { isLoggedIn, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className={`flex items-center space-x-3 ${className}`}></div>;
+    return (
+      <div className={`flex items-center space-x-3 ${className}`}>
+        <div className="flex items-center gap-2 text-gray-400 px-3 py-1.5">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-xs">Loading...</span>
+        </div>
+      </div>
+    );
   }
 
   if (isLoggedIn) {

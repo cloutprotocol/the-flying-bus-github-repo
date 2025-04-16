@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CommentItem, { CommentProps } from './CommentItem';
 import CommentForm from './CommentForm';
 import { Card } from '@/components/ui/card';
 import { MessageCircle, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { DrawerAuth } from '@/components/ui/drawer-auth';
 import { addComment } from '@/data/comments';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +19,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, comments }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isLoggedIn, currentUser } = useAuth();
 
+  // Re-initialize comments when auth state changes
+  useEffect(() => {
+    setLocalComments(comments);
+  }, [comments, isLoggedIn]);
+
   const handleSubmitComment = (content: string) => {
     if (!currentUser) return;
     
@@ -30,7 +35,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, comments }
         author: {
           name: currentUser.displayName,
           avatar: currentUser.avatar,
-          badges: currentUser.badges
+          badges: currentUser.badges || []
         },
         content,
         createdAt: new Date(),
@@ -64,12 +69,15 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, comments }
         <div className="text-center py-8 text-gray-500">
           <p className="mb-4">No comments yet. Be the first to comment!</p>
           {!isLoggedIn && (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/reader-auth?tab=sign-up" className="inline-flex items-center gap-2">
-                <UserRound className="h-4 w-4" />
-                Create an account to join the discussion
-              </Link>
-            </Button>
+            <DrawerAuth 
+              triggerComponent={
+                <Button variant="outline" size="sm" className="inline-flex items-center gap-2">
+                  <UserRound className="h-4 w-4" />
+                  Create an account to join the discussion
+                </Button>
+              }
+              defaultTab="sign-up"
+            />
           )}
         </div>
       )}

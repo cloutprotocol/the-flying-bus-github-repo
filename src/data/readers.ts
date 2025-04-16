@@ -1,67 +1,63 @@
 
 import { ReaderProfile } from '@/types/ReaderProfile';
 
-// Mock data for reader profiles
-export const mockReaderProfiles: ReaderProfile[] = [
+const readers: ReaderProfile[] = [
   {
-    id: 'reader-1',
+    id: '1',
     username: 'curious_reader',
     displayName: 'Curious Reader',
-    avatar: '/avatar-placeholder.png',
-    email: 'curious@example.com',
+    email: 'curious@theflyingbus.com',
     role: 'reader',
-    bio: 'I love reading articles about science and technology!',
-    joinedDate: new Date('2023-05-15'),
-    commentCount: 8,
-    badges: ['Early Adopter', 'Science Enthusiast'],
-    achievements: ['5 Comments Posted'],
-    readingStreak: 7
+    bio: 'I love reading articles about science and space!',
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    joinedDate: new Date('2024-02-15'),
+    badges: ['Frequent Commenter', 'Science Enthusiast']
   },
   {
-    id: 'reader-2',
-    username: 'bookworm42',
-    displayName: 'Book Worm',
-    avatar: '/avatar-placeholder.png',
-    email: 'bookworm@example.com',
-    role: 'reader',
-    bio: 'Always looking for interesting stories and debates.',
-    joinedDate: new Date('2023-06-22'),
-    commentCount: 15,
-    badges: ['Debate Contributor', 'Regular Reader'],
-    achievements: ['10 Comments Posted', '5 Debates Participated'],
-    readingStreak: 12
-  },
-  {
-    id: 'author-1',
+    id: '2',
     username: 'young_journalist',
-    displayName: 'Young Journalist',
-    avatar: '/avatar-placeholder.png',
-    email: 'journalist@example.com',
+    displayName: 'Sam Johnson',
+    email: 'sam@theflyingbus.com',
     role: 'author',
-    bio: 'Aspiring journalist with a passion for storytelling.',
-    joinedDate: new Date('2023-04-10'),
-    commentCount: 5,
-    badges: ['Content Creator', 'Storyteller'],
-    achievements: ['3 Articles Published'],
-    readingStreak: 14
+    bio: 'Aspiring journalist and science enthusiast.',
+    avatar: 'https://i.pravatar.cc/150?img=2',
+    joinedDate: new Date('2024-01-20'),
+    badges: ['Top Contributor', 'Story Writer']
   },
   {
-    id: 'admin-1',
+    id: '3',
+    username: 'content_moderator',
+    displayName: 'Alex Rodriguez',
+    email: 'alex@theflyingbus.com',
+    role: 'moderator',
+    bio: 'Helping keep The Flying Bus a safe and fun place for young journalists.',
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    joinedDate: new Date('2023-12-10'),
+    badges: ['Mentor', 'Helpful Guide']
+  },
+  {
+    id: '4',
     username: 'admin_user',
-    displayName: 'Admin User',
-    avatar: '/avatar-placeholder.png',
-    email: 'admin@flyingbus.com',
+    displayName: 'Taylor Smith',
+    email: 'taylor@theflyingbus.com',
     role: 'admin',
-    joinedDate: new Date('2023-01-01')
+    bio: 'Editor-in-chief at The Flying Bus.',
+    avatar: 'https://i.pravatar.cc/150?img=4',
+    joinedDate: new Date('2023-10-05'),
+    badges: ['Editor', 'Lead Contributor']
   }
 ];
 
-// Function to get a reader profile by ID
-export const getReaderById = (id: string): ReaderProfile | undefined => {
-  return mockReaderProfiles.find(reader => reader.id === id);
-};
+export function getReaders(): ReaderProfile[] {
+  return readers;
+}
 
-// Function to get a reader profile by username
-export const getReaderByUsername = (username: string): ReaderProfile | undefined => {
-  return mockReaderProfiles.find(reader => reader.username === username);
-};
+export function getReaderByUsername(username: string): ReaderProfile | null {
+  return readers.find(reader => reader.username === username) || null;
+}
+
+export function getReaderById(id: string): ReaderProfile | null {
+  return readers.find(reader => reader.id === id) || null;
+}
+
+export default readers;

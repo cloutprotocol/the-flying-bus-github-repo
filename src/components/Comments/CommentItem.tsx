@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import ReplyForm from './ReplyForm';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { DrawerAuth } from '@/components/ui/drawer-auth';
 
 export interface CommentProps {
   id: string;
@@ -61,6 +62,9 @@ const CommentItem: React.FC<CommentProps> = ({ id, author, content, createdAt, l
     }
     
     setIsReplying(!isReplying);
+    if (!showReplies && localReplies.length > 0) {
+      setShowReplies(true);
+    }
   };
   
   const handleReplySubmit = (replyContent: string) => {
@@ -125,21 +129,45 @@ const CommentItem: React.FC<CommentProps> = ({ id, author, content, createdAt, l
           <p className="text-sm text-neutral-700 mb-3">{content}</p>
           
           <div className="flex gap-4 mt-2">
-            <button 
-              className={`text-xs ${hasLiked ? 'text-blue-600' : 'text-neutral-500'} hover:text-blue-600 transition-colors flex items-center gap-1`}
-              onClick={handleLike}
-            >
-              <ThumbsUp className={`h-3.5 w-3.5 ${hasLiked ? 'fill-blue-600' : ''}`} />
-              {likes} {likes === 1 ? 'Like' : 'Likes'}
-            </button>
+            {isLoggedIn ? (
+              <button 
+                className={`text-xs ${hasLiked ? 'text-blue-600' : 'text-neutral-500'} hover:text-blue-600 transition-colors flex items-center gap-1`}
+                onClick={handleLike}
+              >
+                <ThumbsUp className={`h-3.5 w-3.5 ${hasLiked ? 'fill-blue-600' : ''}`} />
+                {likes} {likes === 1 ? 'Like' : 'Likes'}
+              </button>
+            ) : (
+              <DrawerAuth 
+                triggerComponent={
+                  <button className="text-xs text-neutral-500 hover:text-blue-600 transition-colors flex items-center gap-1">
+                    <ThumbsUp className="h-3.5 w-3.5" />
+                    {likes} {likes === 1 ? 'Like' : 'Likes'}
+                  </button>
+                }
+                defaultTab="sign-in"
+              />
+            )}
             
-            <button 
-              className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors flex items-center gap-1"
-              onClick={handleReplyClick}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Reply
-            </button>
+            {isLoggedIn ? (
+              <button 
+                className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors flex items-center gap-1"
+                onClick={handleReplyClick}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                Reply
+              </button>
+            ) : (
+              <DrawerAuth 
+                triggerComponent={
+                  <button className="text-xs text-neutral-500 hover:text-neutral-800 transition-colors flex items-center gap-1">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Reply
+                  </button>
+                }
+                defaultTab="sign-in"
+              />
+            )}
             
             {localReplies.length > 0 && (
               <button 

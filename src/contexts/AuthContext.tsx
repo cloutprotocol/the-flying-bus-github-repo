@@ -4,13 +4,13 @@ import { ReaderProfile } from '@/types/ReaderProfile';
 import { getReaderByUsername } from '@/data/readers';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   currentUser: ReaderProfile | null;
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   checkRoleAccess: (allowedRoles: string[]) => boolean;
   session: Session | null;
@@ -32,9 +32,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
         
         if (currentSession) {
+          setSession(currentSession);
+          
+          // First check if we're in demo mode
+          const mockUsername = localStorage.getItem('flyingbus_username');
+          if (mockUsername) {
+            const user = getReaderByUsername(mockUsername);
+            if (user) {
+              setCurrentUser(user);
+            }
+            setIsLoading(false);
+            return;
+          }
+          
           // Get user profile data
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -44,11 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
           if (error) {
             console.error('Error fetching user profile:', error);
-            toast({
-              title: "Error loading profile",
-              description: error.message,
-              variant: "destructive",
-            });
+            if (error.code !== 'PGRST116') {
+              toast({
+                title: "Error loading profile",
+                description: error.message,
+                variant: "destructive",
+              });
+            }
           } else if (profile) {
             const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
             const userProfile: ReaderProfile = {
@@ -78,60 +92,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     getInitialSession();
     
-    // Listen for auth changes
+    // Set up auth state listener FIRST, before checking the session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      console.log('Auth state changed:', _event, newSession);
       setSession(newSession);
       
-      if (!newSession) {
+      // For demo mode, no need to fetch profile
+      const mockUsername = localStorage.getItem('flyingbus_username');
+      if (mockUsername) {
+        if (!newSession) {
+          setCurrentUser(null);
+        }
+        return;
+      }
+      
+      // For real auth, handle session changes
+      if (newSession) {
+        // Defer profile fetch to avoid potential Supabase auth deadlock
+        setTimeout(() => {
+          fetchUserProfile(newSession.user.id);
+        }, 0);
+      } else {
         setCurrentUser(null);
       }
     });
     
-    // Cleanup subscription
+    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
   }, []);
   
-  // Update user profile when session changes
-  useEffect(() => {
-    async function getUserProfile() {
-      if (session?.user.id && !currentUser) {
-        setIsLoading(true);
+  // Function to fetch user profile
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
         
-        try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (error) {
-            console.error('Error fetching user profile:', error);
-          } else if (profile) {
-            const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
-            const userProfile: ReaderProfile = {
-              id: profile.id,
-              username: profile.username,
-              displayName: profile.display_name,
-              email: profile.email,
-              role: userRole,
-              bio: profile.bio || '',
-              avatar: profile.avatar_url || '',
-              joinedDate: new Date(profile.created_at),
-            };
-            setCurrentUser(userProfile);
-          }
-        } catch (error) {
-          console.error('Profile fetch error:', error);
-        } finally {
-          setIsLoading(false);
-        }
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
       }
+      
+      if (profile) {
+        const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
+        const userProfile: ReaderProfile = {
+          id: profile.id,
+          username: profile.username,
+          displayName: profile.display_name,
+          email: profile.email,
+          role: userRole,
+          bio: profile.bio || '',
+          avatar: profile.avatar_url || '',
+          joinedDate: new Date(profile.created_at),
+        };
+        setCurrentUser(userProfile);
+      }
+    } catch (error) {
+      console.error('Profile fetch error:', error);
     }
-    
-    getUserProfile();
-  }, [session]);
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -173,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data.session) {
+        // Session will be set by the onAuthStateChange listener
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in",
@@ -202,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (localStorage.getItem('flyingbus_username')) {
         localStorage.removeItem('flyingbus_username');
         setCurrentUser(null);
+        setSession(null);
         
         toast({
           title: "Signed out",
@@ -223,6 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else {
         setCurrentUser(null);
+        setSession(null);
         toast({
           title: "Signed out",
           description: "You've been successfully signed out",

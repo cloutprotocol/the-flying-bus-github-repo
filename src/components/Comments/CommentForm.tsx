@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { DrawerAuth } from '@/components/ui/drawer-auth';
 
 interface CommentFormProps {
   onSubmit: (content: string) => void;
@@ -35,6 +36,16 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
     }
   };
 
+  // Get initials for avatar fallback
+  const getInitials = () => {
+    if (!currentUser) return "GU";
+    return currentUser.displayName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-3 mb-2">
       <Avatar className="h-8 w-8 mt-1">
@@ -42,14 +53,14 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
           <>
             <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
             <AvatarFallback className="bg-neutral-600 text-white text-xs">
-              {currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+              {getInitials()}
             </AvatarFallback>
           </>
         ) : (
           <>
             <AvatarImage src="/avatar-placeholder.png" />
             <AvatarFallback className="bg-neutral-600 text-white text-xs">
-              KR
+              GU
             </AvatarFallback>
           </>
         )}
@@ -66,14 +77,18 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
         
         <div className="flex justify-end gap-2">
           {!isLoggedIn && (
-            <Button 
-              type="button" 
-              variant="outline"
-              size="sm"
-              asChild
-            >
-              <Link to="/reader-auth?tab=sign-in">Sign In</Link>
-            </Button>
+            <DrawerAuth 
+              triggerComponent={
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  size="sm"
+                >
+                  Sign In
+                </Button>
+              }
+              defaultTab="sign-in"
+            />
           )}
           <Button 
             type="submit" 

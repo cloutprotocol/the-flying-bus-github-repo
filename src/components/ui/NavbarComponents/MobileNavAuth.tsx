@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, User, BookOpen } from 'lucide-react';
+import { LogOut, User, BookOpen, Loader2 } from 'lucide-react';
 import { SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { RainbowButton } from '@/components/ui/rainbow-button';
@@ -9,7 +9,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
 
 const MobileNavAuth: React.FC = () => {
-  const { isLoggedIn, currentUser, logout } = useAuth();
+  const { isLoggedIn, currentUser, logout, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+        <span className="ml-2 text-sm text-gray-500">Loading...</span>
+      </div>
+    );
+  }
 
   if (isLoggedIn && currentUser) {
     return (
@@ -24,7 +33,7 @@ const MobileNavAuth: React.FC = () => {
           </Link>
         </SheetClose>
         <button 
-          onClick={logout}
+          onClick={() => logout()}
           className="flex items-center text-base py-2 w-full text-left"
         >
           <LogOut size={16} className="mr-2" />

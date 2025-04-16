@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,13 +17,20 @@ interface SignInFormProps {
 const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInForm, setSignInForm] = useState({
     username: '',
     password: '',
   });
+
+  // If user is already logged in, redirect
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate(redirectPath || '/', { replace: true });
+    }
+  }, [isLoggedIn, navigate, redirectPath]);
 
   const handleSignInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,11 +49,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
           title: "Welcome back!",
           description: "You've successfully signed in.",
         });
-        
-        // Redirect to specified path or home
-        setTimeout(() => {
-          navigate(redirectPath || '/', { replace: true });
-        }, 500);
       } else {
         toast({
           title: "Sign in failed",
