@@ -23,4 +23,14 @@ export interface ArticleDraft extends ArticleFormData {
   updatedAt: string;
 }
 
+export interface ArticleRevision {
+  id: string;
+  articleId: string;
+  editorId: string;
+  content: string;
+  revisionNote?: string;
+  createdAt: string;
+}
+
 export type DraftSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+

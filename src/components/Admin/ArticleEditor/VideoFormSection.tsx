@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { FormLabel } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -16,13 +16,22 @@ const VideoFormSection: React.FC<VideoFormSectionProps> = ({ form }) => {
         <CardTitle>Video Content</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="form-group">
-          <FormLabel>Video URL</FormLabel>
-          <Input 
-            placeholder="Enter YouTube or Vimeo URL" 
-            {...form.register('videoUrl')}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="videoUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Video URL</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter YouTube or Vimeo URL" 
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </CardContent>
     </Card>
   );

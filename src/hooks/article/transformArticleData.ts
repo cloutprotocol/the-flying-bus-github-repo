@@ -17,6 +17,8 @@ export const transformArticleData = (data: any[]) => {
     articleType: item.article_type,
     status: item.status,
     videoUrl: item.video_url,
+    hasRevisions: item.article_revisions_count > 0,
+    revisionCount: item.article_revisions_count || 0,
     // Debate article properties
     debateSettings: item.debate_settings ? {
       question: item.debate_settings.question,
