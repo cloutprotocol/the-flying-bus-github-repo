@@ -7,8 +7,10 @@ export interface StoryboardEpisode {
   description: string;
   videoUrl: string;
   thumbnail: string;
+  thumbnailUrl: string; // Adding this for backward compatibility
   duration: string;
   date: string;
+  releaseDate: string; // Adding this for backward compatibility
   views?: number;
 }
 
@@ -36,8 +38,10 @@ export const storyboardArticles: StoryboardArticleProps[] = [
         description: 'Sarah and Max begin their journey by exploring the planets in our solar system.',
         videoUrl: 'https://www.example.com/videos/solar-system.mp4',
         thumbnail: 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=800&auto=format&fit=crop',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=800&auto=format&fit=crop',
         duration: '4:30',
-        date: 'April 1, 2025'
+        date: 'April 1, 2025',
+        releaseDate: 'April 1, 2025'
       },
       {
         id: 'ep-2',
@@ -45,8 +49,10 @@ export const storyboardArticles: StoryboardArticleProps[] = [
         description: 'Our explorers venture beyond our solar system to discover what makes stars shine.',
         videoUrl: 'https://www.example.com/videos/stars.mp4',
         thumbnail: 'https://images.unsplash.com/photo-1539321908154-04927596764d?w=800&auto=format&fit=crop',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1539321908154-04927596764d?w=800&auto=format&fit=crop',
         duration: '5:15',
-        date: 'April 8, 2025'
+        date: 'April 8, 2025',
+        releaseDate: 'April 8, 2025'
       }
     ]
   }
