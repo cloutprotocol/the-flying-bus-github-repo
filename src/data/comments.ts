@@ -1,5 +1,5 @@
 
-import { CommentProps } from '@/components/Comments/CommentItem';
+import { CommentProps, CommentData } from '@/components/Comments/CommentItem';
 
 // Sample comments data - Used for fallback when Supabase connection isn't available
 const commentsData: Record<string, CommentProps[]> = {
@@ -14,6 +14,7 @@ const commentsData: Record<string, CommentProps[]> = {
       content: 'This is such an inspiring article! I\'m going to see if my school can organize something similar.',
       createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
       likes: 12,
+      articleId: '1',
       replies: [
         {
           id: '1-1',
@@ -25,12 +26,9 @@ const commentsData: Record<string, CommentProps[]> = {
           content: 'That\'s a wonderful idea, Jamie. Let\'s discuss this at the next student council meeting.',
           createdAt: new Date(new Date().getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
           likes: 8,
-          isModerator: true,
-          isVerified: true
+          articleId: '1'
         }
-      ],
-      isModerator: false,
-      isVerified: true
+      ]
     }
   ]
 };

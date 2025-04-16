@@ -30,6 +30,8 @@ export interface CommentData {
   likes: number;
   isLiked?: boolean;
   replies?: CommentData[];
+  isModerator?: boolean;
+  isVerified?: boolean;
 }
 
 export interface CommentProps extends CommentData {

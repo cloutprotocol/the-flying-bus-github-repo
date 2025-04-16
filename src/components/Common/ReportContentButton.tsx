@@ -1,6 +1,7 @@
 
+// Fixed variant prop type by removing 'subtle' option which is not available
+
 import React, { useState } from 'react';
-import { Flag, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,186 +12,197 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
 import { Label } from '@/components/ui/label';
-import { useModeration } from '@/hooks/useModeration';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Flag, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
-type ContentType = 'article' | 'comment' | 'profile' | 'media';
+import { DrawerAuth } from '@/components/ui/drawer-auth';
+import { reportContent, ReportType, ContentType } from '@/services/safetyService';
+import { useValidation } from '@/providers/ValidationProvider';
+import { z } from 'zod';
 
 interface ReportContentButtonProps {
   contentId: string;
   contentType: ContentType;
-  variant?: 'default' | 'ghost' | 'outline' | 'secondary' | 'destructive' | 'link';
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   buttonSize?: 'default' | 'sm' | 'lg' | 'icon';
-  onReportSubmitted?: () => void;
+  className?: string;
 }
+
+const reportSchema = z.object({
+  reason: z.string().min(3, 'Please select a reason').max(100),
+  details: z.string().max(500, 'Details must be 500 characters or less'),
+});
 
 const ReportContentButton: React.FC<ReportContentButtonProps> = ({
   contentId,
   contentType,
-  variant = 'outline',
+  variant = 'ghost',
   buttonSize = 'sm',
-  onReportSubmitted,
+  className = '',
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [reason, setReason] = useState<string>('');
-  const [reasonCategory, setReasonCategory] = useState<string>('');
-  const [otherReason, setOtherReason] = useState<string>('');
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportType | ''>('');
+  const [reportDetails, setReportDetails] = useState('');
   const { toast } = useToast();
-  const { isLoggedIn } = useAuth();
-  const { handleFlag, processingIds } = useModeration();
-  const isProcessing = processingIds.includes(contentId);
+  const { currentUser, isLoggedIn } = useAuth();
+  const { validateForm } = useValidation();
   
-  const reasonOptions = [
-    { value: 'inappropriate', label: 'Inappropriate content' },
-    { value: 'harmful', label: 'Harmful or dangerous' },
-    { value: 'misinformation', label: 'Misinformation' },
-    { value: 'privacy', label: 'Violates privacy' },
-    { value: 'other', label: 'Other reason' },
-  ];
-  
-  const handleReportSubmit = async () => {
-    if (!reasonCategory) {
-      toast({
-        title: "Please select a reason",
-        description: "We need to understand why you're reporting this content",
-        variant: "destructive",
-      });
+  const handleSubmit = async () => {
+    const validation = validateForm(reportSchema, { 
+      reason: reportReason, 
+      details: reportDetails 
+    });
+    
+    if (!validation.isValid) {
       return;
     }
     
-    const reportReason = reasonCategory === 'other' 
-      ? otherReason 
-      : reasonOptions.find(option => option.value === reasonCategory)?.label || '';
-    
-    if (reasonCategory === 'other' && !otherReason.trim()) {
+    if (!currentUser) {
       toast({
-        title: "Please provide details",
-        description: "We need more information about your report",
+        title: "Authentication Required",
+        description: "Please sign in to report content",
         variant: "destructive",
       });
+      setOpen(false);
       return;
     }
+    
+    setSubmitting(true);
     
     try {
-      if (contentType === 'comment') {
-        await handleFlag(contentId, reportReason);
-      } else {
-        // For other content types, we'd have different handlers
+      const { success, error } = await reportContent(
+        contentId,
+        contentType,
+        reportReason as ReportType,
+        reportDetails,
+        currentUser.id
+      );
+      
+      if (success) {
         toast({
-          title: "Content reported",
-          description: "Thank you for helping keep our platform safe",
+          title: "Report Submitted",
+          description: "Thank you for your report. Our team will review it shortly.",
+        });
+        setOpen(false);
+        setReportReason('');
+        setReportDetails('');
+      } else {
+        toast({
+          title: "Report Failed",
+          description: "There was an error submitting your report. Please try again later.",
+          variant: "destructive",
         });
       }
-      
-      setIsOpen(false);
-      setReason('');
-      setReasonCategory('');
-      setOtherReason('');
-      
-      if (onReportSubmitted) {
-        onReportSubmitted();
-      }
     } catch (error) {
-      console.error('Error submitting report:', error);
       toast({
         title: "Error",
-        description: "There was a problem submitting your report",
+        description: "An unexpected error occurred.",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
   
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+  const reportButton = (
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button 
           variant={variant} 
           size={buttonSize}
-          className="text-muted-foreground"
-          disabled={isProcessing || !isLoggedIn}
+          className={className}
         >
-          {buttonSize === 'icon' ? (
-            <Flag className="h-4 w-4" />
-          ) : (
-            <>
-              <Flag className="h-4 w-4 mr-2" />
-              Report
-            </>
-          )}
+          <Flag className="h-4 w-4" />
+          {buttonSize !== 'icon' && <span className="ml-2">Report</span>}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Report Content
-          </DialogTitle>
+          <DialogTitle>Report Content</DialogTitle>
           <DialogDescription>
-            Help us understand why this content should be reviewed by our moderation team.
+            Please let us know why you're reporting this content. Our moderators will review your report.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason for reporting</Label>
-            <Select 
-              value={reasonCategory} 
-              onValueChange={setReasonCategory}
-            >
-              <SelectTrigger id="reason">
-                <SelectValue placeholder="Select a reason" />
-              </SelectTrigger>
-              <SelectContent>
-                {reasonOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {reasonCategory === 'other' && (
-            <div className="space-y-2">
-              <Label htmlFor="details">Please provide details</Label>
-              <Textarea
-                id="details"
-                placeholder="Tell us more about why you're reporting this content..."
-                value={otherReason}
-                onChange={e => setOtherReason(e.target.value)}
-                className="min-h-[100px]"
-              />
+        <div className="grid gap-4 py-4">
+          <Label>Reason for reporting</Label>
+          <RadioGroup value={reportReason} onValueChange={value => setReportReason(value as ReportType)}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="harassment" id="harassment" />
+              <Label htmlFor="harassment">Harassment or bullying</Label>
             </div>
-          )}
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="inappropriate" id="inappropriate" />
+              <Label htmlFor="inappropriate">Inappropriate content</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="misinformation" id="misinformation" />
+              <Label htmlFor="misinformation">Misinformation</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="spam" id="spam" />
+              <Label htmlFor="spam">Spam</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="other" id="other" />
+              <Label htmlFor="other">Other</Label>
+            </div>
+          </RadioGroup>
+          
+          <div className="grid w-full gap-1.5">
+            <Label htmlFor="reportDetails">Additional details</Label>
+            <Textarea
+              id="reportDetails"
+              placeholder="Please provide any additional details about your report"
+              value={reportDetails}
+              onChange={(e) => setReportDetails(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
         </div>
         
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsOpen(false)}
-          >
+          <Button onClick={() => setOpen(false)} variant="outline" disabled={submitting}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleReportSubmit}
-            disabled={isProcessing}
-          >
-            {isProcessing ? 'Submitting...' : 'Submit Report'}
+          <Button onClick={handleSubmit} disabled={!reportReason || submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Report'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+  
+  if (!isLoggedIn) {
+    return (
+      <DrawerAuth 
+        triggerComponent={
+          <Button 
+            variant={variant} 
+            size={buttonSize}
+            className={className}
+          >
+            <Flag className="h-4 w-4" />
+            {buttonSize !== 'icon' && <span className="ml-2">Report</span>}
+          </Button>
+        }
+        defaultTab="sign-in"
+      />
+    );
+  }
+  
+  return reportButton;
 };
 
 export default ReportContentButton;

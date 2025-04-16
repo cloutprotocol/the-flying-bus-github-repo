@@ -76,7 +76,7 @@ export const getModerationStats = async (): Promise<{
     // Get counts of flagged content by status
     const { data: flaggedCountsByStatus, error: countError } = await supabase
       .from('flagged_content')
-      .select('status, count(*)')
+      .select('status')
       .then(response => {
         // Handle count aggregation manually since .group() might not be supported
         if (response.error) {
@@ -84,13 +84,15 @@ export const getModerationStats = async (): Promise<{
         }
         
         // Process data to group by status
-        const counts = {};
-        response.data.forEach(item => {
-          if (!counts[item.status]) {
-            counts[item.status] = 0;
-          }
-          counts[item.status]++;
-        });
+        const counts: Record<string, number> = {};
+        if (response.data) {
+          response.data.forEach(item => {
+            if (!counts[item.status]) {
+              counts[item.status] = 0;
+            }
+            counts[item.status]++;
+          });
+        }
         
         // Convert to expected format
         const result = Object.entries(counts).map(([status, count]) => ({ 
@@ -109,7 +111,7 @@ export const getModerationStats = async (): Promise<{
     // Get counts of flagged content by type
     const { data: flaggedCountsByType, error: typeError } = await supabase
       .from('flagged_content')
-      .select('content_type, count(*)')
+      .select('content_type')
       .then(response => {
         // Handle count aggregation manually
         if (response.error) {
@@ -117,13 +119,15 @@ export const getModerationStats = async (): Promise<{
         }
         
         // Process data to group by content_type
-        const counts = {};
-        response.data.forEach(item => {
-          if (!counts[item.content_type]) {
-            counts[item.content_type] = 0;
-          }
-          counts[item.content_type]++;
-        });
+        const counts: Record<string, number> = {};
+        if (response.data) {
+          response.data.forEach(item => {
+            if (!counts[item.content_type]) {
+              counts[item.content_type] = 0;
+            }
+            counts[item.content_type]++;
+          });
+        }
         
         // Convert to expected format
         const result = Object.entries(counts).map(([content_type, count]) => ({ 
@@ -199,17 +203,19 @@ export const getModeratorPerformance = async (): Promise<{
         }
         
         // Process data to group by reviewer
-        const countsByReviewer = {};
-        response.data.forEach(item => {
-          if (!countsByReviewer[item.reviewer_id]) {
-            countsByReviewer[item.reviewer_id] = {
-              reviewer_id: item.reviewer_id,
-              count: 0,
-              profiles: item.profiles
-            };
-          }
-          countsByReviewer[item.reviewer_id].count++;
-        });
+        const countsByReviewer: Record<string, any> = {};
+        if (response.data) {
+          response.data.forEach(item => {
+            if (!countsByReviewer[item.reviewer_id]) {
+              countsByReviewer[item.reviewer_id] = {
+                reviewer_id: item.reviewer_id,
+                count: 0,
+                profiles: item.profiles
+              };
+            }
+            countsByReviewer[item.reviewer_id].count++;
+          });
+        }
         
         return { 
           data: Object.values(countsByReviewer), 

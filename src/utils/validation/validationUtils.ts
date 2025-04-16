@@ -5,7 +5,8 @@
  */
 
 import { z } from 'zod';
-import logger, { LogSource } from '@/utils/logger';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 /**
  * Try to validate data against a schema, returning the validated data or null if validation fails
@@ -22,7 +23,7 @@ export const validateData = <T>(
     if (error instanceof z.ZodError) {
       // Log validation errors
       logger.warn(
-        LogSource.CLIENT, 
+        LogSource.APP, 
         `Validation error in ${context}: ${JSON.stringify(error.errors)}`,
         { errors: error.errors }
       );
@@ -31,7 +32,7 @@ export const validateData = <T>(
     
     // Log unexpected errors
     logger.error(
-      LogSource.CLIENT, 
+      LogSource.APP, 
       `Unexpected validation error in ${context}`,
       error
     );

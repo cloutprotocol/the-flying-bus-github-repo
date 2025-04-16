@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import ProfileHeader from './ProfileHeader';
@@ -16,7 +17,8 @@ const mockReaderComments: CommentProps[] = [
     },
     content: 'This article was really informative! I learned so much about climate change.',
     createdAt: new Date('2023-10-15T10:30:00'),
-    likes: 5
+    likes: 5,
+    articleId: 'mock-article-1' // Added articleId property
   },
   {
     id: 'comment-2',
@@ -27,7 +29,8 @@ const mockReaderComments: CommentProps[] = [
     },
     content: 'I disagree with some points in this article. I think we need more evidence.',
     createdAt: new Date('2023-10-10T14:20:00'),
-    likes: 2
+    likes: 2,
+    articleId: 'mock-article-2' // Added articleId property
   }
 ];
 
