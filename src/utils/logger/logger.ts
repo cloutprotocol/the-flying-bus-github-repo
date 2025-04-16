@@ -26,9 +26,9 @@ export function logMessage(
   if (isLogging) {
     // Fallback to plain console logging if we're already logging
     const method = level === LogLevel.DEBUG ? 'debug' :
-                   level === LogLevel.INFO ? 'info' :
-                   level === LogLevel.WARN ? 'warn' :
-                   'error';
+                  level === LogLevel.INFO ? 'info' :
+                  level === LogLevel.WARN ? 'warn' :
+                  'error';
     console[method](`[LOGGER RECURSION PREVENTED]: ${message}`, details || '');
     return;
   }
@@ -39,6 +39,7 @@ export function logMessage(
     
     // Check if we should log based on minimum level
     if (getSeverityLevel(level) < getSeverityLevel(config.minLevel)) {
+      isLogging = false;
       return;
     }
 
@@ -46,9 +47,13 @@ export function logMessage(
       level,
       source,
       message,
-      details,
       timestamp: new Date().toISOString()
     };
+
+    // Only add details if they exist to avoid unnecessary data
+    if (details !== undefined) {
+      entry.data = details;
+    }
 
     // Output to console if enabled
     if (config.consoleOutput) {

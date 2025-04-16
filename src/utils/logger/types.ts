@@ -8,7 +8,8 @@ export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
   WARN = 'warn',
-  ERROR = 'error'
+  ERROR = 'error',
+  FATAL = 'fatal'
 }
 
 export enum LogSource {
@@ -21,7 +22,12 @@ export enum LogSource {
   SAFETY = 'safety',
   VALIDATION = 'validation',
   VOTING = 'voting',
-  REALTIME = 'realtime'
+  REALTIME = 'realtime',
+  
+  // Adding missing log sources that are being used in the codebase
+  CLIENT = 'client',
+  DATABASE = 'database',
+  EDITOR = 'editor'
 }
 
 export interface LogEntry {
@@ -39,4 +45,12 @@ export interface LoggerInterface {
   error: (source: LogSource, message: string, data?: any) => void;
   getEntries: () => LogEntry[];
   clear: () => void;
+}
+
+export interface LoggerConfig {
+  minLevel: LogLevel;
+  consoleOutput: boolean;
+  toastOutput: boolean;
+  persistToStorage: boolean;
+  sendToServer: boolean;
 }
