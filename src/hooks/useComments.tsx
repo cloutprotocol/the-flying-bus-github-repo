@@ -1,14 +1,16 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CommentProps } from '@/components/Comments/CommentItem';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useComments = (articleId: string) => {
   const [comments, setComments] = useState<CommentProps[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   // Fetch comments from Supabase
   useEffect(() => {
@@ -108,8 +110,15 @@ export const useComments = (articleId: string) => {
     fetchComments();
   }, [articleId]);
 
-  const handleSubmitComment = async (content: string, currentUser: any) => {
-    if (!currentUser) return;
+  const handleSubmitComment = useCallback(async (content: string) => {
+    if (!currentUser) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to post a comment',
+        variant: 'default'
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -153,7 +162,7 @@ export const useComments = (articleId: string) => {
         articleId
       };
       
-      setComments([newComment, ...comments]);
+      setComments(prevComments => [newComment, ...prevComments]);
       
       toast({
         title: 'Comment posted',
@@ -170,12 +179,92 @@ export const useComments = (articleId: string) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [articleId, currentUser, toast]);
+
+  const handleSubmitReply = useCallback(async (content: string, parentId: string) => {
+    if (!currentUser) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to reply to comments',
+        variant: 'default'
+      });
+      return;
+    }
+    
+    try {
+      console.log('Submitting reply for article:', articleId, 'parent:', parentId);
+      
+      // Insert the reply to Supabase
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          article_id: articleId,
+          user_id: currentUser.id,
+          content: content,
+          parent_id: parentId,
+          status: 'published'
+        })
+        .select('*, profiles:user_id (display_name, username, avatar_url, role)')
+        .single();
+      
+      if (error) {
+        console.error('Error submitting reply:', error);
+        toast({
+          title: 'Failed to post reply',
+          description: 'There was an error posting your reply. Please try again.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // Create the new reply object
+      const newReply: CommentProps = {
+        id: data.id,
+        content: data.content,
+        createdAt: new Date(data.created_at),
+        author: {
+          name: data.profiles.display_name,
+          avatar: data.profiles.avatar_url || undefined,
+          badges: data.profiles.role !== 'reader' ? [data.profiles.role] : []
+        },
+        likes: 0,
+        articleId
+      };
+      
+      // Add the new reply to the parent comment's replies array
+      setComments(prevComments => 
+        prevComments.map(comment => 
+          comment.id === parentId 
+            ? { 
+                ...comment, 
+                replies: [...(comment.replies || []), newReply] 
+              } 
+            : comment
+        )
+      );
+      
+      toast({
+        title: 'Reply posted',
+        description: 'Your reply has been posted successfully.'
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error in reply submission:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+  }, [articleId, currentUser, toast]);
 
   return {
     comments,
     isLoading,
     isSubmitting,
-    handleSubmitComment
+    handleSubmitComment,
+    handleSubmitReply
   };
 };

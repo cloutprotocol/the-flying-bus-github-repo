@@ -6,14 +6,12 @@ interface CommentListProps {
   comments: CommentProps[];
   isLoading: boolean;
   articleId: string;
-  isLoggedIn: boolean;
 }
 
 const CommentList: React.FC<CommentListProps> = ({ 
   comments, 
   isLoading, 
-  articleId,
-  isLoggedIn 
+  articleId 
 }) => {
   if (isLoading) {
     return (

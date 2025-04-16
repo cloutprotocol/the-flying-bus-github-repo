@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
 
@@ -14,22 +13,12 @@ interface CommentFormProps {
 
 const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = false }) => {
   const [comment, setComment] = useState('');
-  const { toast } = useToast();
   const { isLoggedIn, currentUser } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isLoggedIn) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to join the discussion",
-        variant: "default"
-      });
-      return;
-    }
-    
-    if (comment.trim()) {
+    if (comment.trim() && !isSubmitting) {
       onSubmit(comment);
       setComment('');
     }

@@ -13,20 +13,14 @@ interface CommentsSectionProps {
 }
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
-  const { isLoggedIn, currentUser } = useAuth();
+  const { isLoggedIn } = useAuth();
   const { comments, isLoading, isSubmitting, handleSubmitComment } = useComments(articleId);
-
-  const onSubmitComment = (content: string) => {
-    if (isLoggedIn && currentUser) {
-      handleSubmitComment(content, currentUser);
-    }
-  };
 
   return (
     <Card className="mt-8 pt-4 px-6 pb-6 bg-gray-50/50">
       <CommentsHeader commentCount={comments.length} />
       
-      <CommentForm onSubmit={onSubmitComment} isSubmitting={isSubmitting} />
+      <CommentForm onSubmit={handleSubmitComment} isSubmitting={isSubmitting} />
       
       {isLoading ? (
         <div className="text-center py-8 text-gray-500">
@@ -37,7 +31,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
           comments={comments} 
           isLoading={isLoading} 
           articleId={articleId}
-          isLoggedIn={isLoggedIn} 
         />
       ) : (
         !isLoggedIn ? <EmptyCommentsState /> : (
