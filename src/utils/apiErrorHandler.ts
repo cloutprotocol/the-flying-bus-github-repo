@@ -1,5 +1,6 @@
 
 import { toast } from '@/components/ui/use-toast';
+import logger, { LogSource } from '@/utils/loggerService';
 
 /**
  * API Error types
@@ -34,7 +35,8 @@ export class ApiError extends Error {
  * Process Supabase error and convert to ApiError
  */
 export function processSupabaseError(error: any): ApiError {
-  console.error('Supabase error:', error);
+  // Log the raw error
+  logger.debug(LogSource.API, 'Processing Supabase error', error);
   
   if (!error) {
     return new ApiError('Unknown error occurred', ApiErrorType.UNKNOWN);
@@ -129,6 +131,21 @@ export function showErrorToast(error: ApiError): void {
     description: message,
     variant
   });
+  
+  // Log the error to our logger system
+  const logLevel = error.type === ApiErrorType.UNKNOWN || 
+                 error.type === ApiErrorType.SERVER ? 
+                 'error' : 'warn';
+                 
+  logger[logLevel](
+    LogSource.API,
+    `${title}: ${message}`,
+    {
+      errorType: error.type,
+      status: error.status,
+      details: error.details
+    }
+  );
 }
 
 /**

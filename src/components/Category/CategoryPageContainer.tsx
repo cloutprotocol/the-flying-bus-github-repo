@@ -8,6 +8,7 @@ import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
 import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
 import { handleApiError } from '@/utils/apiErrorHandler';
+import logger, { LogSource } from '@/utils/loggerService';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -52,29 +53,34 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     const fetchData = async () => {
       try {
         setIsLoadingCategory(true);
+        logger.info(LogSource.API, `Fetching category data for slug: ${categorySlug}`);
         
         // Fetch category data
         const category = await fetchCategoryBySlug(categorySlug);
         
         if (!category) {
+          logger.warn(LogSource.API, `Category not found for slug: ${categorySlug}`);
           setIsLoadingCategory(false);
           return;
         }
         
+        logger.info(LogSource.API, `Category data fetched: ${category.name}`);
         setCategoryData(category);
         setDisplayCategory(category.name);
         setCategory(category.id);
         
         // Fetch reading levels
         try {
+          logger.info(LogSource.API, `Fetching reading levels for category: ${category.id}`);
           const levels = await fetchReadingLevelsForCategory(category.id);
           setAvailableReadingLevels(levels);
+          logger.info(LogSource.API, `Found ${levels.length} reading levels for category`);
         } catch (levelsError) {
-          console.error('Error fetching reading levels:', levelsError);
+          logger.error(LogSource.API, 'Error fetching reading levels', levelsError);
           // Don't block category display for reading levels error
         }
       } catch (error) {
-        console.error('Error fetching category data:', error);
+        logger.error(LogSource.API, 'Error fetching category data', error);
         handleApiError(error);
       } finally {
         setIsLoadingCategory(false);
@@ -87,10 +93,14 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   // Update reading level filter
   useEffect(() => {
     setReadingLevel(selectedReadingLevel);
+    if (selectedReadingLevel) {
+      logger.info(LogSource.CLIENT, `Reading level filter changed: ${selectedReadingLevel}`);
+    }
   }, [selectedReadingLevel, setReadingLevel]);
   
   // If no category found, show not found message
   if (!isLoadingCategory && !isLoading && !categoryData) {
+    logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
     return (
       <MainLayout>
         <NotFoundMessage 
@@ -113,16 +123,19 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   
   // Handle reading level filter change
   const handleReadingLevelChange = (level: string | null) => {
+    logger.info(LogSource.CLIENT, `Reading level changed by user: ${level || 'All Levels'}`);
     setSelectedReadingLevel(level);
   };
 
   // Handle sort change
   const handleSortChange = (sort: ArticleSortType) => {
+    logger.info(LogSource.CLIENT, `Sort method changed by user: ${sort}`);
     setSortBy(sort);
   };
 
   // Clear all filters
   const handleClearFilters = () => {
+    logger.info(LogSource.CLIENT, 'User cleared all filters');
     setSelectedReadingLevel(null);
     clearFilters();
   };
@@ -131,9 +144,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   // Render loading skeleton when data is loading
   if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
+    logger.info(LogSource.CLIENT, 'Displaying category page skeleton loader');
     return <CategoryPageSkeleton />;
   }
 
+  logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);
+  
   return (
     <MainLayout fullWidth={true}>
       <div className="max-w-6xl mx-auto">

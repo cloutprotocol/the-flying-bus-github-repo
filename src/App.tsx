@@ -1,4 +1,6 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Index from '@/pages/Index';
 import ArticlePage from '@/pages/ArticlePage';
 import CategoryPage from '@/pages/CategoryPage';
@@ -23,9 +25,61 @@ import ContentFlagging from '@/pages/Admin/ContentFlagging';
 import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
+import { configureLogger, LogLevel, logger, LogSource } from '@/utils/loggerService';
 import '@/styles/index';
 
 function App() {
+  // Configure logger on app initialization
+  useEffect(() => {
+    // Configure global logger settings
+    configureLogger({
+      minLevel: import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO,
+      consoleOutput: true,
+      toastOutput: false,
+      persistToStorage: true,
+      sendToServer: true
+    });
+    
+    // Log application start
+    logger.info(LogSource.CLIENT, 'Application initialized', {
+      version: '1.0.0',
+      environment: import.meta.env.MODE,
+      buildTime: new Date().toISOString()
+    });
+    
+    // Log errors not caught elsewhere
+    const originalError = console.error;
+    console.error = (...args) => {
+      // Log to our system first
+      logger.error(LogSource.CLIENT, 'Uncaught console error', args);
+      // Then call the original console.error
+      originalError.apply(console, args);
+    };
+    
+    // Set up global error handler
+    window.addEventListener('error', (event) => {
+      logger.error(LogSource.CLIENT, 'Uncaught global error', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error
+      });
+    });
+    
+    // Set up unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', (event) => {
+      logger.error(LogSource.CLIENT, 'Unhandled promise rejection', {
+        reason: event.reason
+      });
+    });
+    
+    return () => {
+      // Restore original console.error on cleanup
+      console.error = originalError;
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
