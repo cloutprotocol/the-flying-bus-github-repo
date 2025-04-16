@@ -36,13 +36,13 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
         
         // For testing purposes, set specific emails to have admin/moderator/author roles
         // This is for testing only and should be replaced with proper role management
-        let userRole = 'reader';
+        let assignedRole: 'reader' | 'author' | 'moderator' | 'admin' = 'reader';
         if (email.includes('admin')) {
-          userRole = 'admin';
+          assignedRole = 'admin';
         } else if (email.includes('moderator')) {
-          userRole = 'moderator';
+          assignedRole = 'moderator';
         } else if (email.includes('author')) {
-          userRole = 'author';
+          assignedRole = 'author';
         }
         
         // Insert new profile
@@ -54,7 +54,7 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
               username,
               display_name: displayName,
               email,
-              role: userRole,
+              role: assignedRole,
               avatar_url: '',
               created_at: new Date().toISOString()
             }
@@ -70,13 +70,13 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
         console.log('New profile created successfully:', newProfile);
         
         // Return the newly created profile
-        const userRole = newProfile.role as 'reader' | 'author' | 'moderator' | 'admin';
+        const profileRole = newProfile.role as 'reader' | 'author' | 'moderator' | 'admin';
         const userProfile: ReaderProfile = {
           id: newProfile.id,
           username: newProfile.username,
           displayName: newProfile.display_name,
           email: newProfile.email,
-          role: userRole,
+          role: profileRole,
           bio: newProfile.bio || '',
           avatar: newProfile.avatar_url || '',
           joinedDate: new Date(newProfile.created_at),
@@ -90,13 +90,13 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
     
     if (profile) {
       console.log('Profile found:', profile);
-      const userRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
+      const profileRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
       const userProfile: ReaderProfile = {
         id: profile.id,
         username: profile.username,
         displayName: profile.display_name,
         email: profile.email,
-        role: userRole,
+        role: profileRole,
         bio: profile.bio || '',
         avatar: profile.avatar_url || '',
         joinedDate: new Date(profile.created_at),
