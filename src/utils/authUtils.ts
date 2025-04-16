@@ -34,6 +34,17 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
           .map(part => part.charAt(0).toUpperCase() + part.slice(1))
           .join(' ');
         
+        // For testing purposes, set specific emails to have admin/moderator/author roles
+        // This is for testing only and should be replaced with proper role management
+        let userRole = 'reader';
+        if (email.includes('admin')) {
+          userRole = 'admin';
+        } else if (email.includes('moderator')) {
+          userRole = 'moderator';
+        } else if (email.includes('author')) {
+          userRole = 'author';
+        }
+        
         // Insert new profile
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
@@ -43,7 +54,7 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
               username,
               display_name: displayName,
               email,
-              role: 'reader',
+              role: userRole,
               avatar_url: '',
               created_at: new Date().toISOString()
             }

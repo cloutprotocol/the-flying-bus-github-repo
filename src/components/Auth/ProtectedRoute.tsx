@@ -21,16 +21,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Redirect to login if not authenticated
   if (!isLoggedIn) {
+    console.log('User not logged in, redirecting to auth');
     return <Navigate to="/reader-auth?tab=sign-in&redirect=/admin" replace />;
   }
 
   // Redirect to homepage if not authorized (wrong role)
   if (!currentUser || !allowedRoles.includes(currentUser.role)) {
-    console.log('User role not authorized:', currentUser?.role);
+    console.log('User role not authorized:', currentUser?.role, 'Allowed roles:', allowedRoles);
     return <Navigate to="/" replace />;
   }
 
   // User is authenticated and authorized, render children
+  console.log('User authorized, rendering protected content');
   return <>{children}</>;
 };
 

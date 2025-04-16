@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Index from '@/pages/Index';
 import ArticlePage from '@/pages/ArticlePage';
@@ -64,7 +63,14 @@ function App() {
         />
         
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminPortalIndex />} />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute>
+              <AdminPortalIndex />
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/admin/dashboard" 
           element={

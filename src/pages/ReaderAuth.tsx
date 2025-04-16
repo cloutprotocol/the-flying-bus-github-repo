@@ -51,7 +51,7 @@ const ReaderAuth = () => {
     if (tab === 'sign-in' || tab === 'sign-up') {
       setActiveTab(tab);
     }
-  }, [location.search]);
+  }, [location.search, searchParams]);
 
   const handleSwitchToSignUp = () => {
     setActiveTab('sign-up');
