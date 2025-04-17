@@ -64,19 +64,36 @@ export const updateArticleStatus = async (
   newStatus: StatusType
 ): Promise<{ success: boolean; error: any }> => {
   try {
+    if (!articleId) {
+      logger.error(LogSource.ARTICLE, 'Cannot update article status: Missing article ID');
+      return { success: false, error: new Error('Missing article ID') };
+    }
+
     logger.info(LogSource.ARTICLE, `Updating article ${articleId} status to ${newStatus}`);
     
-    const { error } = await supabase
+    // Log the request we're about to make
+    logger.info(LogSource.ARTICLE, `Sending update request to Supabase`, {
+      articleId,
+      newStatus,
+      table: 'articles'
+    });
+    
+    const { error, data } = await supabase
       .from('articles')
       .update({ status: newStatus })
-      .eq('id', articleId);
+      .eq('id', articleId)
+      .select();
     
     if (error) {
       logger.error(LogSource.ARTICLE, `Error updating article status: ${error.message}`, error);
       return { success: false, error };
     }
     
-    logger.info(LogSource.ARTICLE, `Article status updated successfully to ${newStatus}`);
+    logger.info(LogSource.ARTICLE, `Article status updated successfully to ${newStatus}`, {
+      articleId,
+      responseData: data
+    });
+    
     return { success: true, error: null };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception updating article status', e);

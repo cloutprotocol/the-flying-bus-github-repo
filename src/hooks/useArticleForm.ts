@@ -24,6 +24,7 @@ export const useArticleForm = (
   const [draftId, setDraftId] = useState<string | undefined>(articleId);
   const [saveStatus, setSaveStatus] = useState<DraftSaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -69,7 +70,7 @@ export const useArticleForm = (
   // Auto-save draft periodically
   const saveDraftToServer = useCallback(async (formData: any, isDirty: boolean) => {
     if (!isDirty && draftId) {
-      return { success: true };
+      return { success: true, articleId: draftId };
     }
     
     try {
@@ -90,7 +91,7 @@ export const useArticleForm = (
       if (result.error) {
         logger.error(LogSource.EDITOR, 'Error auto-saving draft', { error: result.error });
         setSaveStatus('error');
-        return { success: false };
+        return { success: false, articleId: draftId };
       }
       
       if (!draftId && result.articleId) {
@@ -99,18 +100,20 @@ export const useArticleForm = (
       
       setLastSaved(new Date());
       setSaveStatus('saved');
-      return { success: true, articleId: result.articleId };
+      return { success: true, articleId: result.articleId || draftId };
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Exception auto-saving draft', { error });
       setSaveStatus('error');
-      return { success: false };
+      return { success: false, articleId: draftId };
     }
   }, [draftId, content, articleType]);
 
   // Submit handler
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
     try {
+      setIsSubmitting(true);
+      
       const formData = {
         ...data,
         content: content
@@ -137,6 +140,7 @@ export const useArticleForm = (
           description: "There was a problem saving your article.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
       
@@ -150,10 +154,12 @@ export const useArticleForm = (
             description: "Could not determine article ID.",
             variant: "destructive"
           });
+          setIsSubmitting(false);
           return;
         }
         
         // Update the status to pending for review
+        logger.info(LogSource.EDITOR, 'Updating article status to pending', { articleId: savedArticleId });
         const statusResult = await updateArticleStatus(savedArticleId, 'pending');
         
         if (!statusResult.success) {
@@ -162,6 +168,7 @@ export const useArticleForm = (
             description: "There was a problem submitting your article for review.",
             variant: "destructive"
           });
+          setIsSubmitting(false);
           return;
         }
         
@@ -178,6 +185,8 @@ export const useArticleForm = (
           description: "Your draft has been saved.",
         });
       }
+      
+      setIsSubmitting(false);
     } catch (error) {
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({
@@ -185,6 +194,7 @@ export const useArticleForm = (
         description: "There was a problem with your submission.",
         variant: "destructive"
       });
+      setIsSubmitting(false);
     }
   };
 
@@ -213,6 +223,7 @@ export const useArticleForm = (
     setContent,
     saveStatus,
     lastSaved,
+    isSubmitting,
     handleSubmit,
     handleSaveDraft
   };

@@ -7,6 +7,7 @@ export interface ArticleFormData {
   categoryId: string;
   articleType: 'standard' | 'video' | 'debate' | 'storyboard';
   videoUrl?: string;
+  readingLevel?: string;
   debateSettings?: {
     question: string;
     yesPosition: string;
@@ -21,14 +22,14 @@ export interface ArticleDraft extends ArticleFormData {
   status: 'draft' | 'pending' | 'published' | 'archived';
   createdAt: string;
   updatedAt: string;
-  readingLevel?: string; // Added this property
+  readingLevel?: string;
 }
 
 export interface ArticleRevision {
   id: string;
   articleId: string;
   editorId: string;
-  editorName: string; // Added this property to match what's used in RevisionsList
+  editorName: string;
   content: string;
   revisionNote?: string;
   createdAt: string;

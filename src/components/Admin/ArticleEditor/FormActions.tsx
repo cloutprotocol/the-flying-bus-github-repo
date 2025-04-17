@@ -79,8 +79,16 @@ const FormActions: React.FC<FormActionsProps> = ({
         {isSaving ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
       </Button>
       
-      <Button type="submit" disabled={isSubmitting || !isDirty}>
-        <Send className="mr-2 h-4 w-4" /> Submit for Review
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <span className="animate-spin mr-2">◯</span> Submitting...
+          </>
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" /> Submit for Review
+          </>
+        )}
       </Button>
     </div>
   );

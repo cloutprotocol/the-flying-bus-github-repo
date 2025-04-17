@@ -60,6 +60,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     setContent, 
     saveStatus,
     lastSaved,
+    isSubmitting,
     handleSubmit,
     handleSaveDraft 
   } = useArticleForm(form, articleId, articleType, isNewArticle);
@@ -120,7 +121,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           <FormActions 
             onSaveDraft={handleSaveDraft}
             onViewRevisions={!isNewArticle && revisions.length > 0 ? handleViewRevisions : undefined}
-            isSubmitting={form.formState.isSubmitting}
+            isSubmitting={isSubmitting}
             isDirty={form.formState.isDirty || content !== ''}
             isSaving={saveStatus === 'saving'}
             saveStatus={saveStatus}
