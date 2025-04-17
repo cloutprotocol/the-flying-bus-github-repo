@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './article/useDraftManagement';
 import { useArticleSubmission } from './article/useArticleSubmission';
@@ -17,6 +17,7 @@ export const useArticleForm = (
   isNewArticle: boolean = true
 ) => {
   const { toast } = useToast();
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
   const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
@@ -35,13 +36,21 @@ export const useArticleForm = (
       logger.info(LogSource.EDITOR, 'Submitting article form', {
         isDraft,
         articleType,
-        isNewArticle
+        isNewArticle,
+        hasArticleId: !!articleId,
+        hasDraftId: !!draftId,
+        formData: Object.keys(formData)
       });
       
       // First save the draft to ensure we have an article ID
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
+        logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
+          saveResult,
+          isDraft
+        });
+        
         toast({
           title: "Error",
           description: "There was a problem saving your article.",
@@ -49,6 +58,21 @@ export const useArticleForm = (
         });
         return;
       }
+      
+      if (!saveResult.articleId) {
+        logger.error(LogSource.EDITOR, 'No article ID returned from draft save');
+        toast({
+          title: "Error",
+          description: "Could not determine article ID.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      logger.info(LogSource.EDITOR, 'Draft saved during submission, proceeding to submission', {
+        articleId: saveResult.articleId,
+        isDraft
+      });
 
       await handleArticleSubmission(saveResult.articleId, isDraft);
       
@@ -69,24 +93,38 @@ export const useArticleForm = (
     const isDirty = form.formState.isDirty;
     const contentChanged = content !== '';
     
-    if (isDirty || contentChanged) {
+    if ((isDirty || contentChanged) && !isSubmitting) {
       const autoSaveTimer = setTimeout(() => {
+        if (isAutoSaving) return;
+        
+        setIsAutoSaving(true);
         const formData = form.getValues();
-        saveDraftToServer(formData, true);
+        
+        saveDraftToServer({
+          ...formData,
+          content
+        }, true).finally(() => {
+          setIsAutoSaving(false);
+        });
       }, AUTO_SAVE_INTERVAL);
       
       return () => clearTimeout(autoSaveTimer);
     }
-  }, [form, content, saveDraftToServer, form.formState.isDirty]);
+  }, [form, content, saveDraftToServer, form.formState.isDirty, isSubmitting, isAutoSaving]);
 
-  const handleSaveDraft = () => {
-    const formData = form.getValues();
-    handleSubmit(formData, true);
+  const handleSaveDraft = async () => {
+    const formData = {
+      ...form.getValues(),
+      content
+    };
+    
+    await handleSubmit(formData, true);
   };
 
   return {
     content,
     setContent,
+    draftId,
     saveStatus,
     lastSaved,
     isSubmitting,
