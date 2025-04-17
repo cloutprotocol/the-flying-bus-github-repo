@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Form } from '@/components/ui/form';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import StoryboardFields from './StoryboardFields';
 import { useZodForm } from '@/hooks/useZodForm';
 import { createArticleSchema } from '@/utils/validation/articleValidation';
@@ -73,10 +73,20 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const showVideoFields = articleType === 'video';
   const showDebateFields = articleType === 'debate';
 
+  // Log when form submission is attempted
+  const onSubmit = (data: any) => {
+    logger.info(LogSource.EDITOR, 'Article form submission initiated', {
+      isNewArticle,
+      articleType,
+      hasArticleId: !!articleId
+    });
+    return handleSubmit(data, false);
+  };
+
   return (
     <>
       <Form {...form}>
-        <form className="space-y-6" onSubmit={form.handleFormSubmit((data) => handleSubmit(data, false))}>
+        <form className="space-y-6" onSubmit={form.handleFormSubmit(onSubmit)}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
               <ArticleFormHeader 

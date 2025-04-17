@@ -19,7 +19,7 @@ export interface ArticleFormData {
 
 export interface ArticleDraft extends ArticleFormData {
   id: string;
-  status: 'draft' | 'pending' | 'published' | 'archived';
+  status: 'draft' | 'pending' | 'published' | 'archived' | 'rejected';
   createdAt: string;
   updatedAt: string;
   readingLevel?: string;

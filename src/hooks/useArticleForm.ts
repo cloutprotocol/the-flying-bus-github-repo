@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { saveDraft, getDraftById } from '@/services/draftService';
 import { logger } from '@/utils/logger/logger';
@@ -38,6 +38,11 @@ export const useArticleForm = (
           
           if (error || !draft) {
             logger.error(LogSource.EDITOR, 'Error loading draft', { error, articleId });
+            toast({
+              title: "Error",
+              description: "Failed to load article data. Please try again.",
+              variant: "destructive"
+            });
             return;
           }
           
@@ -60,12 +65,17 @@ export const useArticleForm = (
           
         } catch (error) {
           logger.error(LogSource.EDITOR, 'Exception loading draft', { error, articleId });
+          toast({
+            title: "Error",
+            description: "An unexpected error occurred loading the article.",
+            variant: "destructive"
+          });
         }
       };
       
       loadDraft();
     }
-  }, [articleId, isNewArticle, form]);
+  }, [articleId, isNewArticle, form, toast]);
 
   // Auto-save draft periodically
   const saveDraftToServer = useCallback(async (formData: any, isDirty: boolean) => {
@@ -177,16 +187,17 @@ export const useArticleForm = (
           description: "Your article has been submitted for review.",
         });
         
-        // Navigate to the articles list
-        navigate('/admin/articles');
+        // Navigate to the articles list after a brief delay to allow the toast to be seen
+        setTimeout(() => {
+          navigate('/admin/articles');
+        }, 1000);
       } else {
         toast({
           title: "Draft saved",
           description: "Your draft has been saved.",
         });
+        setIsSubmitting(false);
       }
-      
-      setIsSubmitting(false);
     } catch (error) {
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({

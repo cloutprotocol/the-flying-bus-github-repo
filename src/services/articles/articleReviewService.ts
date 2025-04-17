@@ -8,8 +8,21 @@ export const submitArticleForReview = async (
   articleId: string
 ): Promise<{ success: boolean; error: any }> => {
   try {
+    if (!articleId) {
+      logger.error(LogSource.ARTICLE, 'Cannot submit article: Missing article ID');
+      return { success: false, error: new Error('Missing article ID') };
+    }
+
     logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`);
-    return await updateArticleStatus(articleId, 'pending');
+    const result = await updateArticleStatus(articleId, 'pending');
+    
+    if (!result.success) {
+      logger.error(LogSource.ARTICLE, `Failed to submit article ${articleId} for review`, result.error);
+    } else {
+      logger.info(LogSource.ARTICLE, `Successfully submitted article ${articleId} for review`);
+    }
+    
+    return result;
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
     return { success: false, error: e };

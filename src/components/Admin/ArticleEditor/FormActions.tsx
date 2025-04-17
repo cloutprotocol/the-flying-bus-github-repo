@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, Send, History } from 'lucide-react';
+import { Save, Send, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 
@@ -75,14 +75,22 @@ const FormActions: React.FC<FormActionsProps> = ({
         onClick={handleSaveDraft}
         disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error')}
       >
-        <Save className="mr-2 h-4 w-4" /> 
-        {isSaving ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
+        {isSaving ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+          </>
+        ) : (
+          <>
+            <Save className="mr-2 h-4 w-4" /> 
+            {saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
+          </>
+        )}
       </Button>
       
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
-            <span className="animate-spin mr-2">◯</span> Submitting...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
           </>
         ) : (
           <>
