@@ -199,3 +199,154 @@ export const submitArticleForReview = async (
     return { success: false, error: e };
   }
 };
+
+export const getArticleById = async (articleId: string) => {
+  try {
+    logger.info(LogSource.ARTICLE, `Fetching article with ID ${articleId}`);
+    
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('id', articleId)
+      .single();
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error fetching article by ID', error);
+      return { article: null, error };
+    }
+    
+    if (!data) {
+      logger.error(LogSource.ARTICLE, 'Article not found');
+      return { article: null, error: new Error('Article not found') };
+    }
+    
+    return { article: data, error: null };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception fetching article by ID', e);
+    return { article: null, error: e };
+  }
+};
+
+export const createArticle = async (articleData: any) => {
+  try {
+    logger.info(LogSource.ARTICLE, 'Creating new article');
+    
+    const { data, error } = await supabase
+      .from('articles')
+      .insert(articleData)
+      .select()
+      .single();
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error creating article', error);
+      return { data: null, error };
+    }
+    
+    return { data, error: null };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception creating article', e);
+    return { data: null, error: e };
+  }
+};
+
+export const updateArticle = async (articleId: string, updates: any) => {
+  try {
+    logger.info(LogSource.ARTICLE, `Updating article ${articleId}`);
+    
+    const { data, error } = await supabase
+      .from('articles')
+      .update(updates)
+      .eq('id', articleId)
+      .select()
+      .single();
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error updating article', error);
+      return { data: null, error };
+    }
+    
+    return { data, error: null };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception updating article', e);
+    return { data: null, error: e };
+  }
+};
+
+export const getArticlesByStatus = async (
+  status: StatusType,
+  categoryId?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  try {
+    logger.info(LogSource.ARTICLE, `Fetching articles with status ${status}`);
+    
+    let query = supabase
+      .from('articles')
+      .select('*', { count: 'exact' });
+    
+    if (status !== 'all') {
+      query = query.eq('status', status);
+    }
+    
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+    
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+    
+    const { data, error, count } = await query
+      .order('updated_at', { ascending: false })
+      .range(start, end);
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error fetching articles by status', error);
+      return { articles: [], error, count: 0 };
+    }
+    
+    return { articles: data, error: null, count: count || 0 };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception fetching articles by status', e);
+    return { articles: [], error: e, count: 0 };
+  }
+};
+
+export const reviewArticle = async (
+  articleId: string,
+  review: { status: StatusType; feedback?: string }
+) => {
+  try {
+    logger.info(LogSource.ARTICLE, `Reviewing article ${articleId}`);
+    
+    const { error } = await supabase
+      .from('articles')
+      .update({ status: review.status })
+      .eq('id', articleId);
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error reviewing article', error);
+      return { success: false, error };
+    }
+    
+    // If feedback provided, add review record
+    if (review.feedback) {
+      const { error: reviewError } = await supabase
+        .from('article_reviews')
+        .insert({
+          article_id: articleId,
+          feedback: review.feedback,
+          status: review.status
+        });
+      
+      if (reviewError) {
+        logger.error(LogSource.ARTICLE, 'Error saving review feedback', reviewError);
+      }
+    }
+    
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception reviewing article', e);
+    return { success: false, error: e };
+  }
+};

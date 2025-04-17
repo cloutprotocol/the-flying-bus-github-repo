@@ -1,4 +1,3 @@
-
 /**
  * API Error types
  * Types and classes for structured error handling
@@ -32,7 +31,8 @@ export enum LogSource {
   REALTIME = 'realtime',
   VOTING = 'voting',
   SAFETY = 'safety',
-  VALIDATION = 'validation'
+  VALIDATION = 'validation',
+  ARTICLE = 'article'
 }
 
 /**
