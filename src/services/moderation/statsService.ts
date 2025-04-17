@@ -1,8 +1,4 @@
 
-/**
- * Moderation statistics service
- */
-
 import { supabase } from '@/integrations/supabase/client';
 import { LogSource } from '@/utils/logger/types';
 import { logger } from '@/utils/logger/logger';
@@ -18,31 +14,12 @@ export const getModerationStats = async (): Promise<ModerationStatsResponse> => 
     // Get counts of flagged content by status
     const { data: flaggedCountsByStatus, error: countError } = await supabase
       .from('flagged_content')
-      .select('status')
+      .select('status, count(*)', { count: 'exact' })
       .then(response => {
-        // Handle count aggregation manually since .group() might not be supported
         if (response.error) {
           return { data: null, error: response.error };
         }
-        
-        // Process data to group by status
-        const counts: Record<string, number> = {};
-        if (response.data) {
-          response.data.forEach(item => {
-            if (!counts[item.status]) {
-              counts[item.status] = 0;
-            }
-            counts[item.status]++;
-          });
-        }
-        
-        // Convert to expected format
-        const result = Object.entries(counts).map(([status, count]) => ({ 
-          status, 
-          count 
-        }));
-        
-        return { data: result, error: null };
+        return response;
       });
       
     if (countError) {
@@ -50,34 +27,15 @@ export const getModerationStats = async (): Promise<ModerationStatsResponse> => 
       return { stats: null, error: countError };
     }
     
-    // Get counts of flagged content by type
-    const { data: flaggedCountsByType, error: typeError } = await supabase
+    // Get counts of content by type
+    const { data: contentTypeCounts, error: typeError } = await supabase
       .from('flagged_content')
-      .select('content_type')
+      .select('content_type, count(*)', { count: 'exact' })
       .then(response => {
-        // Handle count aggregation manually
         if (response.error) {
           return { data: null, error: response.error };
         }
-        
-        // Process data to group by content_type
-        const counts: Record<string, number> = {};
-        if (response.data) {
-          response.data.forEach(item => {
-            if (!counts[item.content_type]) {
-              counts[item.content_type] = 0;
-            }
-            counts[item.content_type]++;
-          });
-        }
-        
-        // Convert to expected format
-        const result = Object.entries(counts).map(([content_type, count]) => ({ 
-          content_type, 
-          count 
-        }));
-        
-        return { data: result, error: null };
+        return response;
       });
       
     if (typeError) {
@@ -89,15 +47,19 @@ export const getModerationStats = async (): Promise<ModerationStatsResponse> => 
     const { data: recentActivity, error: activityError } = await supabase
       .from('flagged_content')
       .select(`
+        id,
         content_id,
         content_type,
         status,
+        created_at,
         reviewed_at,
-        reviewer_id,
-        profiles:reviewer_id (display_name, avatar_url)
+        reviewer:reviewer_id (
+          id,
+          display_name,
+          avatar_url
+        )
       `)
-      .not('reviewer_id', 'is', null)
-      .order('reviewed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(10);
       
     if (activityError) {
@@ -106,11 +68,11 @@ export const getModerationStats = async (): Promise<ModerationStatsResponse> => 
     }
     
     const stats = {
-      counts: {
-        byStatus: flaggedCountsByStatus,
-        byType: flaggedCountsByType
-      },
-      recentActivity
+      byStatus: flaggedCountsByStatus,
+      byContentType: contentTypeCounts,
+      recentActivity,
+      pendingCount: flaggedCountsByStatus?.filter(s => s.status === 'pending')?.length || 0,
+      totalCount: flaggedCountsByStatus?.length || 0
     };
     
     logger.info(LogSource.MODERATION, 'Moderation statistics fetched successfully');

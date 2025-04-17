@@ -3,31 +3,52 @@
  * Types for the moderation system
  */
 
-// Content types for moderation
 export type ContentType = 'article' | 'comment' | 'profile' | 'media';
-
-// Moderation action types 
 export type ModerationAction = 'approve' | 'reject' | 'flag' | 'review';
 
-// Stats response type
 export interface ModerationStatsResponse {
-  stats: any;
+  stats: {
+    byStatus: Array<{
+      status: string;
+      count: number;
+    }> | null;
+    byContentType: Array<{
+      content_type: string;
+      count: number;
+    }> | null;
+    recentActivity: Array<{
+      id: string;
+      content_id: string;
+      content_type: string;
+      status: string;
+      created_at: string;
+      reviewed_at: string | null;
+      reviewer: {
+        id: string;
+        display_name: string;
+        avatar_url: string | null;
+      } | null;
+    }> | null;
+    pendingCount: number;
+    totalCount: number;
+  } | null;
   error: any;
 }
 
-// Performance response type
 export interface ModeratorPerformanceResponse {
-  performance: any;
-  error: any;
-}
-
-// Moderation log entry type
-export interface ModerationLogEntry {
-  contentId: string;
-  contentType: ContentType;
-  action: ModerationAction;
-  moderatorId: string;
-  notes?: string;
-  success: boolean;
+  performance: {
+    moderatorStats: Array<{
+      moderator_id: string;
+      display_name: string;
+      avatar_url: string | null;
+      total_reviews: number;
+      average_response_time: number;
+    }> | null;
+    timeframeStats: {
+      total_reviews: number;
+      average_response_time: number;
+      resolution_rate: number;
+    } | null;
+  } | null;
   error: any;
 }
