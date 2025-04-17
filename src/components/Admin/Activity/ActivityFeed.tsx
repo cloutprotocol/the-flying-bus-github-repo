@@ -58,7 +58,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
         <div key={activity.id} className="flex gap-3 items-start">
           <Avatar className="w-10 h-10">
             <AvatarImage 
-              src={activity.profiles?.avatar_url} 
+              src={activity.profiles?.avatar_url || ''} 
               alt={activity.profiles?.display_name || ''} 
             />
             <AvatarFallback>
@@ -70,7 +70,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
             <div className="flex items-center gap-2">
               <ActivityIcon type={activity.activity_type} />
               <span className="font-medium">
-                {activity.profiles?.display_name}
+                {activity.profiles?.display_name || 'Unknown user'}
               </span>
               <span className="text-gray-600">
                 {getActivityDescription(activity)}

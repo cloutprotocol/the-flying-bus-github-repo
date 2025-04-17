@@ -1,8 +1,21 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  PenLine, 
+  Eye, 
+  MessageSquare, 
+  BarChart3,
+  AlertCircle 
+} from 'lucide-react';
 import useActivityFeed from '@/hooks/useActivityFeed';
 import ActivityFeed from '@/components/Admin/Activity/ActivityFeed';
+import { CardContent } from '@/components/ui/card';
+import useDashboardMetrics from '@/hooks/useDashboardMetrics';
+import RecentArticlesSection from '@/components/Admin/Dashboard/RecentArticlesSection';
+import { StatusType } from '@/components/Admin/Status/StatusBadge';
 
 interface DashboardRecentArticle {
   id: string;

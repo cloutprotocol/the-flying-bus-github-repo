@@ -11,6 +11,10 @@ export interface Activity {
   entity_id: string;
   metadata: Record<string, any>;
   created_at: string;
+  profiles?: {
+    display_name: string;
+    avatar_url: string | null;
+  };
 }
 
 export const getRecentActivities = async (limit: number = 10) => {

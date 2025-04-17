@@ -12,13 +12,14 @@ export const useActivityFeed = (limit: number = 10) => {
   const fetchActivities = async () => {
     setLoading(true);
     try {
-      const { activities, error } = await getRecentActivities(limit);
+      const { activities: fetchedActivities, error } = await getRecentActivities(limit);
       
       if (error) {
         throw error;
       }
 
-      setActivities(activities);
+      // Ensure TypeScript knows this is the correct type
+      setActivities(fetchedActivities as Activity[]);
       setError(null);
     } catch (e) {
       setError(e as Error);
