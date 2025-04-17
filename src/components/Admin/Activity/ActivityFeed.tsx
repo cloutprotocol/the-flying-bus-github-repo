@@ -4,10 +4,13 @@ import { format } from 'date-fns';
 import { Activity } from '@/services/activityService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ActivityIcon from './ActivityIcon';
+import ActivityFilters from './ActivityFilters';
 
 interface ActivityFeedProps {
   activities: Activity[];
   isLoading?: boolean;
+  selectedTypes: string[];
+  onFilterChange: (types: string[]) => void;
 }
 
 const getActivityDescription = (activity: Activity) => {
@@ -19,13 +22,18 @@ const getActivityDescription = (activity: Activity) => {
     case 'article_published':
       return `published article "${metadata.title}"`;
     case 'comment_added':
-      return `commented on an article: "${metadata.content}..."`;
+      return `commented: "${metadata.content}..."`;
     default:
       return activity.activity_type.replace(/_/g, ' ');
   }
 };
 
-const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) => {
+const ActivityFeed: React.FC<ActivityFeedProps> = ({ 
+  activities, 
+  isLoading,
+  selectedTypes,
+  onFilterChange
+}) => {
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -54,6 +62,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
 
   return (
     <div className="space-y-4">
+      <ActivityFilters 
+        selectedTypes={selectedTypes}
+        onFilterChange={onFilterChange}
+      />
+      
       {activities.map((activity) => (
         <div key={activity.id} className="flex gap-3 items-start">
           <Avatar className="w-10 h-10">

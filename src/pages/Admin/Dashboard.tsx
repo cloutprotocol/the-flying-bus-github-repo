@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
@@ -31,7 +30,12 @@ const Dashboard: React.FC = () => {
   const { metrics, loading, error, refetchMetrics } = useDashboardMetrics();
   const [totalPages, setTotalPages] = useState(1);
   
-  const { activities, loading: activitiesLoading } = useActivityFeed(10);
+  const { 
+    activities, 
+    loading: activitiesLoading,
+    selectedTypes,
+    setSelectedTypes 
+  } = useActivityFeed(10);
 
   const mapArticles = (): DashboardRecentArticle[] => {
     if (!metrics?.recentArticles) return [];
@@ -131,7 +135,9 @@ const Dashboard: React.FC = () => {
           <Card className="p-4">
             <ActivityFeed 
               activities={activities} 
-              isLoading={activitiesLoading} 
+              isLoading={activitiesLoading}
+              selectedTypes={selectedTypes}
+              onFilterChange={setSelectedTypes}
             />
           </Card>
         </section>
