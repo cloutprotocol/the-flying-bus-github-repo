@@ -20,7 +20,19 @@ export enum LogSource {
   EDITOR = 'editor',
   APP = 'app',
   SERVICE = 'service',
-  METRICS = 'metrics' // Added METRICS to the enum
+  METRICS = 'metrics',
+  // Restore the missing values to fix build errors
+  CLIENT = 'client',
+  MODERATION = 'moderation',
+  ADMIN = 'admin',
+  DASHBOARD = 'dashboard',
+  CONTENT = 'content',
+  REALTIME = 'realtime',
+  VOTING = 'voting',
+  SAFETY = 'safety',
+  VALIDATION = 'validation',
+  ARTICLE = 'article',
+  ACTIVITY = 'activity'
 }
 
 export interface LogEntry {
@@ -33,7 +45,9 @@ export interface LogEntry {
 
 export interface LoggerConfig {
   minLevel: LogLevel;
-  showToasts: boolean;
   consoleOutput: boolean;
-  persistLogs: boolean;
+  toastOutput: boolean;
+  persistToStorage: boolean;
+  sendToServer: boolean;
+  maxStorageEntries?: number;
 }

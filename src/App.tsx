@@ -38,8 +38,8 @@ function App() {
     configureLogger({
       minLevel: import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO,
       consoleOutput: true,
-      toastOutput: false,
-      persistToStorage: true,
+      toastOutput: false,     // Fixed property name to match LoggerConfig interface
+      persistToStorage: true, // Fixed property name to match LoggerConfig interface
       sendToServer: true
     });
     
