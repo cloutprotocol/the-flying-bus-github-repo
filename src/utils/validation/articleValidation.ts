@@ -44,10 +44,7 @@ const baseArticleSchema = z.object({
     .max(300, 'Excerpt is too long')
     .optional()
     .refine(excerpt => !excerpt || !excerpt.includes("<script>"), "Excerpt cannot contain script tags"),
-  categoryId: z.string()
-    .min(1, 'Category is required')
-    .refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), 
-            { message: 'Invalid UUID format' }),
+  categoryId: uuidSchema,
   imageUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Image URL must use HTTPS")
     .optional(),
