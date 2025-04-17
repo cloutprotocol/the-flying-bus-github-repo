@@ -13,7 +13,7 @@ export const trackArticleViewWithRetry = async (
   
   const trackView = async (): Promise<boolean> => {
     try {
-      logger.info(LogSource.METRICS, `Tracking view for article ${articleId}`);
+      logger.info(LogSource.DATABASE, `Tracking view for article ${articleId}`);
       
       const { error } = await supabase
         .from('article_views')
@@ -24,17 +24,17 @@ export const trackArticleViewWithRetry = async (
       
       if (error) {
         logger.error(
-          LogSource.METRICS, 
+          LogSource.DATABASE, 
           `Error tracking article view: ${error.message}`, 
           error
         );
         return false;
       }
       
-      logger.info(LogSource.METRICS, `Successfully tracked view for article ${articleId}`);
+      logger.info(LogSource.DATABASE, `Successfully tracked view for article ${articleId}`);
       return true;
     } catch (e) {
-      logger.error(LogSource.METRICS, 'Exception tracking article view', e);
+      logger.error(LogSource.DATABASE, 'Exception tracking article view', e);
       return false;
     }
   };

@@ -21,6 +21,7 @@ export interface ArticleDraft extends ArticleFormData {
   status: 'draft' | 'pending' | 'published' | 'archived';
   createdAt: string;
   updatedAt: string;
+  readingLevel?: string; // Added this property
 }
 
 export interface ArticleRevision {

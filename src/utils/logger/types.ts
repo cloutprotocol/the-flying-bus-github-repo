@@ -1,11 +1,9 @@
-/**
- * API Error types
- * Types and classes for structured error handling
- */
 
 /**
- * Logger level enum
+ * Logger Types
+ * Type definitions for the logging system
  */
+
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
@@ -14,48 +12,28 @@ export enum LogLevel {
   FATAL = 'fatal'
 }
 
-/**
- * Log source identifier for better filtering
- */
 export enum LogSource {
-  CLIENT = 'client',
   API = 'api',
   AUTH = 'auth',
-  EDITOR = 'editor',
-  MODERATION = 'moderation',
-  ADMIN = 'admin',
-  DASHBOARD = 'dashboard',
-  APP = 'app',
+  UI = 'ui',
   DATABASE = 'database',
-  CONTENT = 'content',
-  REALTIME = 'realtime',
-  VOTING = 'voting',
-  SAFETY = 'safety',
-  VALIDATION = 'validation',
-  ARTICLE = 'article',
-  ACTIVITY = 'activity'
+  EDITOR = 'editor',
+  APP = 'app',
+  SERVICE = 'service',
+  METRICS = 'metrics' // Added METRICS to the enum
 }
 
-/**
- * Log entry structure used throughout the logging system
- */
 export interface LogEntry {
-  level: LogLevel;
-  source: LogSource;
-  message: string;
   timestamp: string;
+  level: string;
+  source: string;
+  message: string;
   data?: any;
-  userId?: string; // Add userId field for tracking which user generated the log
 }
 
-/**
- * Logger configuration options
- */
 export interface LoggerConfig {
   minLevel: LogLevel;
+  showToasts: boolean;
   consoleOutput: boolean;
-  toastOutput: boolean;
-  persistToStorage: boolean;
-  sendToServer: boolean;
-  maxStorageEntries: number;
+  persistLogs: boolean;
 }
