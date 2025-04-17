@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import StatusBadge from '@/components/Admin/Status/StatusBadge';
+import StatusBadge, { StatusType } from '@/components/Admin/Status/StatusBadge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,7 @@ import { deleteArticle, updateArticleStatus } from '@/services/articleService';
 interface RecentArticle {
   id: string;
   title: string;
-  status: 'draft' | 'pending' | 'published';
+  status: StatusType;
   lastEdited: string;
 }
 
@@ -62,7 +62,7 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
     setArticleToDelete(null);
   };
 
-  const handleStatusChange = async (articleId: string, newStatus: 'draft' | 'pending' | 'published') => {
+  const handleStatusChange = async (articleId: string, newStatus: StatusType) => {
     const { success, error } = await updateArticleStatus(articleId, newStatus);
     
     if (success) {

@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { StatusType } from '@/components/Admin/Status/StatusBadge';
 
 export interface DashboardMetrics {
   totalArticles: number;
@@ -133,4 +134,3 @@ export const getDashboardMetrics = async (): Promise<{ data: DashboardMetrics | 
     return { data: null, error: e };
   }
 };
-

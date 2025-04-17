@@ -8,9 +8,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import RecentArticlesSection from '@/components/Admin/Dashboard/RecentArticlesSection';
+import { StatusType } from '@/components/Admin/Status/StatusBadge';
+
+// Define interface to ensure type safety when mapping from API response
+interface DashboardRecentArticle {
+  id: string;
+  title: string;
+  status: StatusType;
+  lastEdited: string;
+}
 
 const Dashboard = () => {
   const { metrics, loading, error, refetchMetrics } = useDashboardMetrics();
+  
+  // Map API response articles to component-expected format
+  const mapArticles = (): DashboardRecentArticle[] => {
+    if (!metrics?.recentArticles) return [];
+    
+    return metrics.recentArticles.map(article => ({
+      id: article.id,
+      title: article.title,
+      // Ensure status is cast to StatusType
+      status: article.status as StatusType,
+      lastEdited: article.lastEdited
+    }));
+  };
   
   return (
     <AdminPortalLayout>
@@ -90,7 +112,7 @@ const Dashboard = () => {
         </div>
 
         <RecentArticlesSection 
-          articles={metrics?.recentArticles || []}
+          articles={mapArticles()}
           loading={loading}
           onRefresh={refetchMetrics}
         />
