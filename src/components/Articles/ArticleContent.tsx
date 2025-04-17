@@ -17,7 +17,10 @@ interface ArticleContentProps {
 }
 
 const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent, debateSettings }) => {
-  const isDebate = article.category.toLowerCase() === 'debate' || article.category.toLowerCase() === 'debates';
+  // Add null checks to prevent errors when category is undefined
+  const isDebate = article.category && 
+    (article.category.toLowerCase() === 'debate' || article.category.toLowerCase() === 'debates');
+  
   const isSpiceItUpWithVideo = article.category === 'Spice It Up' && article.videoUrl;
   
   return (

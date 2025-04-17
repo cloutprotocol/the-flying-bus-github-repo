@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 
@@ -138,21 +137,24 @@ const calculateReadTime = (content: string): number => {
  * Check if article is a debate article
  */
 export const isDebateArticle = (articleType?: string): boolean => {
-  return articleType === 'debate';
+  if (!articleType) return false;
+  return articleType.toLowerCase() === 'debate';
 };
 
 /**
  * Check if article is a storyboard article
  */
 export const isStoryboardArticle = (articleType?: string): boolean => {
-  return articleType === 'storyboard';
+  if (!articleType) return false;
+  return articleType.toLowerCase() === 'storyboard';
 };
 
 /**
  * Check if article is a video article (Spice It Up)
  */
 export const isVideoArticle = (articleType?: string): boolean => {
-  return articleType === 'video';
+  if (!articleType) return false;
+  return articleType.toLowerCase() === 'video';
 };
 
 /**

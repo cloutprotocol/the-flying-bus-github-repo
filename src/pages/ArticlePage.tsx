@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -20,7 +21,7 @@ import { getArticleById } from '@/services/articleService';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
-import { handleApiError, ApiErrorType } from '@/utils/apiErrorHandler';
+import { handleApiError } from '@/utils/apiErrorHandler';
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
@@ -57,13 +58,21 @@ const ArticlePage = () => {
           return;
         }
         
-        setArticle(articleData);
+        // Ensure article has a valid category property
+        const processedArticle = {
+          ...articleData,
+          category: articleData.category || 'Uncategorized'
+        };
+        
+        setArticle(processedArticle);
         
         // Track the article view with retry
-        trackArticleViewWithRetry(articleId, user?.id);
+        if (articleId) {
+          trackArticleViewWithRetry(articleId, user?.id);
+        }
         
         // If it's a debate article, fetch the debate settings
-        if (isDebateArticle(articleData.articleType)) {
+        if (articleData && isDebateArticle(articleData.articleType)) {
           try {
             const debate = await fetchDebateSettings(articleId);
             setDebateSettings(debate);
@@ -74,7 +83,7 @@ const ArticlePage = () => {
         }
         
         // Fetch related articles
-        if (articleData.categoryId) {
+        if (articleData && articleData.categoryId) {
           try {
             const related = await fetchRelatedArticles(articleId, articleData.categoryId);
             setRelatedArticles(related);
