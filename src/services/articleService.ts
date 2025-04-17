@@ -1,453 +1,201 @@
 import { supabase } from '@/integrations/supabase/client';
-import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { fetchArticleWithCache, clearArticleCache } from '@/utils/articleSync';
-import logger, { LogSource } from '@/utils/logger';
-import { validateArticle, validateArticleUpdate } from './validationService';
-import { z } from 'zod';
-import { toast } from 'sonner';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
+import { StatusType } from '@/components/Admin/Status/StatusBadge';
+
+export interface DashboardMetrics {
+  totalArticles: number;
+  articleViews: number;
+  commentCount: number;
+  engagementRate: number;
+  recentArticles: RecentArticle[];
+  recentActivity: ActivityItem[];
+}
+
+export interface RecentArticle {
+  id: string;
+  title: string;
+  status: string;
+  lastEdited: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: string;
+  content: string;
+  timestamp: string;
+}
 
 /**
- * Create a new article in the database
+ * Fetches dashboard metrics data from Supabase
  */
-export const createArticle = async (articleData: Partial<ArticleProps>): Promise<{ data: any; error: any }> => {
+export const getDashboardMetrics = async (): Promise<{ data: DashboardMetrics | null; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Creating new article', { title: articleData.title });
+    logger.info(LogSource.DASHBOARD, 'Fetching dashboard metrics');
     
-    // Validate article data
-    const validation = validateArticle(articleData);
-    if (!validation.isValid) {
-      return { 
-        data: null, 
-        error: { 
-          message: 'Invalid article data', 
-          details: validation.errors?.errors 
-        } 
-      };
-    }
-    
-    const { data, error } = await supabase
+    // Get total articles count
+    const { count: totalArticles, error: articlesError } = await supabase
       .from('articles')
-      .insert({
-        title: articleData.title,
-        content: articleData.content || '',
-        excerpt: articleData.excerpt,
-        cover_image: articleData.imageUrl,
-        category_id: articleData.categoryId,
-        slug: createSlug(articleData.title || ''),
-        status: 'draft',
-        article_type: articleData.articleType || 'standard'
-      })
-      .select()
-      .single();
-
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error creating article', { error, articleData });
-    } else {
-      logger.info(LogSource.DATABASE, 'Article created successfully', { articleId: data.id });
-    }
-
-    return { data, error };
-  } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception creating article', e);
-    return { data: null, error: e };
-  }
-};
-
-/**
- * Update an existing article
- */
-export const updateArticle = async (articleId: string, articleData: Partial<ArticleProps>): Promise<{ data: any; error: any }> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Updating article', { articleId, title: articleData.title });
+      .select('*', { count: 'exact', head: true });
     
-    // Validate article update data
-    const validation = validateArticleUpdate({ id: articleId, ...articleData });
-    if (!validation.isValid) {
-      return { 
-        data: null, 
-        error: { 
-          message: 'Invalid article update data', 
-          details: validation.errors?.errors 
-        } 
-      };
+    if (articlesError) {
+      logger.error(LogSource.DASHBOARD, 'Error fetching article count', articlesError);
+      return { data: null, error: articlesError };
     }
     
-    const { data, error } = await supabase
+    // Get article views count
+    const { count: viewsCount, error: viewsError } = await supabase
+      .from('article_views')
+      .select('*', { count: 'exact', head: true });
+    
+    if (viewsError) {
+      logger.error(LogSource.DASHBOARD, 'Error fetching article views', viewsError);
+      return { data: null, error: viewsError };
+    }
+    
+    // Get comment count
+    const { count: commentCount, error: commentsError } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true });
+    
+    if (commentsError) {
+      logger.error(LogSource.DASHBOARD, 'Error fetching comment count', commentsError);
+      return { data: null, error: commentsError };
+    }
+    
+    // Get recent articles
+    const { data: recentArticlesData, error: recentArticlesError } = await supabase
       .from('articles')
-      .update({
-        title: articleData.title,
-        content: articleData.content,
-        excerpt: articleData.excerpt,
-        cover_image: articleData.imageUrl,
-        category_id: articleData.categoryId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', articleId)
-      .select()
-      .single();
-
-    // Clear the cache for this article
-    if (!error) {
-      clearArticleCache(articleId);
-      logger.info(LogSource.DATABASE, 'Article updated successfully', { articleId });
-    } else {
-      logger.error(LogSource.DATABASE, 'Error updating article', { error, articleId });
-    }
-
-    return { data, error };
-  } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception updating article', { error: e, articleId });
-    return { data: null, error: e };
-  }
-};
-
-/**
- * Fetch an article by ID with enhanced error handling
- */
-export const getArticleById = async (articleId: string): Promise<{ article: ArticleProps | null; error: Error | null }> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Fetching article by ID', { articleId });
-    
-    // Use the existing caching mechanism
-    const article = await fetchArticleWithCache(articleId);
-    
-    if (!article) {
-      logger.warn(LogSource.DATABASE, 'Article not found', { articleId });
-      return { article: null, error: new Error('Article not found') };
-    }
-    
-    logger.info(LogSource.DATABASE, 'Article fetched successfully', { articleId });
-    return { article, error: null };
-  } catch (error) {
-    logger.error(LogSource.DATABASE, 'Error in getArticleById', { error, articleId });
-    return { 
-      article: null, 
-      error: error instanceof Error ? error : new Error('Unknown error occurred') 
-    };
-  }
-};
-
-/**
- * Change article status (draft, published, archived)
- */
-export const updateArticleStatus = async (articleId: string, status: 'draft' | 'published' | 'archived'): Promise<{ success: boolean; error: any }> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Updating article status', { articleId, status });
-    
-    const { error } = await supabase
-      .from('articles')
-      .update({ 
+      .select(`
+        id,
+        title,
         status,
-        // If publishing, set the published_at timestamp
-        ...(status === 'published' && { published_at: new Date().toISOString() })
-      })
-      .eq('id', articleId);
-
-    // Clear the cache when status changes
-    if (!error) {
-      clearArticleCache(articleId);
-      logger.info(LogSource.DATABASE, 'Article status updated successfully', { articleId, status });
-    } else {
-      logger.error(LogSource.DATABASE, 'Error updating article status', { error, articleId, status });
+        updated_at
+      `)
+      .order('updated_at', { ascending: false })
+      .limit(5);
+    
+    if (recentArticlesError) {
+      logger.error(LogSource.DASHBOARD, 'Error fetching recent articles', recentArticlesError);
+      return { data: null, error: recentArticlesError };
     }
-
-    return { success: !error, error };
+    
+    // Get recent activity (comments as a proxy for activity)
+    const { data: recentActivityData, error: recentActivityError } = await supabase
+      .from('comments')
+      .select(`
+        id,
+        content,
+        created_at,
+        article_id
+      `)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (recentActivityError) {
+      logger.error(LogSource.DASHBOARD, 'Error fetching recent activity', recentActivityError);
+      return { data: null, error: recentActivityError };
+    }
+    
+    // Calculate engagement rate (comments per article)
+    const engagementRate = totalArticles > 0 
+      ? ((commentCount || 0) / totalArticles) * 100 
+      : 0;
+    
+    // Format the data
+    const recentArticles = recentArticlesData.map(article => ({
+      id: article.id,
+      title: article.title,
+      status: article.status,
+      lastEdited: new Date(article.updated_at).toLocaleDateString()
+    }));
+    
+    const recentActivity = recentActivityData.map(comment => ({
+      id: comment.id,
+      type: 'comment',
+      content: `New comment on article ${comment.article_id.substring(0, 8)}...`,
+      timestamp: new Date(comment.created_at).toLocaleDateString()
+    }));
+    
+    const dashboardData: DashboardMetrics = {
+      totalArticles: totalArticles || 0,
+      articleViews: viewsCount || 0,
+      commentCount: commentCount || 0,
+      engagementRate: Number(engagementRate.toFixed(1)),
+      recentArticles,
+      recentActivity
+    };
+    
+    logger.info(LogSource.DASHBOARD, 'Dashboard metrics fetched successfully');
+    return { data: dashboardData, error: null };
   } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception updating article status', { error: e, articleId });
+    logger.error(LogSource.DASHBOARD, 'Exception fetching dashboard metrics', e);
+    return { data: null, error: e };
+  }
+};
+
+/**
+ * Updates the status of an article
+ */
+export const updateArticleStatus = async (
+  articleId: string,
+  newStatus: StatusType
+): Promise<{ success: boolean; error: any }> => {
+  try {
+    logger.info(LogSource.ARTICLE, `Updating article ${articleId} status to ${newStatus}`);
+    
+    const { data, error } = await supabase
+      .from('articles')
+      .update({ status: newStatus })
+      .eq('id', articleId);
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, `Error updating article status: ${error.message}`, error);
+      return { success: false, error };
+    }
+    
+    logger.info(LogSource.ARTICLE, `Article status updated successfully to ${newStatus}`);
+    return { success: true, error: null };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception updating article status', e);
     return { success: false, error: e };
   }
 };
 
-/**
- * Delete an article
- */
 export const deleteArticle = async (articleId: string): Promise<{ success: boolean; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Deleting article', { articleId });
+    logger.info(LogSource.ARTICLE, `Deleting article ${articleId}`);
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('articles')
       .delete()
       .eq('id', articleId);
-
-    // Clear the article from cache
-    if (!error) {
-      clearArticleCache(articleId);
-      logger.info(LogSource.DATABASE, 'Article deleted successfully', { articleId });
-    } else {
-      logger.error(LogSource.DATABASE, 'Error deleting article', { error, articleId });
+    
+    if (error) {
+      logger.error(LogSource.ARTICLE, `Error deleting article: ${error.message}`, error);
+      return { success: false, error };
     }
-
-    return { success: !error, error };
+    
+    logger.info(LogSource.ARTICLE, `Article deleted successfully: ${articleId}`);
+    return { success: true, error: null };
   } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception deleting article', { error: e, articleId });
+    logger.error(LogSource.ARTICLE, 'Exception deleting article', e);
     return { success: false, error: e };
   }
 };
 
 /**
- * Fetch articles for admin view (with status filter)
- */
-export const getArticlesByStatus = async (
-  status: 'draft' | 'published' | 'archived' | 'all',
-  authorId?: string,
-  page = 1,
-  limit = 10
-): Promise<{ articles: ArticleProps[]; count: number; error: any }> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Fetching articles by status', { status, authorId, page, limit });
-    
-    let query = supabase
-      .from('articles')
-      .select(`
-        id, 
-        title, 
-        excerpt, 
-        cover_image, 
-        status,
-        category_id,
-        categories(id, name, slug, color),
-        profiles(id, display_name),
-        created_at,
-        published_at,
-        article_type
-      `, { count: 'exact' });
-    
-    // Apply status filter if not 'all'
-    if (status !== 'all') {
-      query = query.eq('status', status);
-    }
-    
-    // Filter by author if provided
-    if (authorId) {
-      query = query.eq('author_id', authorId);
-    }
-    
-    // Apply pagination
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to).order('created_at', { ascending: false });
-    
-    const { data, error, count } = await query;
-    
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error fetching articles by status', { error, status });
-      throw error;
-    }
-    
-    logger.info(LogSource.DATABASE, 'Articles fetched successfully', { 
-      count, 
-      status, 
-      page 
-    });
-    
-    const articles = data?.map(article => ({
-      id: article.id,
-      title: article.title,
-      excerpt: article.excerpt || '',
-      imageUrl: article.cover_image,
-      category: article.categories?.name || '',
-      categorySlug: article.categories?.slug || '',
-      categoryColor: article.categories?.color || '',
-      categoryId: article.category_id,
-      readingLevel: 'Intermediate', // Default
-      readTime: 5, // Default
-      author: article.profiles?.display_name || 'Unknown',
-      date: new Date(article.created_at).toLocaleDateString(),
-      publishDate: article.published_at ? new Date(article.published_at).toLocaleDateString() : null,
-      articleType: article.article_type,
-      status: article.status
-    })) || [];
-    
-    return { articles, count: count || 0, error: null };
-  } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception fetching articles by status', e);
-    return { articles: [], count: 0, error: e };
-  }
-};
-
-/**
- * Create a URL-friendly slug from a title
- */
-const createSlug = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Remove consecutive hyphens
-    .trim();
-};
-
-/**
- * Track article view
- */
-export const trackArticleView = async (articleId: string): Promise<void> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Tracking article view', { articleId });
-    
-    // Get current user if logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    // Insert view record
-    const { error } = await supabase
-      .from('article_views')
-      .insert({
-        article_id: articleId,
-        user_id: userId || null,
-      });
-      
-    if (error) {
-      logger.warn(LogSource.DATABASE, 'Error tracking article view', { error, articleId });
-    }
-  } catch (e) {
-    // Don't fail the application if view tracking fails
-    logger.error(LogSource.DATABASE, 'Exception tracking article view', { error: e, articleId });
-  }
-};
-
-/**
- * Share article to social media
- */
-export const trackArticleShare = async (
-  articleId: string, 
-  platform: string
-): Promise<void> => {
-  try {
-    logger.info(LogSource.API, 'Tracking article share', { articleId, platform });
-    
-    // In the future, this could insert data into a 'article_shares' table
-    // For now, we'll just log it
-  } catch (e) {
-    logger.error(LogSource.API, 'Error tracking article share', { error: e, articleId, platform });
-  }
-};
-
-/**
- * Submit an article for review (transition from draft to pending)
+ * Submits an article for review (changes status from draft to pending)
  */
 export const submitArticleForReview = async (
   articleId: string
 ): Promise<{ success: boolean; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Submitting article for review', { articleId });
+    logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`);
     
-    // Validate that the current status is draft
-    const { data: article, error: checkError } = await supabase
-      .from('articles')
-      .select('status')
-      .eq('id', articleId)
-      .single();
-      
-    if (checkError) {
-      logger.error(LogSource.DATABASE, 'Error checking article status', { error: checkError, articleId });
-      return { success: false, error: checkError };
-    }
-    
-    if (article.status !== 'draft') {
-      const statusError = new Error(`Article cannot be submitted as it is not in draft status (current: ${article.status})`);
-      logger.error(LogSource.DATABASE, 'Invalid status for submission', { articleId, status: article.status });
-      return { success: false, error: statusError };
-    }
-    
-    // Update article status to pending
-    const { error } = await supabase
-      .from('articles')
-      .update({ 
-        status: 'pending',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', articleId);
-
-    // Clear the cache when status changes
-    if (!error) {
-      clearArticleCache(articleId);
-      logger.info(LogSource.DATABASE, 'Article submitted for review successfully', { articleId });
-      
-      // Create an article review record to track the submission
-      const { error: reviewError } = await supabase
-        .from('article_reviews')
-        .insert({
-          article_id: articleId,
-          reviewer_id: null, // Will be filled when a moderator reviews it
-          status: 'pending', 
-          feedback: ''
-        });
-        
-      if (reviewError) {
-        logger.warn(LogSource.DATABASE, 'Error creating review record', { error: reviewError, articleId });
-        // We don't fail the operation if just the review record fails
-      }
-    } else {
-      logger.error(LogSource.DATABASE, 'Error submitting article for review', { error, articleId });
-    }
-
-    return { success: !error, error };
+    return await updateArticleStatus(articleId, 'pending');
   } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception submitting article for review', { error: e, articleId });
-    return { success: false, error: e };
-  }
-};
-
-/**
- * Review an article (approve or reject with feedback)
- */
-export const reviewArticle = async (
-  articleId: string, 
-  reviewData: { 
-    status: 'published' | 'rejected' | 'draft',
-    feedback?: string 
-  }
-): Promise<{ success: boolean; error: any }> => {
-  try {
-    logger.info(LogSource.DATABASE, 'Reviewing article', { articleId, reviewStatus: reviewData.status });
-    
-    // Get current user 
-    const { data: { session } } = await supabase.auth.getSession();
-    const reviewerId = session?.user?.id;
-    
-    if (!reviewerId) {
-      return { success: false, error: new Error('You must be logged in to review articles') };
-    }
-    
-    // Update article status based on review decision
-    const { error } = await supabase
-      .from('articles')
-      .update({ 
-        status: reviewData.status,
-        // If publishing, set the published_at timestamp
-        ...(reviewData.status === 'published' && { published_at: new Date().toISOString() }),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', articleId);
-
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error updating article status during review', { error, articleId });
-      return { success: false, error };
-    }
-    
-    // Record the review in article_reviews table
-    const { error: reviewError } = await supabase
-      .from('article_reviews')
-      .insert({
-        article_id: articleId,
-        reviewer_id: reviewerId,
-        status: reviewData.status,
-        feedback: reviewData.feedback || ''
-      });
-      
-    if (reviewError) {
-      logger.error(LogSource.DATABASE, 'Error recording article review', { error: reviewError, articleId });
-      // Don't fail if just the review recording fails
-    }
-
-    // Clear the cache when status changes
-    clearArticleCache(articleId);
-    logger.info(LogSource.DATABASE, 'Article reviewed successfully', { articleId, status: reviewData.status });
-
-    return { success: true, error: null };
-  } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception reviewing article', { error: e, articleId });
+    logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
     return { success: false, error: e };
   }
 };
