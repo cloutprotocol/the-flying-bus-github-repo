@@ -35,8 +35,17 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
           return;
         }
 
-        if (data) {
+        if (data && data.length > 0) {
           setCategories(data);
+          
+          // If no category is selected yet, set the first one as default
+          const currentValue = form.getValues('categoryId');
+          if (!currentValue && data.length > 0) {
+            form.setValue('categoryId', data[0].id, { 
+              shouldValidate: true,
+              shouldDirty: true
+            });
+          }
         }
       } catch (err) {
         logger.error(LogSource.EDITOR, 'Exception fetching categories', err);
@@ -46,7 +55,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
     };
 
     fetchCategories();
-  }, []);
+  }, [form]);
 
   return (
     <FormField
@@ -57,12 +66,17 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
           <FormLabel>Category</FormLabel>
           <FormControl>
             <RadioGroup
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                field.onChange(value);
+                form.clearErrors('categoryId');
+              }}
               defaultValue={field.value}
               className="grid grid-cols-1 gap-2"
             >
               {loading ? (
                 <div className="text-sm text-muted-foreground">Loading categories...</div>
+              ) : categories.length === 0 ? (
+                <div className="text-sm text-destructive">No categories available. Please create categories first.</div>
               ) : (
                 categories.map((category) => (
                   <div key={category.id} className="flex items-center space-x-2">

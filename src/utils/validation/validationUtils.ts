@@ -77,7 +77,10 @@ export const validateAndFormatErrors = <T>(
 /**
  * Common validation schemas
  */
-export const uuidSchema = z.string().uuid('Invalid UUID format');
+export const uuidSchema = z.string()
+  .refine(val => val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), 
+    'Invalid UUID format');
+
 export const slugSchema = z.string().min(2).max(100).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid slug format');
 export const urlSchema = z.string().url('Invalid URL format');
 export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, 'Invalid ISO date format');

@@ -8,6 +8,7 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { UseFormReturn } from 'react-hook-form';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import { supabase } from '@/integrations/supabase/client';
 
 const AUTO_SAVE_INTERVAL = 60000; // Auto-save every minute
 
@@ -26,6 +27,36 @@ export const useArticleForm = (
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Get default category if creating new article
+  useEffect(() => {
+    if (isNewArticle) {
+      const getDefaultCategory = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('categories')
+            .select('id')
+            .limit(1)
+            .single();
+          
+          if (error) {
+            logger.error(LogSource.EDITOR, 'Error getting default category', error);
+            return;
+          }
+          
+          if (data) {
+            form.setValue('categoryId', data.id, { 
+              shouldValidate: true 
+            });
+          }
+        } catch (err) {
+          logger.error(LogSource.EDITOR, 'Error setting default category', err);
+        }
+      };
+      
+      getDefaultCategory();
+    }
+  }, [isNewArticle, form]);
 
   // Load existing draft
   useEffect(() => {
