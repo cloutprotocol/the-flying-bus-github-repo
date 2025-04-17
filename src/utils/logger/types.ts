@@ -25,7 +25,12 @@ export enum LogSource {
   EDITOR = 'editor',
   MODERATION = 'moderation',
   ADMIN = 'admin',
-  DASHBOARD = 'dashboard'
+  DASHBOARD = 'dashboard',
+  APP = 'app',
+  DATABASE = 'database',
+  CONTENT = 'content',
+  REALTIME = 'realtime',
+  VOTING = 'voting'
 }
 
 /**
