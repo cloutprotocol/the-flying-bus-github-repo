@@ -1,8 +1,23 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { getDashboardMetrics, DashboardMetrics } from '@/services/dashboardService';
 import { getArticlesByStatus } from '@/services/articleService';
+
+export interface DashboardMetrics {
+  totalArticles: number;
+  articleViews: number;
+  commentCount: number;
+  engagementRate: number;
+  recentArticles: {
+    id: string;
+    title: string;
+    status: string;
+    lastEdited: string;
+  }[];
+  pendingArticles: number;
+  pendingComments: number;
+  flaggedContent: number;
+}
 
 export const useDashboardMetrics = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -13,7 +28,6 @@ export const useDashboardMetrics = () => {
   const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
     try {
-      // Fetch general metrics
       const { data: metricsData, error: metricsError } = await getDashboardMetrics();
       
       if (metricsError) {
@@ -50,11 +64,6 @@ export const useDashboardMetrics = () => {
     } catch (err) {
       console.error('Exception fetching dashboard metrics:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
