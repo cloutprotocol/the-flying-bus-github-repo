@@ -147,12 +147,16 @@ export const getModerationStats = async (): Promise<{
     const { data: recentActivity, error: activityError } = await supabase
       .from('flagged_content')
       .select(`
+        id,
         content_id,
         content_type,
         status,
         reviewed_at,
-        reviewer_id,
-        profiles:reviewer_id (display_name, avatar_url)
+        reviewer:reviewer_id (
+          id,
+          display_name,
+          avatar_url
+        )
       `)
       .not('reviewer_id', 'is', null)
       .order('reviewed_at', { ascending: false })
@@ -163,12 +167,33 @@ export const getModerationStats = async (): Promise<{
       return { stats: null, error: activityError };
     }
     
+    // Get pending count
+    const { count: pendingCount, error: pendingError } = await supabase
+      .from('flagged_content')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    if (pendingError) {
+      logger.error(LogSource.MODERATION, 'Error fetching pending count', pendingError);
+      return { stats: null, error: pendingError };
+    }
+    
+    // Get total count
+    const { count: totalCount, error: totalError } = await supabase
+      .from('flagged_content')
+      .select('*', { count: 'exact', head: true });
+    
+    if (totalError) {
+      logger.error(LogSource.MODERATION, 'Error fetching total count', totalError);
+      return { stats: null, error: totalError };
+    }
+    
     const stats = {
-      counts: {
-        byStatus: flaggedCountsByStatus,
-        byType: flaggedCountsByType
-      },
-      recentActivity
+      byStatus: flaggedCountsByStatus,
+      byContentType: flaggedCountsByType,
+      recentActivity,
+      pendingCount: pendingCount || 0,
+      totalCount: totalCount || 0
     };
     
     logger.info(LogSource.MODERATION, 'Moderation statistics fetched successfully');
@@ -240,5 +265,65 @@ export const getModeratorPerformance = async (): Promise<{
   }
 };
 
-// Utility function to simulate function calls
-export const getModerationMetrics = getModerationStats;
+/**
+ * Get all moderation metrics
+ * This function combines stats and performance metrics for the dashboard
+ */
+export const getModerationMetrics = async (): Promise<{
+  stats: any;
+  error: any;
+}> => {
+  try {
+    logger.info(LogSource.MODERATION, 'Fetching combined moderation metrics');
+    
+    // Get moderation stats
+    const { stats, error: statsError } = await getModerationStats();
+    if (statsError) {
+      return { stats: null, error: statsError };
+    }
+    
+    // Get performance metrics
+    const { performance, error: perfError } = await getModeratorPerformance();
+    if (perfError) {
+      return { stats: null, error: perfError };
+    }
+    
+    // Combine data for the dashboard
+    const combinedStats = {
+      ...stats,
+      moderatorsCount: performance?.moderatorActivity?.length || 0,
+      topModerators: performance?.moderatorActivity?.slice(0, 5) || [],
+      // Add placeholder data for metrics not yet implemented
+      reportedCount: stats?.byStatus?.find((s: any) => s.status === 'pending')?.count || 0,
+      flaggedUsersCount: 0,
+      // Add action counts (get from recentActivity or return placeholders)
+      byAction: [
+        { action: 'approve', count: stats?.recentActivity?.filter((a: any) => a.status === 'resolved' && a.reason?.includes('approve'))?.length || 0 },
+        { action: 'reject', count: stats?.recentActivity?.filter((a: any) => a.status === 'resolved' && a.reason?.includes('reject'))?.length || 0 },
+        { action: 'flag', count: stats?.recentActivity?.filter((a: any) => a.status === 'pending')?.length || 0 }
+      ],
+      // Format the recent actions for the dashboard
+      recentActions: stats?.recentActivity?.map((activity: any) => {
+        let action = 'review';
+        if (activity.reason?.includes('approve')) action = 'approve';
+        if (activity.reason?.includes('reject')) action = 'reject';
+        if (activity.status === 'pending') action = 'flag';
+        
+        return {
+          id: activity.id,
+          content_id: activity.content_id,
+          content_type: activity.content_type,
+          action,
+          moderator_name: activity.reviewer?.display_name || 'Unknown',
+          created_at: activity.reviewed_at || activity.created_at
+        };
+      }) || []
+    };
+    
+    logger.info(LogSource.MODERATION, 'Combined moderation metrics fetched successfully');
+    return { stats: combinedStats, error: null };
+  } catch (e) {
+    logger.error(LogSource.MODERATION, 'Exception fetching combined moderation metrics', e);
+    return { stats: null, error: e };
+  }
+};

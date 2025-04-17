@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -65,7 +64,6 @@ const ModeratorDashboard: React.FC = () => {
     fetchMetrics();
   }, [timeframe, toast]);
   
-  // Prepare data for charts
   const prepareActionChartData = () => {
     if (!metrics?.byAction) return [];
     
@@ -309,13 +307,13 @@ const ModeratorDashboard: React.FC = () => {
                       <div key={index} className="flex items-center justify-between border-b pb-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={mod.avatar_url} alt={mod.display_name} />
-                            <AvatarFallback>{mod.display_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarImage src={mod.profiles?.avatar_url} alt={mod.profiles?.display_name} />
+                            <AvatarFallback>{mod.profiles?.display_name?.slice(0, 2).toUpperCase() || 'UN'}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{mod.display_name}</span>
+                          <span className="font-medium">{mod.profiles?.display_name || 'Unknown'}</span>
                         </div>
                         <Badge variant="outline">
-                          {mod.action_count} actions
+                          {mod.count} actions
                         </Badge>
                       </div>
                     ))
