@@ -1,14 +1,14 @@
-
 import { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './article/useDraftManagement';
 import { useArticleSubmission } from './article/useArticleSubmission';
 import { useContentManagement } from './article/useContentManagement';
+import { useArticleDebug } from './useArticleDebug';
 import { useToast } from './use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
-const AUTO_SAVE_INTERVAL = 60000; // Auto-save every minute
+const AUTO_SAVE_INTERVAL = 60000;
 
 export const useArticleForm = (
   form: UseFormReturn<any>,
@@ -21,11 +21,12 @@ export const useArticleForm = (
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
   const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
+  const { addDebugStep, updateLastStep } = useArticleDebug();
 
-  // Handle form submission
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
     try {
       setIsSubmitting(true);
+      addDebugStep('Starting article submission', { isDraft, articleType });
       
       const formData = {
         ...data,
@@ -33,19 +34,11 @@ export const useArticleForm = (
         status: isDraft ? 'draft' : 'pending'
       };
       
-      logger.info(LogSource.EDITOR, 'Submitting article form', {
-        isDraft,
-        articleType,
-        isNewArticle,
-        hasArticleId: !!articleId,
-        hasDraftId: !!draftId,
-        formData: Object.keys(formData)
-      });
-      
-      // First save the draft to ensure we have an article ID
+      addDebugStep('Saving draft', { articleId, draftId });
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
+        updateLastStep('error', { error: 'Failed to save draft' });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
           saveResult,
           isDraft
@@ -59,7 +52,10 @@ export const useArticleForm = (
         return;
       }
       
+      updateLastStep('success', { articleId: saveResult.articleId });
+      
       if (!saveResult.articleId) {
+        addDebugStep('Error: No article ID returned', null, 'error');
         logger.error(LogSource.EDITOR, 'No article ID returned from draft save');
         toast({
           title: "Error",
@@ -69,14 +65,12 @@ export const useArticleForm = (
         return;
       }
 
-      logger.info(LogSource.EDITOR, 'Draft saved during submission, proceeding to submission', {
-        articleId: saveResult.articleId,
-        isDraft
-      });
-
+      addDebugStep('Submitting article', { articleId: saveResult.articleId });
       await handleArticleSubmission(saveResult.articleId, isDraft);
+      updateLastStep('success');
       
     } catch (error) {
+      updateLastStep('error', { error });
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({
         title: "Error",
@@ -88,7 +82,6 @@ export const useArticleForm = (
     }
   };
 
-  // Setup auto-save interval
   useEffect(() => {
     const isDirty = form.formState.isDirty;
     const contentChanged = content !== '';

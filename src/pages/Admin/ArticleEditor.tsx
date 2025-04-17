@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ArticleForm from '@/components/Admin/ArticleEditor/ArticleForm';
@@ -7,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, List } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
+import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
+import { useArticleDebug } from '@/hooks/useArticleDebug';
 
 const ArticleEditor = () => {
   const { articleId } = useParams();
@@ -15,8 +17,8 @@ const ArticleEditor = () => {
   const { toast } = useToast();
   const isNewArticle = !articleId;
   const articleType = location.state?.articleType || 'standard';
+  const { debugSteps } = useArticleDebug();
 
-  // Check if user is authenticated
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -35,44 +37,48 @@ const ArticleEditor = () => {
   }, [navigate, location.pathname, toast]);
 
   return (
-    <AdminPortalLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {isNewArticle ? 'Create New Article' : 'Edit Article'}
-            </h1>
-            <p className="text-muted-foreground">
-              {isNewArticle
-                ? 'Create a new article for publication'
-                : 'Make changes to your article'}
-            </p>
+    <>
+      <AuthDebugPanel />
+      <ArticleDebugPanel steps={debugSteps} />
+      <AdminPortalLayout>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {isNewArticle ? 'Create New Article' : 'Edit Article'}
+              </h1>
+              <p className="text-muted-foreground">
+                {isNewArticle
+                  ? 'Create a new article for publication'
+                  : 'Make changes to your article'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/admin/articles')}
+              >
+                <List className="h-4 w-4 mr-1" /> All Articles
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => navigate('/admin/articles')}
-            >
-              <List className="h-4 w-4 mr-1" /> All Articles
-            </Button>
-          </div>
+          
+          <ArticleForm 
+            articleId={articleId} 
+            articleType={articleType}
+            isNewArticle={isNewArticle}
+          />
         </div>
-        
-        <ArticleForm 
-          articleId={articleId} 
-          articleType={articleType}
-          isNewArticle={isNewArticle}
-        />
-      </div>
-    </AdminPortalLayout>
+      </AdminPortalLayout>
+    </>
   );
 };
 
