@@ -41,6 +41,7 @@ export interface LogEntry {
   source: string;
   message: string;
   data?: any;
+  userId?: string; // Added missing userId property as optional
 }
 
 export interface LoggerConfig {
