@@ -1,7 +1,8 @@
 
 import { getCachedArticle, setCachedArticle, clearArticleCache } from './cacheManager';
-import { fetchArticleFromAPI } from './articleFetcher';
+import { fetchArticleFromAPI, validateAndTransformArticle } from './articleFetcher';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { supabase } from '@/integrations/supabase/client';
 
 export const fetchArticleWithCache = async (articleId: string): Promise<ArticleProps | null> => {
   const cachedArticle = getCachedArticle(articleId);
