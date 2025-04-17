@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +32,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const [showRevisions, setShowRevisions] = useState(false);
   const { toast } = useToast();
   
-  // Get article revisions if we have an article ID
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
   );
@@ -54,7 +52,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     logContext: 'article_form'
   });
 
-  // Use the article form hook
   const { 
     content, 
     setContent, 
@@ -64,7 +61,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     handleSubmit,
     handleSaveDraft 
   } = useArticleForm(form, articleId, articleType, isNewArticle);
-
+  
   const handleViewRevisions = () => {
     setShowRevisions(true);
   };
@@ -73,20 +70,29 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const showVideoFields = articleType === 'video';
   const showDebateFields = articleType === 'debate';
 
-  // Log when form submission is attempted
-  const onSubmit = (data: any) => {
-    logger.info(LogSource.EDITOR, 'Article form submission initiated', {
-      isNewArticle,
-      articleType,
-      hasArticleId: !!articleId
-    });
-    return handleSubmit(data, false);
+  const onSubmit = async (data: any) => {
+    try {
+      logger.info(LogSource.EDITOR, 'Article form submission initiated', {
+        isNewArticle,
+        articleType,
+        hasArticleId: !!articleId
+      });
+      
+      await handleSubmit(data, false);
+    } catch (error) {
+      logger.error(LogSource.EDITOR, 'Article submission failed', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit article for review. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
     <>
       <Form {...form}>
-        <form className="space-y-6" onSubmit={form.handleFormSubmit(onSubmit)}>
+        <form onSubmit={form.handleFormSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
               <ArticleFormHeader 
@@ -140,7 +146,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         </form>
       </Form>
       
-      {/* Revisions Dialog */}
       <Dialog open={showRevisions} onOpenChange={setShowRevisions}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>

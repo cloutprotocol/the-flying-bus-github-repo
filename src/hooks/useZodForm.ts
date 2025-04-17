@@ -12,7 +12,6 @@ interface UseZodFormProps<T extends z.ZodType<any, any>> extends Omit<UseFormPro
   logContext?: string;
 }
 
-// Extend the UseFormReturn type to include our custom handleSubmit function
 interface ExtendedUseFormReturn<T> extends UseFormReturn<T> {
   handleFormSubmit: (onValid?: (data: T) => void) => (e?: React.BaseSyntheticEvent) => Promise<void>;
 }
@@ -30,31 +29,40 @@ export function useZodForm<T extends z.ZodType<any, any>>({
     ...formProps
   });
   
-  // Custom submit handler with additional validation
   const handleFormSubmit = (onValid?: (data: z.infer<T>) => void) => {
-    return form.handleSubmit((data) => {
-      // Double-check validation for extra security
-      const result = validateForm(schema, data, { 
-        context: logContext,
-        showToast: true 
-      });
-      
-      if (result.isValid && result.data) {
-        logger.info(LogSource.APP, `Form submitted successfully: ${logContext}`);
-        
-        // Call the callback provided in this specific submit instance
-        if (onValid) {
-          onValid(result.data);
-        }
-        // Call the general success callback if provided
-        else if (onSubmitSuccess) {
-          onSubmitSuccess(result.data);
-        }
+    return async (e?: React.BaseSyntheticEvent) => {
+      if (e) {
+        e.preventDefault();
       }
-    });
+      
+      logger.info(LogSource.APP, `Form submission started: ${logContext}`);
+      
+      return form.handleSubmit(async (data) => {
+        try {
+          const result = validateForm(schema, data, { 
+            context: logContext,
+            showToast: true 
+          });
+          
+          if (result.isValid && result.data) {
+            logger.info(LogSource.APP, `Form validated successfully: ${logContext}`);
+            
+            if (onValid) {
+              await onValid(result.data);
+            } else if (onSubmitSuccess) {
+              await onSubmitSuccess(result.data);
+            }
+          } else {
+            logger.warn(LogSource.APP, `Form validation failed: ${logContext}`, result.errors);
+          }
+        } catch (error) {
+          logger.error(LogSource.APP, `Form submission error: ${logContext}`, error);
+          throw error; // Re-throw to let the form component handle the error
+        }
+      })(e);
+    };
   };
   
-  // Return the form with our custom handleFormSubmit function
   return {
     ...form,
     handleFormSubmit

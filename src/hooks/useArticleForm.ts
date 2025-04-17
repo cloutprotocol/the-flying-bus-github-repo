@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -89,17 +88,19 @@ export const useArticleForm = (
       const draftData = {
         ...formData,
         content,
+        status: 'draft'
       };
       
-      logger.info(LogSource.EDITOR, 'Auto-saving draft', {
+      logger.info(LogSource.EDITOR, 'Saving draft', {
         draftId,
-        articleType
+        articleType,
+        isDirty
       });
       
       const result = await saveDraft(draftId || '', draftData);
       
       if (result.error) {
-        logger.error(LogSource.EDITOR, 'Error auto-saving draft', { error: result.error });
+        logger.error(LogSource.EDITOR, 'Error saving draft', { error: result.error });
         setSaveStatus('error');
         return { success: false, articleId: draftId };
       }
@@ -113,7 +114,7 @@ export const useArticleForm = (
       return { success: true, articleId: result.articleId || draftId };
       
     } catch (error) {
-      logger.error(LogSource.EDITOR, 'Exception auto-saving draft', { error });
+      logger.error(LogSource.EDITOR, 'Exception saving draft', { error });
       setSaveStatus('error');
       return { success: false, articleId: draftId };
     }
@@ -126,14 +127,9 @@ export const useArticleForm = (
       
       const formData = {
         ...data,
-        content: content
+        content: content,
+        status: isDraft ? 'draft' : 'pending'
       };
-      
-      if (isDraft) {
-        formData.status = 'draft';
-      } else {
-        formData.status = isNewArticle ? 'pending' : form.getValues('status');
-      }
       
       logger.info(LogSource.EDITOR, 'Submitting article form', {
         isDraft,
@@ -154,22 +150,22 @@ export const useArticleForm = (
         return;
       }
       
+      const savedArticleId = saveResult.articleId;
+      
+      if (!savedArticleId) {
+        toast({
+          title: "Error",
+          description: "Could not determine article ID.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       // For regular submissions (not drafts), update the status
       if (!isDraft) {
-        const savedArticleId = saveResult.articleId || draftId;
+        logger.info(LogSource.EDITOR, 'Submitting article for review', { articleId: savedArticleId });
         
-        if (!savedArticleId) {
-          toast({
-            title: "Error",
-            description: "Could not determine article ID.",
-            variant: "destructive"
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Update the status to pending for review
-        logger.info(LogSource.EDITOR, 'Updating article status to pending', { articleId: savedArticleId });
         const statusResult = await updateArticleStatus(savedArticleId, 'pending');
         
         if (!statusResult.success) {
@@ -183,20 +179,19 @@ export const useArticleForm = (
         }
         
         toast({
-          title: "Article submitted for review",
+          title: "Success",
           description: "Your article has been submitted for review.",
         });
         
-        // Navigate to the articles list after a brief delay to allow the toast to be seen
+        // Navigate to the articles list after a brief delay
         setTimeout(() => {
           navigate('/admin/articles');
-        }, 1000);
+        }, 1500);
       } else {
         toast({
           title: "Draft saved",
           description: "Your draft has been saved.",
         });
-        setIsSubmitting(false);
       }
     } catch (error) {
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
@@ -205,6 +200,7 @@ export const useArticleForm = (
         description: "There was a problem with your submission.",
         variant: "destructive"
       });
+    } finally {
       setIsSubmitting(false);
     }
   };

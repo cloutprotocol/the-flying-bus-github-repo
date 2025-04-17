@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 
 interface FormActionsProps {
@@ -27,7 +27,6 @@ const FormActions: React.FC<FormActionsProps> = ({
   const { toast } = useToast();
   
   useEffect(() => {
-    // Show toast for save status changes
     if (saveStatus === 'saved') {
       toast({
         title: "Draft saved",
@@ -87,7 +86,7 @@ const FormActions: React.FC<FormActionsProps> = ({
         )}
       </Button>
       
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting || isSaving}>
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
