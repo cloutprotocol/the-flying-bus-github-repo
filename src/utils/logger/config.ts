@@ -12,7 +12,8 @@ export const defaultConfig: LoggerConfig = {
   consoleOutput: true,
   toastOutput: false,
   persistToStorage: false,
-  sendToServer: true
+  sendToServer: true,
+  maxStorageEntries: 100
 };
 
 // Current configuration (initialized with default)

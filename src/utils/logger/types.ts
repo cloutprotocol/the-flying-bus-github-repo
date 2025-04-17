@@ -30,7 +30,9 @@ export enum LogSource {
   DATABASE = 'database',
   CONTENT = 'content',
   REALTIME = 'realtime',
-  VOTING = 'voting'
+  VOTING = 'voting',
+  SAFETY = 'safety',
+  VALIDATION = 'validation'
 }
 
 /**
@@ -42,6 +44,7 @@ export interface LogEntry {
   message: string;
   timestamp: string;
   data?: any;
+  userId?: string; // Add userId field for tracking which user generated the log
 }
 
 /**
