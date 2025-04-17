@@ -9,7 +9,7 @@ import {
   fetchDebateSettings, 
   fetchRelatedArticles,
   trackArticleViewWithRetry 
-} from '@/utils/articleUtils';
+} from '@/utils/articles';
 import { handleApiError } from '@/utils/apiErrorHandler';
 
 export const useArticleData = (articleId: string | undefined) => {

@@ -9,7 +9,7 @@ import ArticleFooter from '@/components/Articles/ArticleFooter';
 import ArticleLoadingSkeleton from '@/components/Articles/ArticleLoadingSkeleton';
 import ArticleNotFound from '@/components/Articles/ArticleNotFound';
 import { useArticleData } from '@/hooks/useArticleData';
-import { isStoryboardArticle } from '@/utils/articleUtils';
+import { isStoryboardArticle } from '@/utils/articles';
 import { useNavigate } from 'react-router-dom';
 
 const ArticlePage = () => {
