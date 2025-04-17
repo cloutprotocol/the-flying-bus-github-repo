@@ -4,14 +4,7 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
 
-export interface DashboardMetrics {
-  totalArticles: number;
-  articleViews: number;
-  commentCount: number;
-  engagementRate: number;
-  recentArticles: RecentArticle[];
-  recentActivity: ActivityItem[];
-}
+// We're not exporting DashboardMetrics from here anymore, it's defined in useDashboardMetrics.ts
 
 export interface RecentArticle {
   id: string;
@@ -30,7 +23,7 @@ export interface ActivityItem {
 /**
  * Fetches dashboard metrics data from Supabase
  */
-export const getDashboardMetrics = async (): Promise<{ data: DashboardMetrics | null; error: any }> => {
+export const getDashboardMetrics = async (): Promise<{ data: any; error: any }> => {
   try {
     logger.info(LogSource.DASHBOARD, 'Fetching dashboard metrics');
     
@@ -64,67 +57,21 @@ export const getDashboardMetrics = async (): Promise<{ data: DashboardMetrics | 
       return { data: null, error: commentsError };
     }
     
-    // Get recent articles
-    const { data: recentArticlesData, error: recentArticlesError } = await supabase
-      .from('articles')
-      .select(`
-        id,
-        title,
-        status,
-        updated_at
-      `)
-      .order('updated_at', { ascending: false })
-      .limit(5);
-    
-    if (recentArticlesError) {
-      logger.error(LogSource.DASHBOARD, 'Error fetching recent articles', recentArticlesError);
-      return { data: null, error: recentArticlesError };
-    }
-    
-    // Get recent activity (comments as a proxy for activity)
-    const { data: recentActivityData, error: recentActivityError } = await supabase
-      .from('comments')
-      .select(`
-        id,
-        content,
-        created_at,
-        article_id
-      `)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
-    if (recentActivityError) {
-      logger.error(LogSource.DASHBOARD, 'Error fetching recent activity', recentActivityError);
-      return { data: null, error: recentActivityError };
-    }
+    // Get recent articles - we now handle this separately in useDashboardMetrics
+    // to allow for pagination
     
     // Calculate engagement rate (comments per article)
     const engagementRate = totalArticles > 0 
       ? ((commentCount || 0) / totalArticles) * 100 
       : 0;
     
-    // Format the data
-    const recentArticles = recentArticlesData.map(article => ({
-      id: article.id,
-      title: article.title,
-      status: article.status,
-      lastEdited: new Date(article.updated_at).toLocaleDateString()
-    }));
-    
-    const recentActivity = recentActivityData.map(comment => ({
-      id: comment.id,
-      type: 'comment',
-      content: `New comment on article ${comment.article_id.substring(0, 8)}...`,
-      timestamp: new Date(comment.created_at).toLocaleDateString()
-    }));
-    
-    const dashboardData: DashboardMetrics = {
+    const dashboardData = {
       totalArticles: totalArticles || 0,
       articleViews: viewsCount || 0,
       commentCount: commentCount || 0,
       engagementRate: Number(engagementRate.toFixed(1)),
-      recentArticles,
-      recentActivity
+      recentArticles: [], // This will be populated by useDashboardMetrics
+      recentActivity: []  // This should come from activityService
     };
     
     logger.info(LogSource.DASHBOARD, 'Dashboard metrics fetched successfully');

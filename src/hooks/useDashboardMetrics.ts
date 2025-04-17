@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { getDashboardMetrics, DashboardMetrics } from '@/services/dashboardService';
+import { getDashboardMetrics } from '@/services/dashboardService';
 import { getArticlesByStatus } from '@/services/articleService';
+import { getModerationMetrics } from '@/services/moderationService';
 
 export interface DashboardMetrics {
   totalArticles: number;
@@ -28,6 +30,7 @@ export const useDashboardMetrics = () => {
   const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
     try {
+      // Fetch dashboard metrics
       const { data: metricsData, error: metricsError } = await getDashboardMetrics();
       
       if (metricsError) {
@@ -39,6 +42,14 @@ export const useDashboardMetrics = () => {
           variant: "destructive"
         });
         return;
+      }
+      
+      // Fetch moderation metrics
+      const { stats: moderationStats, error: moderationError } = await getModerationMetrics();
+      
+      if (moderationError) {
+        console.error('Error fetching moderation metrics:', moderationError);
+        // Continue with available data, don't block the dashboard
       }
       
       // Fetch paginated articles
@@ -58,7 +69,11 @@ export const useDashboardMetrics = () => {
             title: article.title,
             status: article.status,
             lastEdited: new Date(article.updated_at).toLocaleDateString()
-          }))
+          })),
+          // Add moderation counts from moderation service or default to 0
+          pendingArticles: moderationStats?.pendingCount || 0,
+          pendingComments: moderationStats?.reportedCount || 0,
+          flaggedContent: moderationStats?.flaggedContent || 0
         });
       }
     } catch (err) {
