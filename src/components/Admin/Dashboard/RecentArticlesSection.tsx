@@ -1,23 +1,14 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import StatusBadge, { StatusType } from '@/components/Admin/Status/StatusBadge';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Link } from 'react-router-dom';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { deleteArticle, updateArticleStatus } from '@/services/articleService';
+import StatusDropdown from '@/components/Admin/Status/StatusDropdown';
+import ArticlePaginationControls from './ArticlePaginationControls';
 
 interface RecentArticle {
   id: string;
@@ -30,12 +21,18 @@ interface RecentArticlesSectionProps {
   articles: RecentArticle[];
   loading: boolean;
   onRefresh: () => void;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
   articles,
   loading,
-  onRefresh
+  onRefresh,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange = () => {},
 }) => {
   const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -63,21 +60,7 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
   };
 
   const handleStatusChange = async (articleId: string, newStatus: StatusType) => {
-    const { success, error } = await updateArticleStatus(articleId, newStatus);
-    
-    if (success) {
-      toast({
-        title: "Status updated",
-        description: `Article has been ${newStatus === 'published' ? 'published' : 'moved to ' + newStatus}.`,
-      });
-      onRefresh();
-    } else {
-      toast({
-        title: "Error",
-        description: "Could not update article status. Please try again.",
-        variant: "destructive",
-      });
-    }
+    onRefresh(); // Refresh the list after status change
   };
 
   return (
@@ -123,7 +106,11 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={article.status} size="sm" />
+                  <StatusDropdown
+                    currentStatus={article.status}
+                    onStatusChange={(newStatus) => handleStatusChange(article.id, newStatus)}
+                    articleId={article.id}
+                  />
                   <div className="flex items-center gap-1">
                     <Link to={`/articles/${article.id}`}>
                       <Button variant="ghost" size="icon">
@@ -146,6 +133,12 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
                 </div>
               </div>
             ))}
+            
+            <ArticlePaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+            />
           </div>
         )}
       </CardContent>

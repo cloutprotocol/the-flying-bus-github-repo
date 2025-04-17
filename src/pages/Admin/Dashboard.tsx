@@ -1,16 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { PenLine, Eye, MessageSquare, BarChart3 } from 'lucide-react';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import RecentArticlesSection from '@/components/Admin/Dashboard/RecentArticlesSection';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
+import { getArticlesByStatus } from '@/services/articleService';
 
-// Define interface to ensure type safety when mapping from API response
 interface DashboardRecentArticle {
   id: string;
   title: string;
@@ -18,8 +17,12 @@ interface DashboardRecentArticle {
   lastEdited: string;
 }
 
+const ARTICLES_PER_PAGE = 5;
+
 const Dashboard = () => {
+  const [currentPage, setCurrentPage] = useState(1);
   const { metrics, loading, error, refetchMetrics } = useDashboardMetrics();
+  const [totalPages, setTotalPages] = useState(1);
   
   // Map API response articles to component-expected format
   const mapArticles = (): DashboardRecentArticle[] => {
@@ -28,10 +31,14 @@ const Dashboard = () => {
     return metrics.recentArticles.map(article => ({
       id: article.id,
       title: article.title,
-      // Ensure status is cast to StatusType
       status: article.status as StatusType,
       lastEdited: article.lastEdited
     }));
+  };
+
+  const handlePageChange = async (page: number) => {
+    setCurrentPage(page);
+    await refetchMetrics(page, ARTICLES_PER_PAGE);
   };
   
   return (
@@ -114,7 +121,10 @@ const Dashboard = () => {
         <RecentArticlesSection 
           articles={mapArticles()}
           loading={loading}
-          onRefresh={refetchMetrics}
+          onRefresh={() => refetchMetrics(currentPage, ARTICLES_PER_PAGE)}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
         />
       </div>
     </AdminPortalLayout>

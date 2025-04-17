@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { getDashboardMetrics, DashboardMetrics } from '@/services/dashboardService';
+import { getArticlesByStatus } from '@/services/articleService';
 
 export const useDashboardMetrics = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -9,21 +10,42 @@ export const useDashboardMetrics = () => {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   
-  const fetchMetrics = async () => {
+  const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
     try {
-      const { data, error } = await getDashboardMetrics();
+      // Fetch general metrics
+      const { data: metricsData, error: metricsError } = await getDashboardMetrics();
       
-      if (error) {
-        console.error('Error fetching dashboard metrics:', error);
+      if (metricsError) {
+        console.error('Error fetching dashboard metrics:', metricsError);
         setError(new Error('Failed to load dashboard metrics'));
         toast({
           title: "Error",
           description: "Could not load dashboard data",
           variant: "destructive"
         });
-      } else if (data) {
-        setMetrics(data);
+        return;
+      }
+      
+      // Fetch paginated articles
+      const { articles, count, error: articlesError } = await getArticlesByStatus('all', undefined, page, limit);
+      
+      if (articlesError) {
+        console.error('Error fetching articles:', articlesError);
+        setError(new Error('Failed to load articles'));
+        return;
+      }
+      
+      if (metricsData && articles) {
+        setMetrics({
+          ...metricsData,
+          recentArticles: articles.map(article => ({
+            id: article.id,
+            title: article.title,
+            status: article.status,
+            lastEdited: new Date(article.updated_at).toLocaleDateString()
+          }))
+        });
       }
     } catch (err) {
       console.error('Exception fetching dashboard metrics:', err);
@@ -40,11 +62,6 @@ export const useDashboardMetrics = () => {
   
   useEffect(() => {
     fetchMetrics();
-    
-    // Set up a refresh interval
-    const intervalId = setInterval(fetchMetrics, 5 * 60 * 1000); // Refresh every 5 minutes
-    
-    return () => clearInterval(intervalId);
   }, []);
   
   return { 
