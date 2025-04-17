@@ -2,12 +2,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { createArticle } from '@/services/articleService';
 import { saveDraft, getDraftById } from '@/services/draftService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { UseFormReturn } from 'react-hook-form';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import { updateArticleStatus } from '@/services/articles/articleReviewService';
 
 const AUTO_SAVE_INTERVAL = 60000; // Auto-save every minute
 
@@ -46,13 +46,13 @@ export const useArticleForm = (
             excerpt: draft.excerpt,
             categoryId: draft.categoryId,
             imageUrl: draft.imageUrl,
-            readingLevel: 'Intermediate', // Default
+            readingLevel: draft.readingLevel || 'Intermediate', // Default
             status: draft.status,
             articleType: draft.articleType,
             videoUrl: draft.videoUrl || ''
           });
           
-          setContent(draft.content);
+          setContent(draft.content || '');
           setDraftId(draft.id);
           setLastSaved(new Date(draft.updatedAt));
           setSaveStatus('saved');
@@ -99,7 +99,7 @@ export const useArticleForm = (
       
       setLastSaved(new Date());
       setSaveStatus('saved');
-      return { success: true };
+      return { success: true, articleId: result.articleId };
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Exception auto-saving draft', { error });
@@ -110,55 +110,79 @@ export const useArticleForm = (
 
   // Submit handler
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
-    data.content = content;
-    
-    if (isDraft) {
-      data.status = 'draft';
-    } else {
-      data.status = isNewArticle ? 'pending' : form.getValues('status');
-    }
-    
     try {
-      logger.info(LogSource.EDITOR, 'Submitting article form', {
-        isDraft,
-        articleType
-      });
+      const formData = {
+        ...data,
+        content: content
+      };
       
       if (isDraft) {
-        const saveResult = await saveDraftToServer(data, true);
-        if (!saveResult.success) {
-          toast({
-            title: "Error",
-            description: "There was a problem saving your draft.",
-            variant: "destructive"
-          });
-        }
-        return;
+        formData.status = 'draft';
+      } else {
+        formData.status = isNewArticle ? 'pending' : form.getValues('status');
       }
       
-      const result = await createArticle(data);
+      logger.info(LogSource.EDITOR, 'Submitting article form', {
+        isDraft,
+        articleType,
+        isNewArticle
+      });
       
-      if (result.error) {
+      // First save the draft to ensure we have an article ID
+      const saveResult = await saveDraftToServer(formData, true);
+      
+      if (!saveResult.success) {
         toast({
           title: "Error",
           description: "There was a problem saving your article.",
           variant: "destructive"
         });
-        logger.error(LogSource.EDITOR, "Article submission failed", result.error);
         return;
       }
       
-      toast({
-        title: "Article submitted for review",
-        description: "Your article has been submitted for review.",
-      });
-      
-      navigate('/admin/articles');
+      // For regular submissions (not drafts), update the status
+      if (!isDraft) {
+        const savedArticleId = saveResult.articleId || draftId;
+        
+        if (!savedArticleId) {
+          toast({
+            title: "Error",
+            description: "Could not determine article ID.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Update the status to pending for review
+        const statusResult = await updateArticleStatus(savedArticleId, 'pending');
+        
+        if (!statusResult.success) {
+          toast({
+            title: "Error",
+            description: "There was a problem submitting your article for review.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        toast({
+          title: "Article submitted for review",
+          description: "Your article has been submitted for review.",
+        });
+        
+        // Navigate to the articles list
+        navigate('/admin/articles');
+      } else {
+        toast({
+          title: "Draft saved",
+          description: "Your draft has been saved.",
+        });
+      }
     } catch (error) {
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({
         title: "Error",
-        description: "There was a problem saving your article.",
+        description: "There was a problem with your submission.",
         variant: "destructive"
       });
     }

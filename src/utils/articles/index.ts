@@ -6,4 +6,4 @@ export * from './articleRead';
 export * from './fetchArticle';
 export * from './fetchDebate';
 export * from './fetchVideo';
-
+export * from './trackArticleView';
