@@ -1,14 +1,8 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { PenLine, Eye, MessageSquare, BarChart3 } from 'lucide-react';
-import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import RecentArticlesSection from '@/components/Admin/Dashboard/RecentArticlesSection';
-import { StatusType } from '@/components/Admin/Status/StatusBadge';
-import { getArticlesByStatus } from '@/services/articleService';
+import { Card } from '@/components/ui/card';
+import useActivityFeed from '@/hooks/useActivityFeed';
+import ActivityFeed from '@/components/Admin/Activity/ActivityFeed';
 
 interface DashboardRecentArticle {
   id: string;
@@ -19,12 +13,13 @@ interface DashboardRecentArticle {
 
 const ARTICLES_PER_PAGE = 5;
 
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { metrics, loading, error, refetchMetrics } = useDashboardMetrics();
   const [totalPages, setTotalPages] = useState(1);
   
-  // Map API response articles to component-expected format
+  const { activities, loading: activitiesLoading } = useActivityFeed(10);
+
   const mapArticles = (): DashboardRecentArticle[] => {
     if (!metrics?.recentArticles) return [];
     
@@ -117,6 +112,16 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Recent Activity</h2>
+          <Card className="p-4">
+            <ActivityFeed 
+              activities={activities} 
+              isLoading={activitiesLoading} 
+            />
+          </Card>
+        </section>
 
         <RecentArticlesSection 
           articles={mapArticles()}

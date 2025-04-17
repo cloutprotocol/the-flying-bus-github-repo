@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       article_reviews: {
         Row: {
           article_id: string
@@ -795,7 +825,16 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      activity_type:
+        | "article_created"
+        | "article_updated"
+        | "article_published"
+        | "comment_added"
+        | "comment_edited"
+        | "comment_deleted"
+        | "article_reviewed"
+        | "article_approved"
+        | "article_rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -910,6 +949,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_type: [
+        "article_created",
+        "article_updated",
+        "article_published",
+        "comment_added",
+        "comment_edited",
+        "comment_deleted",
+        "article_reviewed",
+        "article_approved",
+        "article_rejected",
+      ],
+    },
   },
 } as const

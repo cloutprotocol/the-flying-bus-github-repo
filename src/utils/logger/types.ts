@@ -32,7 +32,8 @@ export enum LogSource {
   VOTING = 'voting',
   SAFETY = 'safety',
   VALIDATION = 'validation',
-  ARTICLE = 'article'
+  ARTICLE = 'article',
+  ACTIVITY = 'activity'
 }
 
 /**
