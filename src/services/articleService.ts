@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -273,7 +274,7 @@ export const updateArticle = async (articleId: string, updates: any) => {
 };
 
 export const getArticlesByStatus = async (
-  status: StatusType,
+  status: StatusType | 'all',
   categoryId?: string,
   page: number = 1,
   limit: number = 10
@@ -331,12 +332,17 @@ export const reviewArticle = async (
     
     // If feedback provided, add review record
     if (review.feedback) {
+      // Get current user ID for reviewer_id
+      const currentUser = supabase.auth.getUser();
+      const reviewerId = (await currentUser).data.user?.id || 'system';
+      
       const { error: reviewError } = await supabase
         .from('article_reviews')
         .insert({
           article_id: articleId,
           feedback: review.feedback,
-          status: review.status
+          status: review.status,
+          reviewer_id: reviewerId
         });
       
       if (reviewError) {
