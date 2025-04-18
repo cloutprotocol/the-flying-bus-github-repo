@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useEffect } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { AuthContextType } from '@/types/AuthTypes';
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -176,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     isLoading,
     checkRoleAccess: (allowedRoles: string[]) => checkRoleAccess(currentUser, allowedRoles),
-    session
+    session,
+    user: currentUser ? { id: currentUser.id } : null // Add the user property to match the context type
   };
 
   return (
