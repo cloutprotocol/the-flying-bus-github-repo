@@ -1,4 +1,3 @@
-
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
@@ -27,7 +26,8 @@ const defaultAuthContext = {
   login: vi.fn(),
   logout: vi.fn(),
   checkRoleAccess: vi.fn().mockReturnValue(false),
-  session: null
+  session: null,
+  user: null
 };
 
 interface TestWrapperProps {

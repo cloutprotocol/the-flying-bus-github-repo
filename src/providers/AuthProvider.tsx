@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { useToast } from '@/hooks/use-toast';
@@ -20,13 +19,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const { toast } = useToast();
 
-  // Check for existing session on mount
   useEffect(() => {
     async function getInitialSession() {
       setIsLoading(true);
       
       try {
-        // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         console.log('Initial auth check:', currentSession ? 'Session found' : 'No session');
@@ -34,7 +31,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (currentSession) {
           setSession(currentSession);
           
-          // Defer profile fetch to avoid potential Supabase auth deadlock
           setTimeout(async () => {
             const profile = await fetchUserProfile(currentSession.user.id);
             if (profile) {
@@ -59,13 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     
-    // Set up auth state listener FIRST, before checking the session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       console.log('Auth state changed:', event, newSession ? 'Session active' : 'No session');
       setSession(newSession);
       
       if (newSession) {
-        // Defer profile fetch to avoid potential Supabase auth deadlock
         setTimeout(async () => {
           const profile = await fetchUserProfile(newSession.user.id);
           if (profile) {
@@ -84,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     getInitialSession();
     
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
@@ -110,9 +103,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (authSession) {
         console.log('Supabase login successful, session:', authSession.user.id);
-        
-        // We'll let the onAuthStateChange handle setting the user state
-        // This ensures consistent state management
         
         toast({
           title: "Welcome back!",
@@ -171,13 +161,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkRoleAccess = (allowedRoles: string[]): boolean => {
+    return currentUser ? allowedRoles.includes(currentUser.role) : false;
+  };
+
   const value = {
     currentUser,
     isLoggedIn: !!currentUser,
     login,
     logout,
     isLoading,
-    checkRoleAccess: (allowedRoles: string[]) => checkAccess(currentUser, allowedRoles),
+    checkRoleAccess,
     session,
     user: currentUser ? { id: currentUser.id } : null
   };

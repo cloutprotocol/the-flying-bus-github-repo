@@ -15,7 +15,8 @@ interface DebugContextType {
   clearSteps: () => void;
 }
 
-const DebugContext = createContext<DebugContextType | undefined>(undefined);
+// Export the context so it can be imported directly
+export const DebugContext = createContext<DebugContextType | undefined>(undefined);
 
 export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [steps, setSteps] = useState<DebugStep[]>([]);

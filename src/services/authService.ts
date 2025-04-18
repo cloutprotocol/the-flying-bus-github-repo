@@ -19,7 +19,21 @@ export async function fetchUserProfile(userId: string): Promise<ReaderProfile | 
       return null;
     }
     
-    return data as ReaderProfile;
+    // Transform database profile to ReaderProfile format
+    return {
+      id: data.id,
+      username: data.username,
+      displayName: data.display_name,
+      email: data.email,
+      role: data.role,
+      bio: data.bio || '',
+      avatar: data.avatar_url || '',
+      joinedDate: new Date(data.created_at),
+      badges: data.badges || [],
+      readingStreak: data.reading_streak || 0,
+      commentCount: data.comment_count || 0,
+      achievements: data.achievements || []
+    } as ReaderProfile;
   } catch (e) {
     logger.error(LogSource.AUTH, 'Exception fetching user profile', e);
     return null;
