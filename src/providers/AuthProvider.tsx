@@ -5,7 +5,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { AuthContextType } from '@/types/AuthTypes';
-import { fetchUserProfile, checkRoleAccess } from '@/utils/authUtils';
+import { 
+  fetchUserProfile, 
+  checkRoleAccess as checkAccess,
+  loginWithEmailPassword,
+  logoutUser
+} from '@/services/authService';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -90,10 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       console.log('Attempting Supabase login for:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { session: authSession, error } = await loginWithEmailPassword(email, password);
       
       if (error) {
         console.error('Login error:', error);
@@ -106,8 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
-      if (data.session) {
-        console.log('Supabase login successful, session:', data.session.user.id);
+      if (authSession) {
+        console.log('Supabase login successful, session:', authSession.user.id);
         
         // We'll let the onAuthStateChange handle setting the user state
         // This ensures consistent state management
@@ -139,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       console.log('Attempting to log out user');
-      const { error } = await supabase.auth.signOut();
+      const { error } = await logoutUser();
       
       if (error) {
         console.error('Logout error:', error);
@@ -175,9 +177,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     isLoading,
-    checkRoleAccess: (allowedRoles: string[]) => checkRoleAccess(currentUser, allowedRoles),
+    checkRoleAccess: (allowedRoles: string[]) => checkAccess(currentUser, allowedRoles),
     session,
-    user: currentUser ? { id: currentUser.id } : null // Add the user property to match the context type
+    user: currentUser ? { id: currentUser.id } : null
   };
 
   return (

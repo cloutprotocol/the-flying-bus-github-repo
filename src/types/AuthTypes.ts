@@ -10,5 +10,5 @@ export interface AuthContextType {
   isLoading: boolean;
   checkRoleAccess: (allowedRoles: string[]) => boolean;
   session: Session | null;
-  user?: { id: string } | null; // Add this line to resolve the error
+  user: { id: string } | null;
 }

@@ -1,48 +1,27 @@
 
-import { useState, useCallback } from 'react';
+import { useContext } from 'react';
+import { DebugContext, DebugStep } from '@/contexts/DebugContext';
 
-export type ArticleDebugStep = {
-  timestamp: string;
-  action: string;
-  details?: any;
-  status: 'pending' | 'success' | 'error';
-};
+export type ArticleDebugStep = DebugStep;
 
 export function useArticleDebug() {
-  const [debugSteps, setDebugSteps] = useState<ArticleDebugStep[]>([]);
-
-  const addDebugStep = useCallback((action: string, details?: any, status: ArticleDebugStep['status'] = 'pending') => {
-    setDebugSteps(prev => [...prev, {
-      timestamp: new Date().toISOString(),
-      action,
-      details,
-      status
-    }]);
-  }, []);
-
-  const updateLastStep = useCallback((status: ArticleDebugStep['status'], details?: any) => {
-    setDebugSteps(prev => {
-      if (!prev.length) return prev;
-      const lastStep = prev[prev.length - 1];
-      return [
-        ...prev.slice(0, -1),
-        { 
-          ...lastStep, 
-          status, 
-          details: details ? { ...lastStep.details, ...details } : lastStep.details 
-        }
-      ];
-    });
-  }, []);
-
-  const clearDebugSteps = useCallback(() => {
-    setDebugSteps([]);
-  }, []);
-
+  const context = useContext(DebugContext);
+  
+  if (context === undefined) {
+    // Provide a fallback implementation when the context is not available
+    // This allows the hook to be used outside of a DebugProvider without errors
+    return {
+      debugSteps: [],
+      addDebugStep: () => {},
+      updateLastStep: () => {},
+      clearDebugSteps: () => {}
+    };
+  }
+  
   return {
-    debugSteps,
-    addDebugStep,
-    updateLastStep,
-    clearDebugSteps
+    debugSteps: context.steps,
+    addDebugStep: context.addStep,
+    updateLastStep: context.updateLastStep,
+    clearDebugSteps: context.clearSteps
   };
 }
