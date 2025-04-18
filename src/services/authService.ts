@@ -29,10 +29,11 @@ export async function fetchUserProfile(userId: string): Promise<ReaderProfile | 
       bio: data.bio || '',
       avatar: data.avatar_url || '',
       joinedDate: new Date(data.created_at),
-      badges: data.badges || [],
-      readingStreak: data.reading_streak || 0,
-      commentCount: data.comment_count || 0,
-      achievements: data.achievements || []
+      // Handle optional fields that might not exist in the database
+      badges: [], // Default to empty array if not present
+      readingStreak: 0, // Default to 0 if not present
+      commentCount: 0, // Default to 0 if not present
+      achievements: [] // Default to empty array if not present
     } as ReaderProfile;
   } catch (e) {
     logger.error(LogSource.AUTH, 'Exception fetching user profile', e);
