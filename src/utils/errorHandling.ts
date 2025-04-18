@@ -3,6 +3,7 @@ import { ApiError, ApiErrorType } from './errors/types';
 import { showErrorToast } from './errors/displayError';
 import { logger } from './logger';
 import { LogSource } from './logger/types';
+import React from 'react';
 
 /**
  * Global error handler for async operations
