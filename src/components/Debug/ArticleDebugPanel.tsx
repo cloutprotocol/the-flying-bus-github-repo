@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Bug, ChevronDown, Check, AlertCircle, Clock } from 'lucide-react';
+import { Bug, Check, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ArticleDebugStep } from '@/hooks/useArticleDebug';
 

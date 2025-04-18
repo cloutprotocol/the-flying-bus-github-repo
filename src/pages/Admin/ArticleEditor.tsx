@@ -1,15 +1,12 @@
-
 import React, { useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ArticleForm from '@/components/Admin/ArticleEditor/ArticleForm';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, List } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
-import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
-import { useArticleDebug } from '@/hooks/useArticleDebug';
 
 const ArticleEditor = () => {
   const { articleId } = useParams();
@@ -18,7 +15,6 @@ const ArticleEditor = () => {
   const { toast } = useToast();
   const isNewArticle = !articleId;
   const articleType = location.state?.articleType || 'standard';
-  const { debugSteps } = useArticleDebug();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -40,7 +36,6 @@ const ArticleEditor = () => {
   return (
     <>
       <AuthDebugPanel />
-      <ArticleDebugPanel steps={debugSteps} />
       <AdminPortalLayout>
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

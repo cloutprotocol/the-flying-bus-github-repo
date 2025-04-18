@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import useArticleRevisions from '@/hooks/useArticleRevisions';
 import RevisionsList from './RevisionsList';
 import { useArticleForm } from '@/hooks/useArticleForm';
+import { useArticleDebug } from '@/hooks/useArticleDebug';
+import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
 
 interface ArticleFormProps {
   articleId?: string;
@@ -31,6 +33,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
   const { toast } = useToast();
+  const { addDebugStep, updateLastStep, debugSteps } = useArticleDebug();
   
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
@@ -72,14 +75,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
-      logger.info(LogSource.EDITOR, 'Article form submission initiated', {
+      addDebugStep('Article submission started', {
         isNewArticle,
         articleType,
         hasArticleId: !!articleId
       });
       
       await handleSubmit(data, false);
+      
     } catch (error) {
+      updateLastStep('error', { error });
       logger.error(LogSource.EDITOR, 'Article submission failed', error);
       toast({
         title: 'Error',
@@ -91,6 +96,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   return (
     <>
+      <ArticleDebugPanel steps={debugSteps} />
       <Form {...form}>
         <form onSubmit={form.handleFormSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
