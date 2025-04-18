@@ -5,12 +5,14 @@ import { saveDraft } from '@/services/draftService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import { useArticleDebug } from '@/hooks/useArticleDebug';
 
 export function useDraftManagement(articleId?: string, articleType: string = 'standard') {
   const [draftId, setDraftId] = useState<string | undefined>(articleId);
   const [saveStatus, setSaveStatus] = useState<DraftSaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { toast } = useToast();
+  const { addDebugStep, updateLastStep } = useArticleDebug();
 
   const saveDraftToServer = useCallback(async (formData: any, isDirty: boolean) => {
     if (!isDirty && draftId) {
@@ -19,6 +21,12 @@ export function useDraftManagement(articleId?: string, articleType: string = 'st
     
     try {
       setSaveStatus('saving');
+      
+      addDebugStep('Saving draft to server', {
+        draftId,
+        articleType,
+        isUpdate: !!draftId
+      });
       
       logger.info(LogSource.EDITOR, 'Saving draft', {
         draftId,
@@ -30,6 +38,7 @@ export function useDraftManagement(articleId?: string, articleType: string = 'st
       
       if (result.error) {
         logger.error(LogSource.EDITOR, 'Error saving draft', { error: result.error });
+        updateLastStep('error', { error: result.error });
         setSaveStatus('error');
         toast({
           title: "Error",
@@ -49,11 +58,13 @@ export function useDraftManagement(articleId?: string, articleType: string = 'st
       
       setLastSaved(new Date());
       setSaveStatus('saved');
+      updateLastStep('success', { articleId: newArticleId });
       
       return { success: true, articleId: newArticleId };
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Exception saving draft', { error });
+      updateLastStep('error', { error });
       setSaveStatus('error');
       toast({
         title: "Error",
@@ -62,7 +73,7 @@ export function useDraftManagement(articleId?: string, articleType: string = 'st
       });
       return { success: false, articleId: draftId };
     }
-  }, [draftId, articleType, toast]);
+  }, [draftId, articleType, toast, addDebugStep, updateLastStep]);
 
   return {
     draftId,

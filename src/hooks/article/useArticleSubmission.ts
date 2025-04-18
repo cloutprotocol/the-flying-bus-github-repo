@@ -26,18 +26,18 @@ export function useArticleSubmission() {
         return false;
       }
 
-      logger.info(LogSource.EDITOR, 'Article submission initiated', { 
+      logger.info(LogSource.EDITOR, 'Article submission in progress', { 
         articleId: savedArticleId, 
         isDraft 
       });
 
       if (!isDraft) {
-        logger.info(LogSource.EDITOR, 'Submitting article for review', { articleId: savedArticleId });
+        logger.info(LogSource.EDITOR, 'Updating article status to pending', { articleId: savedArticleId });
         
         const statusResult = await updateArticleStatus(savedArticleId, 'pending');
         
         if (!statusResult.success) {
-          logger.error(LogSource.EDITOR, 'Article submission failed', { 
+          logger.error(LogSource.EDITOR, 'Article status update failed', { 
             articleId: savedArticleId, 
             error: statusResult.error 
           });

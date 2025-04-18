@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -75,16 +76,19 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
-      addDebugStep('Article submission started', {
-        isNewArticle,
-        articleType,
-        hasArticleId: !!articleId
+      addDebugStep('Form validation passed', {
+        formData: {
+          title: data.title,
+          excerpt: data.excerpt?.substring(0, 20) + '...',
+          articleType: data.articleType,
+          categoryId: data.categoryId
+        }
       });
       
       await handleSubmit(data, false);
       
     } catch (error) {
-      updateLastStep('error', { error });
+      updateLastStep('error', { error: String(error) });
       logger.error(LogSource.EDITOR, 'Article submission failed', error);
       toast({
         title: 'Error',

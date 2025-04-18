@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ArticleForm from '@/components/Admin/ArticleEditor/ArticleForm';
@@ -6,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
 
 const ArticleEditor = () => {
   const { articleId } = useParams();
@@ -34,47 +34,44 @@ const ArticleEditor = () => {
   }, [navigate, location.pathname, toast]);
 
   return (
-    <>
-      <AuthDebugPanel />
-      <AdminPortalLayout>
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {isNewArticle ? 'Create New Article' : 'Edit Article'}
-              </h1>
-              <p className="text-muted-foreground">
-                {isNewArticle
-                  ? 'Create a new article for publication'
-                  : 'Make changes to your article'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/admin/articles')}
-              >
-                <List className="h-4 w-4 mr-1" /> All Articles
-              </Button>
-            </div>
+    <AdminPortalLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {isNewArticle ? 'Create New Article' : 'Edit Article'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isNewArticle
+                ? 'Create a new article for publication'
+                : 'Make changes to your article'}
+            </p>
           </div>
-          
-          <ArticleForm 
-            articleId={articleId} 
-            articleType={articleType}
-            isNewArticle={isNewArticle}
-          />
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/admin/articles')}
+            >
+              <List className="h-4 w-4 mr-1" /> All Articles
+            </Button>
+          </div>
         </div>
-      </AdminPortalLayout>
-    </>
+        
+        <ArticleForm 
+          articleId={articleId} 
+          articleType={articleType}
+          isNewArticle={isNewArticle}
+        />
+      </div>
+    </AdminPortalLayout>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './article/useDraftManagement';
@@ -26,7 +27,11 @@ export const useArticleForm = (
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
     try {
       setIsSubmitting(true);
-      addDebugStep('Starting article submission', { isDraft, articleType });
+      addDebugStep('Article submission initiated', {
+        isDraft,
+        articleType,
+        isNewArticle: isNewArticle
+      });
       
       const formData = {
         ...data,
@@ -34,7 +39,7 @@ export const useArticleForm = (
         status: isDraft ? 'draft' : 'pending'
       };
       
-      addDebugStep('Saving draft', { articleId, draftId });
+      addDebugStep('Saving draft before submission', { articleId, draftId });
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
@@ -65,12 +70,25 @@ export const useArticleForm = (
         return;
       }
 
-      addDebugStep('Submitting article', { articleId: saveResult.articleId });
-      await handleArticleSubmission(saveResult.articleId, isDraft);
-      updateLastStep('success');
+      addDebugStep('Changing article status', { 
+        articleId: saveResult.articleId,
+        targetStatus: isDraft ? 'draft' : 'pending'
+      });
+      
+      const submissionResult = await handleArticleSubmission(saveResult.articleId, isDraft);
+      
+      if (submissionResult) {
+        updateLastStep('success', { status: isDraft ? 'Draft saved' : 'Submitted for review' });
+        addDebugStep('Article submission completed', { 
+          isDraft,
+          articleId: saveResult.articleId
+        }, 'success');
+      } else {
+        updateLastStep('error', { error: 'Submission failed' });
+      }
       
     } catch (error) {
-      updateLastStep('error', { error });
+      addDebugStep('Exception in article submission', { error }, 'error');
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({
         title: "Error",

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Bug, Check, AlertCircle, Clock } from 'lucide-react';
+import { FileText, Check, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ArticleDebugStep } from '@/hooks/useArticleDebug';
 
@@ -34,10 +34,10 @@ const ArticleDebugPanel: React.FC<ArticleDebugPanelProps> = ({ steps }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-semibold flex items-center gap-1">
-            <Bug className="h-3 w-3" /> Article Debug:
+            <FileText className="h-3 w-3" /> Article Submission:
           </span>
           <span className="text-slate-600">
-            {steps.length} operations logged
+            {steps.length} steps logged
           </span>
         </div>
         
@@ -47,7 +47,7 @@ const ArticleDebugPanel: React.FC<ArticleDebugPanelProps> = ({ steps }) => {
           className="h-5 text-xs" 
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          {isExpanded ? 'Less' : 'More'} details
+          {isExpanded ? 'Hide' : 'Show'} details
         </Button>
       </div>
       
@@ -59,8 +59,10 @@ const ArticleDebugPanel: React.FC<ArticleDebugPanelProps> = ({ steps }) => {
               <div>
                 <div className="font-medium">{step.action}</div>
                 {step.details && (
-                  <pre className="text-xs text-slate-500 mt-1">
-                    {JSON.stringify(step.details, null, 2)}
+                  <pre className="text-xs text-slate-500 mt-1 max-h-20 overflow-auto">
+                    {typeof step.details === 'string' 
+                      ? step.details 
+                      : JSON.stringify(step.details, null, 2)}
                   </pre>
                 )}
                 <span className="text-slate-400 text-[10px]">

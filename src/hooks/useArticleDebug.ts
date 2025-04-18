@@ -26,7 +26,11 @@ export function useArticleDebug() {
       const lastStep = prev[prev.length - 1];
       return [
         ...prev.slice(0, -1),
-        { ...lastStep, status, ...(details ? { details } : {}) }
+        { 
+          ...lastStep, 
+          status, 
+          details: details ? { ...lastStep.details, ...details } : lastStep.details 
+        }
       ];
     });
   }, []);
