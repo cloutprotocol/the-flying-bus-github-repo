@@ -1,6 +1,7 @@
 
 import { useContext } from 'react';
-import { DebugContext, DebugStep } from '@/contexts/DebugContext';
+import { DebugContext, DebugContextType } from '@/contexts/DebugContext';
+import type { DebugStep } from '@/types/DebugTypes';
 
 export type ArticleDebugStep = DebugStep;
 
