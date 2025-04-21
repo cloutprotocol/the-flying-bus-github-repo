@@ -1,4 +1,3 @@
-
 import { ApiError, ApiErrorType } from './errors/types';
 import { showErrorToast } from './errors/displayError';
 import { logger } from './logger';
@@ -85,15 +84,14 @@ export async function withErrorHandling<T>(
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>
 ): React.FC<P> {
-  const ErrorBoundaryWrapper: React.FC<P> = (props) => {
-    const ErrorBoundary = require('@/components/ErrorBoundary/ErrorBoundary').default as React.ComponentType<{ component: string, children: React.ReactNode }>;
+  const ErrorBoundaryModule = require('@/components/ErrorBoundary/ErrorBoundary');
+  const ErrorBoundary = ErrorBoundaryModule.default as React.ComponentType<{ component: string, children: React.ReactNode }>;
 
-    return (
-      <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
+  const ErrorBoundaryWrapper: React.FC<P> = (props) => (
+    <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
+      <Component {...props} />
+    </ErrorBoundary>
+  );
 
   return ErrorBoundaryWrapper;
 }
