@@ -1,3 +1,4 @@
+
 import { ApiError, ApiErrorType } from './errors/types';
 import { showErrorToast } from './errors/displayError';
 import { logger } from './logger';
@@ -79,20 +80,20 @@ export async function withErrorHandling<T>(
 /**
  * HOC to wrap a component with error handling
  * @param Component The component to wrap
- * @param fallback The fallback component to render on error
  * @returns Wrapped component with error handling
  */
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>
 ): React.FC<P> {
-  // Dynamic import to avoid circular dependencies
-  const ErrorBoundary = require('@/components/ErrorBoundary/ErrorBoundary').default;
+  const ErrorBoundaryWrapper: React.FC<P> = (props) => {
+    const ErrorBoundary = require('@/components/ErrorBoundary/ErrorBoundary').default as React.ComponentType<{ component: string, children: React.ReactNode }>;
 
-  const ErrorBoundaryWrapper: React.FC<P> = (props) => (
-    <ErrorBoundary component={Component.displayName || Component.name}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
+    return (
+      <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
+        <Component {...props} />
+      </ErrorBoundary>
+    );
+  };
 
   return ErrorBoundaryWrapper;
 }
