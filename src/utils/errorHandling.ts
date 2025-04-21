@@ -85,11 +85,13 @@ export async function withErrorHandling<T>(
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>
 ): React.FC<P> {
-  const ErrorBoundaryWrapper: React.FC<P> = (props) => (
-    <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
+  const ErrorBoundaryWrapper: React.FC<P> = (props) => {
+    return (
+      <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
+        <Component {...props} />
+      </ErrorBoundary>
+    );
+  };
 
   return ErrorBoundaryWrapper;
 }
