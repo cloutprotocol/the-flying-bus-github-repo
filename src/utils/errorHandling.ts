@@ -3,6 +3,7 @@ import { showErrorToast } from './errors/displayError';
 import { logger } from './logger';
 import { LogSource } from './logger/types';
 import React from 'react';
+import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 
 /**
  * Global error handler for async operations
@@ -84,9 +85,6 @@ export async function withErrorHandling<T>(
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>
 ): React.FC<P> {
-  const ErrorBoundaryModule = require('@/components/ErrorBoundary/ErrorBoundary');
-  const ErrorBoundary = ErrorBoundaryModule.default as React.ComponentType<{ component: string, children: React.ReactNode }>;
-
   const ErrorBoundaryWrapper: React.FC<P> = (props) => (
     <ErrorBoundary component={Component.displayName || Component.name || 'Unknown'}>
       <Component {...props} />
