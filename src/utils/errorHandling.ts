@@ -90,7 +90,7 @@ export function withErrorBoundary<P extends object>(
   // Dynamic import to avoid circular dependencies
   const ErrorBoundary = require('@/components/ErrorBoundary/ErrorBoundary').default;
 
-  const ErrorBoundaryWrapper: React.FC<P> = (props) => {
+  const ErrorBoundaryWrapper: React.FC<P> = (props: P) => {
     return (
       <ErrorBoundary fallback={fallback} component={Component.displayName || Component.name}>
         <Component {...props} />
@@ -100,3 +100,4 @@ export function withErrorBoundary<P extends object>(
 
   return ErrorBoundaryWrapper;
 }
+
