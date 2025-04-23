@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Form } from '@/components/ui/form';
 import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
 import { ArticleDebugStep } from '@/hooks/useArticleDebug';
 
@@ -18,11 +17,9 @@ const ArticleFormLayout: React.FC<ArticleFormLayoutProps> = ({
   return (
     <>
       <ArticleDebugPanel steps={debugSteps} />
-      <Form>
-        <form onSubmit={onSubmit} className="space-y-6">
-          {children}
-        </form>
-      </Form>
+      <form onSubmit={onSubmit} className="space-y-6">
+        {children}
+      </form>
     </>
   );
 };
