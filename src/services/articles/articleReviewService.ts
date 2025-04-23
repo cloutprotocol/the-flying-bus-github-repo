@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -51,7 +50,7 @@ export const submitArticleForReview = async (
       logger.error(LogSource.ARTICLE, `User ${userId} attempted to submit article ${articleId} owned by ${article.author_id}`);
       return { 
         success: false, 
-        error: new ApiError('You do not have permission to submit this article', ApiErrorType.PERMISSION)
+        error: new ApiError('You do not have permission to submit this article', ApiErrorType.AUTH)
       };
     }
 
