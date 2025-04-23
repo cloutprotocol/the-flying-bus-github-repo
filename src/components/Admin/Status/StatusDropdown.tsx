@@ -11,7 +11,7 @@ import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff } from 'lucide-reac
 import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
 import { useToast } from '@/hooks/use-toast';
-import { submitArticleForReview } from '@/services/articleService';
+import { submitArticleForReview, updateArticleStatus } from '@/services/articles/articleReviewService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
