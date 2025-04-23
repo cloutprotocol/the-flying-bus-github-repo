@@ -102,7 +102,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <>
       <ArticleDebugPanel steps={debugSteps} />
       <Form {...form}>
-        <form onSubmit={form.handleFormSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
               <ArticleFormHeader 

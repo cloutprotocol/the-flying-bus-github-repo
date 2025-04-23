@@ -33,14 +33,13 @@ export const ReadingLevelEnum = z.enum([
 // Base article schema with common fields
 const baseArticleSchema = z.object({
   title: z.string()
-    .min(5, 'Title must be at least 5 characters long')
+    .min(1, 'Title is required')
     .max(150, 'Title is too long')
     .refine(title => !title.includes("<script>"), "Title cannot contain script tags"),
   content: z.string()
-    .min(50, 'Content must be at least 50 characters long')
+    .min(1, 'Content is required')
     .refine(content => !content.includes("<script>"), "Content cannot contain script tags"),
   excerpt: z.string()
-    .min(10, 'Excerpt must be at least 10 characters')
     .max(300, 'Excerpt is too long')
     .optional()
     .refine(excerpt => !excerpt || !excerpt.includes("<script>"), "Excerpt cannot contain script tags"),

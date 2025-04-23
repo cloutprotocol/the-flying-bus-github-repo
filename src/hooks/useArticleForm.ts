@@ -33,17 +33,61 @@ export const useArticleForm = (
         isNewArticle: isNewArticle
       });
       
+      // Validate required fields
+      if (!data.title) {
+        toast({
+          title: "Validation Error",
+          description: "Article title is required",
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing title' });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!data.categoryId) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a category",
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing category' });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!content || content.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "Article content is required",
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing content' });
+        setIsSubmitting(false);
+        return;
+      }
+      
       const formData = {
         ...data,
         content: content,
         status: isDraft ? 'draft' : 'pending'
       };
       
-      addDebugStep('Saving draft before submission', { articleId, draftId });
+      addDebugStep('Saving draft before submission', { 
+        articleId, 
+        draftId, 
+        formData: {
+          title: formData.title,
+          categoryId: formData.categoryId,
+          articleType: formData.articleType,
+          status: formData.status
+        }
+      });
+      
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
-        updateLastStep('error', { error: 'Failed to save draft' });
+        updateLastStep('error', { error: saveResult.error });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
           saveResult,
           isDraft
@@ -51,9 +95,10 @@ export const useArticleForm = (
         
         toast({
           title: "Error",
-          description: "There was a problem saving your article.",
+          description: saveResult.error?.message || "There was a problem saving your article.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
       
@@ -67,6 +112,7 @@ export const useArticleForm = (
           description: "Could not determine article ID.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
 

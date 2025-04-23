@@ -1,7 +1,35 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import logger, { LogSource } from '@/utils/logger';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 import { ArticleDraft } from '@/types/ArticleEditorTypes';
 import { transformArticleData } from '@/hooks/article/transformArticleData';
+import { ApiError, ApiErrorType } from '@/utils/errors/types';
+import { z } from 'zod';
+
+/**
+ * Schema for required article fields
+ */
+const requiredArticleFieldsSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+  slug: z.string().min(1, "Slug is required"),
+  category_id: z.string().uuid("Category ID must be a valid UUID"),
+  status: z.string().min(1, "Status is required"),
+  article_type: z.string().min(1, "Article type is required")
+});
+
+/**
+ * Generate a slug from a title
+ */
+const createSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Remove consecutive hyphens
+    .trim();
+};
 
 /**
  * Save an article draft
@@ -13,26 +41,66 @@ export const saveDraft = async (
   try {
     logger.info(LogSource.DATABASE, 'Saving article draft', { articleId });
     
+    // Get current user session - CRITICAL for author_id
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    if (!userId) {
+      logger.error(LogSource.DATABASE, 'No authenticated user found when saving draft');
+      return { 
+        success: false, 
+        error: new ApiError('User authentication required', ApiErrorType.AUTH),
+        articleId: ''
+      };
+    }
+    
+    // Generate slug if not provided
+    const slug = draftData.slug || createSlug(draftData.title || 'untitled-draft');
+    
     // If articleId is empty, directly create a new article
     if (!articleId || articleId.trim() === '') {
-      logger.info(LogSource.DATABASE, 'Creating new article draft', { title: draftData.title || 'Untitled' });
+      logger.info(LogSource.DATABASE, 'Creating new article draft', { 
+        title: draftData.title || 'Untitled',
+        userId
+      });
+
+      // Build article data with all required fields
+      const articleDataToInsert = {
+        title: draftData.title || 'Untitled Draft',
+        content: draftData.content || '',
+        excerpt: draftData.excerpt || '',
+        cover_image: draftData.imageUrl || '',
+        category_id: draftData.categoryId || null,
+        status: 'draft',
+        article_type: draftData.articleType || 'standard',
+        slug: slug,
+        author_id: userId // Critical: Set the author_id
+      };
+
+      // Validate required fields
+      try {
+        requiredArticleFieldsSchema.parse(articleDataToInsert);
+      } catch (validationError) {
+        logger.error(LogSource.DATABASE, 'Draft validation error', { validationError });
+        return { 
+          success: false, 
+          error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError),
+          articleId: '' 
+        };
+      }
+      
       const { data, error } = await supabase
         .from('articles')
-        .insert({
-          title: draftData.title || 'Untitled Draft',
-          content: draftData.content || '',
-          excerpt: draftData.excerpt || '',
-          cover_image: draftData.imageUrl || '',
-          category_id: draftData.categoryId || null,
-          status: 'draft',
-          article_type: draftData.articleType || 'standard',
-          slug: createSlug(draftData.title || 'untitled-draft')
-        })
+        .insert(articleDataToInsert)
         .select()
         .single();
       
       if (error) {
-        logger.error(LogSource.DATABASE, 'Error creating new draft', { error, draftData });
+        logger.error(LogSource.DATABASE, 'Error creating new draft', { 
+          error, 
+          draftData,
+          articleDataToInsert
+        });
         return { success: false, error, articleId: '' };
       }
       
@@ -54,30 +122,50 @@ export const saveDraft = async (
     // If we have an articleId, check if it exists first
     const { data: existingArticle, error: fetchError } = await supabase
       .from('articles')
-      .select('id')
+      .select('id, author_id')
       .eq('id', articleId)
       .single();
     
     if (fetchError) {
       // If the article doesn't exist, create a new draft
       if (fetchError.code === 'PGRST116') {
+        // Build article data with all required fields
+        const articleDataToInsert = {
+          title: draftData.title || 'Untitled Draft',
+          content: draftData.content || '',
+          excerpt: draftData.excerpt || '',
+          cover_image: draftData.imageUrl || '',
+          category_id: draftData.categoryId || null,
+          status: 'draft',
+          article_type: draftData.articleType || 'standard',
+          slug: slug,
+          author_id: userId // Critical: Set the author_id
+        };
+
+        // Validate required fields
+        try {
+          requiredArticleFieldsSchema.parse(articleDataToInsert);
+        } catch (validationError) {
+          logger.error(LogSource.DATABASE, 'Draft validation error', { validationError });
+          return { 
+            success: false, 
+            error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError),
+            articleId: '' 
+          };
+        }
+        
         const { data, error } = await supabase
           .from('articles')
-          .insert({
-            title: draftData.title || 'Untitled Draft',
-            content: draftData.content || '',
-            excerpt: draftData.excerpt || '',
-            cover_image: draftData.imageUrl || '',
-            category_id: draftData.categoryId || null,
-            status: 'draft',
-            article_type: draftData.articleType || 'standard',
-            slug: createSlug(draftData.title || 'untitled-draft')
-          })
+          .insert(articleDataToInsert)
           .select()
           .single();
         
         if (error) {
-          logger.error(LogSource.DATABASE, 'Error creating new draft', { error, draftData });
+          logger.error(LogSource.DATABASE, 'Error creating new draft', { 
+            error, 
+            draftData,
+            articleDataToInsert
+          });
           return { success: false, error, articleId: '' };
         }
         
@@ -100,6 +188,16 @@ export const saveDraft = async (
       return { success: false, error: fetchError, articleId };
     }
     
+    // Check if the user is the author of the article
+    if (existingArticle.author_id !== userId) {
+      logger.warn(LogSource.DATABASE, 'User attempting to update article they did not create', {
+        userId,
+        articleId,
+        authorId: existingArticle.author_id
+      });
+      // Continue anyway, but log the discrepancy
+    }
+    
     // Update existing article as draft
     const { error: updateError } = await supabase
       .from('articles')
@@ -111,8 +209,7 @@ export const saveDraft = async (
         category_id: draftData.categoryId,
         updated_at: new Date().toISOString()
       })
-      .eq('id', articleId)
-      .eq('status', 'draft'); // Only update if it's still a draft
+      .eq('id', articleId);
     
     if (updateError) {
       logger.error(LogSource.DATABASE, 'Error updating draft', { error: updateError, articleId });
@@ -446,16 +543,4 @@ const saveDebateDetails = async (articleId: string, debateSettings: any): Promis
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception saving debate details', { error: e, articleId });
   }
-};
-
-/**
- * Create a URL-friendly slug from a title
- */
-const createSlug = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Remove consecutive hyphens
-    .trim();
 };
