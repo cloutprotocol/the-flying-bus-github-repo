@@ -1,25 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { Form } from '@/components/ui/form';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import StoryboardFields from './StoryboardFields';
 import { useZodForm } from '@/hooks/useZodForm';
 import { createArticleSchema } from '@/utils/validation/articleValidation';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import ArticleFormHeader from './ArticleFormHeader';
-import DebateFormSection from './DebateFormSection';
-import VideoFormSection from './VideoFormSection';
-import CategorySelector from './CategorySelector';
-import MediaSelector from './MediaSelector';
-import MetadataFields from './MetadataFields';
-import FormActions from './FormActions';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import useArticleRevisions from '@/hooks/useArticleRevisions';
-import RevisionsList from './RevisionsList';
 import { useArticleForm } from '@/hooks/useArticleForm';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
-import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
+import useArticleRevisions from '@/hooks/useArticleRevisions';
+import FormActions from './FormActions';
+import ArticleFormLayout from './Layout/ArticleFormLayout';
+import ArticleFormContent from './Layout/ArticleFormContent';
+import RevisionsDialog from './Revisions/RevisionsDialog';
 
 interface ArticleFormProps {
   articleId?: string;
@@ -33,8 +25,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   isNewArticle = true 
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
-  const { toast } = useToast();
   const { addDebugStep, updateLastStep, debugSteps } = useArticleDebug();
+  const { toast } = useToast();
   
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
@@ -67,25 +59,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
 
-  // Log when draftId changes - this helps us track if an article ID is being created
-  useEffect(() => {
-    if (draftId) {
-      logger.info(LogSource.EDITOR, 'Draft ID updated in ArticleForm', { 
-        draftId, 
-        originalArticleId: articleId,
-        isNewArticle
-      });
-    }
-  }, [draftId, articleId, isNewArticle]);
-  
-  const handleViewRevisions = () => {
-    setShowRevisions(true);
-  };
-
-  const showStoryboardFields = articleType === 'storyboard';
-  const showVideoFields = articleType === 'video';
-  const showDebateFields = articleType === 'debate';
-
   const onSubmit = async (data: any) => {
     try {
       addDebugStep('Form validation passed', {
@@ -95,15 +68,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           articleType: data.articleType,
           categoryId: data.categoryId
         }
-      });
-      
-      logger.info(LogSource.EDITOR, 'Article form submission triggered', {
-        isDraft: false,
-        articleId: articleId || draftId,
-        isNewArticle,
-        hasTitle: !!data.title,
-        hasCategoryId: !!data.categoryId,
-        hasContent: !!content && content.length > 0
       });
       
       await handleSubmit(data, false);
@@ -119,89 +83,44 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     }
   };
 
-  // Get the effective article ID (either the passed in ID or the draft ID created during the session)
   const effectiveArticleId = articleId || draftId;
 
   return (
-    <>
-      <ArticleDebugPanel steps={debugSteps} />
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <ArticleFormHeader 
-                form={form} 
-                content={content} 
-                setContent={setContent} 
-              />
-              
-              {showStoryboardFields && (
-                <StoryboardFields 
-                  form={form}
-                  isNewSeries={isNewArticle}
-                />
-              )}
-              
-              {showVideoFields && (
-                <VideoFormSection form={form} />
-              )}
-              
-              {showDebateFields && (
-                <DebateFormSection 
-                  form={form} 
-                  content={content} 
-                  setContent={setContent} 
-                />
-              )}
-            </div>
-            
-            <div className="space-y-6">
-              <CategorySelector form={form} />
-              <MediaSelector form={form} />
-              <MetadataFields form={form} articleType={articleType} />
-              
-              {lastSaved && (
-                <div className="text-xs text-muted-foreground text-right">
-                  Last saved: {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <FormActions 
-            onSaveDraft={handleSaveDraft}
-            onViewRevisions={!isNewArticle && revisions.length > 0 ? handleViewRevisions : undefined}
-            isSubmitting={isSubmitting}
-            isDirty={form.formState.isDirty || content !== ''}
-            isSaving={saveStatus === 'saving'}
-            saveStatus={saveStatus}
-            hasRevisions={!isNewArticle && revisions.length > 0}
-          />
-        </form>
-      </Form>
+    <ArticleFormLayout 
+      debugSteps={debugSteps}
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
+      <ArticleFormContent 
+        form={form}
+        content={content}
+        setContent={setContent}
+        articleType={articleType}
+        isNewArticle={isNewArticle}
+        lastSaved={lastSaved}
+      />
       
-      <Dialog open={showRevisions} onOpenChange={setShowRevisions}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Article Revisions</DialogTitle>
-            <DialogDescription>
-              View and restore previous versions of this article
-            </DialogDescription>
-          </DialogHeader>
-          
-          <RevisionsList 
-            revisions={revisions} 
-            isLoading={revisionsLoading} 
-            articleId={effectiveArticleId || ''} 
-            onRestoreRevision={(content) => {
-              setContent(content);
-              setShowRevisions(false);
-              form.setValue('content', content, { shouldDirty: true });
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    </>
+      <FormActions 
+        onSaveDraft={handleSaveDraft}
+        onViewRevisions={!isNewArticle && revisions.length > 0 ? () => setShowRevisions(true) : undefined}
+        isSubmitting={isSubmitting}
+        isDirty={form.formState.isDirty || content !== ''}
+        isSaving={saveStatus === 'saving'}
+        saveStatus={saveStatus}
+        hasRevisions={!isNewArticle && revisions.length > 0}
+      />
+
+      <RevisionsDialog 
+        open={showRevisions}
+        onOpenChange={setShowRevisions}
+        revisions={revisions}
+        isLoading={revisionsLoading}
+        articleId={effectiveArticleId || ''}
+        onRestoreRevision={(content) => {
+          setContent(content);
+          form.setValue('content', content, { shouldDirty: true });
+        }}
+      />
+    </ArticleFormLayout>
   );
 };
 
