@@ -90,7 +90,9 @@ export function withErrorBoundary<P extends object>(
   
   const ErrorBoundaryWrapper: React.FC<P> = (props) => {
     return (
-      <ErrorBoundary component={componentName}>
+      <ErrorBoundary
+        component={componentName}
+      >
         <Component {...props} />
       </ErrorBoundary>
     );
