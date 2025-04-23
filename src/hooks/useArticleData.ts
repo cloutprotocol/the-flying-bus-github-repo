@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -50,8 +49,10 @@ export const useArticleData = (articleId: string | undefined) => {
         
         setArticle(processedArticle);
         
-        if (articleId) {
-          trackArticleViewWithRetry(articleId, user?.id);
+        if (articleData.status === 'published') {
+          trackArticleViewWithRetry(articleId, user?.id).catch(error => {
+            logger.error(LogSource.DATABASE, 'Failed to track article view', error);
+          });
         }
         
         if (articleData && isDebateArticle(articleData.articleType)) {

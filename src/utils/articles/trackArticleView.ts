@@ -3,44 +3,54 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
-// Track article views with retry logic
+const validateArticleId = (articleId: string | undefined): articleId is string => {
+  return Boolean(articleId && articleId.length > 0);
+};
+
+export const trackArticleView = async (
+  articleId: string | undefined, 
+  userId?: string
+): Promise<boolean> => {
+  try {
+    if (!validateArticleId(articleId)) {
+      logger.warn(LogSource.DATABASE, 'Invalid article ID for view tracking');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('article_views')
+      .insert({
+        article_id: articleId,
+        user_id: userId || null
+      });
+
+    if (error) {
+      logger.error(LogSource.DATABASE, 'Error tracking article view', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    logger.error(LogSource.DATABASE, 'Exception tracking article view', error);
+    return false;
+  }
+};
+
+// Enhanced version with retry logic
 export const trackArticleViewWithRetry = async (
-  articleId: string, 
+  articleId: string | undefined, 
   userId?: string, 
   maxRetries = 3
 ): Promise<boolean> => {
+  if (!validateArticleId(articleId)) {
+    logger.warn(LogSource.DATABASE, 'Invalid article ID for view tracking');
+    return false;
+  }
+
   let retries = 0;
   
-  const trackView = async (): Promise<boolean> => {
-    try {
-      logger.info(LogSource.DATABASE, `Tracking view for article ${articleId}`);
-      
-      const { error } = await supabase
-        .from('article_views')
-        .insert({
-          article_id: articleId,
-          user_id: userId || null
-        });
-      
-      if (error) {
-        logger.error(
-          LogSource.DATABASE, 
-          `Error tracking article view: ${error.message}`, 
-          error
-        );
-        return false;
-      }
-      
-      logger.info(LogSource.DATABASE, `Successfully tracked view for article ${articleId}`);
-      return true;
-    } catch (e) {
-      logger.error(LogSource.DATABASE, 'Exception tracking article view', e);
-      return false;
-    }
-  };
-  
   while (retries < maxRetries) {
-    const success = await trackView();
+    const success = await trackArticleView(articleId, userId);
     
     if (success) {
       return true;

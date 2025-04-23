@@ -22,23 +22,5 @@ export const getArticleViews = async (articleId: string) => {
   }
 };
 
-export const trackArticleView = async (articleId: string, userId?: string) => {
-  try {
-    const { error } = await supabase
-      .from('article_views')
-      .insert({
-        article_id: articleId,
-        user_id: userId || null
-      });
-
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error tracking article view', error);
-      return { success: false, error };
-    }
-
-    return { success: true, error: null };
-  } catch (e) {
-    logger.error(LogSource.ARTICLE, 'Exception tracking article view', e);
-    return { success: false, error: e };
-  }
-};
+// Export trackArticleView from the utils file to maintain backward compatibility
+export { trackArticleView, trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
