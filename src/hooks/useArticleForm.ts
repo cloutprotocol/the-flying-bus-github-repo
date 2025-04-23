@@ -87,7 +87,8 @@ export const useArticleForm = (
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
-        updateLastStep('error', { error: saveResult.error });
+        // Fix: The error property doesn't exist on the return type, so we use a more generic error message
+        updateLastStep('error', { error: 'Failed to save draft' });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
           saveResult,
           isDraft
@@ -95,7 +96,7 @@ export const useArticleForm = (
         
         toast({
           title: "Error",
-          description: saveResult.error?.message || "There was a problem saving your article.",
+          description: "There was a problem saving your article.",
           variant: "destructive"
         });
         setIsSubmitting(false);
