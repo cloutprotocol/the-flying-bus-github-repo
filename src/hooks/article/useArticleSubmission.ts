@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateArticleStatus } from '@/services/articles/articleReviewService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { ApiError } from '@/utils/errors/types';
 
 export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +38,10 @@ export function useArticleSubmission() {
         const statusResult = await updateArticleStatus(savedArticleId, 'pending');
         
         if (!statusResult.success) {
+          const errorMessage = statusResult.error instanceof ApiError 
+            ? statusResult.error.message 
+            : "There was a problem submitting your article for review.";
+            
           logger.error(LogSource.EDITOR, 'Article status update failed', { 
             articleId: savedArticleId, 
             error: statusResult.error 
@@ -44,7 +49,7 @@ export function useArticleSubmission() {
           
           toast({
             title: "Error",
-            description: "There was a problem submitting your article for review.",
+            description: errorMessage,
             variant: "destructive"
           });
           return false;

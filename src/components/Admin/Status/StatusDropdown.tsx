@@ -7,11 +7,13 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff, Pencil } from 'lucide-react';
+import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff } from 'lucide-react';
 import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
 import { useToast } from '@/components/ui/use-toast';
 import { submitArticleForReview } from '@/services/articleService';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface StatusDropdownProps {
   currentStatus: StatusType;
@@ -58,6 +60,12 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
     
     if (articleId && currentStatus === 'draft' && newStatus === 'pending') {
       try {
+        logger.info(LogSource.EDITOR, 'Attempting to submit article for review', { 
+          articleId,
+          currentStatus,
+          newStatus 
+        });
+        
         const { success, error } = await submitArticleForReview(articleId);
         
         if (success) {
@@ -67,14 +75,22 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
             description: "Your article has been submitted to moderators for review",
           });
         } else {
+          const errorMessage = error?.message || "There was an error submitting your article";
+          
           toast({
             title: "Submission failed",
-            description: error.message || "There was an error submitting your article",
+            description: errorMessage,
             variant: "destructive"
+          });
+          
+          logger.error(LogSource.EDITOR, 'Article submission failed', { 
+            articleId,
+            error 
           });
         }
       } catch (err) {
-        console.error("Error submitting article:", err);
+        logger.error(LogSource.EDITOR, "Error submitting article", err);
+        
         toast({
           title: "Submission failed",
           description: "There was an error submitting your article",
