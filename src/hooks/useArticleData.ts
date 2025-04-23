@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -6,10 +7,12 @@ import { getArticleById } from '@/services/articleService';
 import { 
   isDebateArticle, 
   fetchDebateSettings, 
-  fetchRelatedArticles,
-  trackArticleViewWithRetry 
+  fetchRelatedArticles
 } from '@/utils/articles';
+import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
 import { handleApiError } from '@/utils/apiErrorHandler';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export const useArticleData = (articleId: string | undefined) => {
   const [article, setArticle] = useState<ArticleProps | null>(null);
@@ -49,10 +52,13 @@ export const useArticleData = (articleId: string | undefined) => {
         
         setArticle(processedArticle);
         
+        // Only track views for published articles and when we have a valid article ID
         if (articleData.status === 'published') {
-          trackArticleViewWithRetry(articleId, user?.id).catch(error => {
-            logger.error(LogSource.DATABASE, 'Failed to track article view', error);
-          });
+          // Use .catch to handle errors without disrupting the main flow
+          trackArticleViewWithRetry(articleId, user?.id)
+            .catch(error => {
+              logger.error(LogSource.DATABASE, 'Failed to track article view', error);
+            });
         }
         
         if (articleData && isDebateArticle(articleData.articleType)) {

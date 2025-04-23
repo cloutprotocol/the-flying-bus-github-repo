@@ -5,7 +5,5 @@ export * from './articleRead';
 export * from './fetchArticle';
 export * from './fetchDebate';
 export * from './fetchVideo';
-// Export explicitly from articleView to avoid conflicts with trackArticleView
-export { trackArticleView } from './articleView';
-// Export the enhanced version from trackArticleView
-export { trackArticleViewWithRetry } from './trackArticleView';
+// Export the trackArticleView functions from trackArticleView.ts
+export { trackArticleView, trackArticleViewWithRetry } from './trackArticleView';
