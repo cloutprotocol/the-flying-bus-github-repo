@@ -13,6 +13,7 @@ import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
 import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { withErrorHandling } from '@/utils/errorHandling';
 
 export const useArticleData = (articleId: string | undefined) => {
   const [article, setArticle] = useState<ArticleProps | null>(null);
@@ -29,6 +30,9 @@ export const useArticleData = (articleId: string | undefined) => {
       setIsLoading(true);
       
       try {
+        // Log that we're loading an article
+        logger.info(LogSource.ARTICLE, 'Loading article', { articleId });
+        
         const { article: articleData, error } = await getArticleById(articleId);
         
         if (error) {
@@ -66,7 +70,7 @@ export const useArticleData = (articleId: string | undefined) => {
             const debate = await fetchDebateSettings(articleId);
             setDebateSettings(debate);
           } catch (debateError) {
-            console.error('Error loading debate settings:', debateError);
+            logger.error(LogSource.ARTICLE, 'Error loading debate settings', debateError);
           }
         }
         
@@ -75,11 +79,11 @@ export const useArticleData = (articleId: string | undefined) => {
             const related = await fetchRelatedArticles(articleId, articleData.categoryId);
             setRelatedArticles(related);
           } catch (relatedError) {
-            console.error('Error loading related articles:', relatedError);
+            logger.error(LogSource.ARTICLE, 'Error loading related articles', relatedError);
           }
         }
       } catch (error) {
-        console.error('Error loading article:', error);
+        logger.error(LogSource.ARTICLE, 'Error loading article', error);
         handleApiError(error);
       } finally {
         setIsLoading(false);

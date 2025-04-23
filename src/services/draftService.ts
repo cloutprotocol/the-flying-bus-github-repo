@@ -13,6 +13,45 @@ export const saveDraft = async (
   try {
     logger.info(LogSource.DATABASE, 'Saving article draft', { articleId });
     
+    // If articleId is empty, directly create a new article
+    if (!articleId || articleId.trim() === '') {
+      logger.info(LogSource.DATABASE, 'Creating new article draft', { title: draftData.title || 'Untitled' });
+      const { data, error } = await supabase
+        .from('articles')
+        .insert({
+          title: draftData.title || 'Untitled Draft',
+          content: draftData.content || '',
+          excerpt: draftData.excerpt || '',
+          cover_image: draftData.imageUrl || '',
+          category_id: draftData.categoryId || null,
+          status: 'draft',
+          article_type: draftData.articleType || 'standard',
+          slug: createSlug(draftData.title || 'untitled-draft')
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        logger.error(LogSource.DATABASE, 'Error creating new draft', { error, draftData });
+        return { success: false, error, articleId: '' };
+      }
+      
+      logger.info(LogSource.DATABASE, 'New draft created successfully', { articleId: data.id });
+      
+      // If this is a video article, save video details
+      if (draftData.articleType === 'video' && draftData.videoUrl) {
+        await saveVideoDetails(data.id, draftData.videoUrl);
+      }
+      
+      // If this is a debate article, save debate details
+      if (draftData.articleType === 'debate' && draftData.debateSettings) {
+        await saveDebateDetails(data.id, draftData.debateSettings);
+      }
+      
+      return { success: true, error: null, articleId: data.id };
+    }
+    
+    // If we have an articleId, check if it exists first
     const { data: existingArticle, error: fetchError } = await supabase
       .from('articles')
       .select('id')

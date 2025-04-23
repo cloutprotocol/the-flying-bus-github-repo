@@ -3,10 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
+/**
+ * Validates if an article ID is valid for tracking
+ */
 const validateArticleId = (articleId: string | undefined): articleId is string => {
   return Boolean(articleId && articleId.length > 0);
 };
 
+/**
+ * Track a view for an article
+ * @param articleId Article ID to track the view for
+ * @param userId Optional user ID of the viewer
+ * @returns Promise resolving to success status
+ */
 export const trackArticleView = async (
   articleId: string | undefined, 
   userId?: string
@@ -14,6 +23,19 @@ export const trackArticleView = async (
   try {
     if (!validateArticleId(articleId)) {
       logger.warn(LogSource.DATABASE, 'Invalid article ID for view tracking');
+      return false;
+    }
+
+    // Check if the article exists and is published before tracking the view
+    const { data: articleExists, error: checkError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('id', articleId)
+      .eq('status', 'published')
+      .maybeSingle();
+    
+    if (checkError || !articleExists) {
+      logger.warn(LogSource.DATABASE, 'Cannot track view - article not found or not published', { articleId });
       return false;
     }
 
@@ -36,7 +58,13 @@ export const trackArticleView = async (
   }
 };
 
-// Enhanced version with retry logic
+/**
+ * Enhanced version with retry logic
+ * @param articleId Article ID to track the view for
+ * @param userId Optional user ID of the viewer
+ * @param maxRetries Maximum number of retries
+ * @returns Promise resolving to success status
+ */
 export const trackArticleViewWithRetry = async (
   articleId: string | undefined, 
   userId?: string, 

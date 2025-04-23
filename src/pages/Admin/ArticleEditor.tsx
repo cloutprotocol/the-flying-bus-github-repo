@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const ArticleEditor = () => {
   const { articleId } = useParams();
@@ -30,8 +32,14 @@ const ArticleEditor = () => {
       }
     };
     
+    logger.info(LogSource.EDITOR, 'Article editor opened', { 
+      isNewArticle, 
+      articleType,
+      articleId: articleId || undefined 
+    });
+    
     checkAuth();
-  }, [navigate, location.pathname, toast]);
+  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId]);
 
   return (
     <AdminPortalLayout>
