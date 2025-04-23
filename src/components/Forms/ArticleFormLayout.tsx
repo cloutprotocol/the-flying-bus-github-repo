@@ -28,7 +28,7 @@ const ArticleFormLayout: React.FC<ArticleFormLayoutProps> = ({
     <>
       {debugSteps.length > 0 && <ArticleDebugPanel steps={debugSteps} />}
       <Form {...form}>
-        <form onSubmit={form.handleFormSubmit(onSubmit)} className={className}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className={className}>
           {children}
         </form>
       </Form>

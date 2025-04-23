@@ -1,3 +1,4 @@
+
 import { ApiError, ApiErrorType } from './errors/types';
 import { showErrorToast } from './errors/displayError';
 import { logger } from './logger';
@@ -88,11 +89,10 @@ export function withErrorBoundary<P extends object>(
   const componentName = Component.displayName || Component.name || 'Unknown';
   
   const ErrorBoundaryWrapper: React.FC<P> = (props) => {
-    // Create an ErrorBoundary with the component name
+    // Create an ErrorBoundary with the component name and children
     return React.createElement(
       ErrorBoundary,
-      { component: componentName },
-      React.createElement(Component, props)
+      { component: componentName, children: React.createElement(Component, props) }
     );
   };
 
