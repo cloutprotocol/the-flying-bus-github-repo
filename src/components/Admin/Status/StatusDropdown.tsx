@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff } from 'lucide-react';
 import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { submitArticleForReview } from '@/services/articleService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -58,6 +58,13 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
   const handleStatusChange = async (newStatus: StatusType) => {
     if (newStatus === currentStatus) return;
     
+    logger.info(LogSource.EDITOR, 'Status change requested', { 
+      from: currentStatus, 
+      to: newStatus,
+      articleId,
+      hasArticleId: !!articleId
+    });
+    
     if (articleId && currentStatus === 'draft' && newStatus === 'pending') {
       try {
         logger.info(LogSource.EDITOR, 'Attempting to submit article for review', { 
@@ -73,6 +80,11 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
           toast({
             title: "Article submitted for review",
             description: "Your article has been submitted to moderators for review",
+          });
+          
+          logger.info(LogSource.EDITOR, 'Article successfully submitted for review', { 
+            articleId,
+            newStatus 
           });
         } else {
           const errorMessage = error?.message || "There was an error submitting your article";
@@ -98,6 +110,12 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
         });
       }
     } else {
+      logger.info(LogSource.EDITOR, 'Direct status change', {
+        articleId,
+        newStatus,
+        currentStatus
+      });
+      
       onStatusChange(newStatus);
       
       toast({

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import StoryboardFields from './StoryboardFields';
@@ -63,8 +63,20 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     lastSaved,
     isSubmitting,
     handleSubmit,
-    handleSaveDraft 
+    handleSaveDraft,
+    draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
+
+  // Log when draftId changes - this helps us track if an article ID is being created
+  useEffect(() => {
+    if (draftId) {
+      logger.info(LogSource.EDITOR, 'Draft ID updated in ArticleForm', { 
+        draftId, 
+        originalArticleId: articleId,
+        isNewArticle
+      });
+    }
+  }, [draftId, articleId, isNewArticle]);
   
   const handleViewRevisions = () => {
     setShowRevisions(true);
@@ -85,6 +97,15 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         }
       });
       
+      logger.info(LogSource.EDITOR, 'Article form submission triggered', {
+        isDraft: false,
+        articleId: articleId || draftId,
+        isNewArticle,
+        hasTitle: !!data.title,
+        hasCategoryId: !!data.categoryId,
+        hasContent: !!content && content.length > 0
+      });
+      
       await handleSubmit(data, false);
       
     } catch (error) {
@@ -97,6 +118,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       });
     }
   };
+
+  // Get the effective article ID (either the passed in ID or the draft ID created during the session)
+  const effectiveArticleId = articleId || draftId;
 
   return (
     <>
@@ -168,7 +192,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           <RevisionsList 
             revisions={revisions} 
             isLoading={revisionsLoading} 
-            articleId={articleId || ''} 
+            articleId={effectiveArticleId || ''} 
             onRestoreRevision={(content) => {
               setContent(content);
               setShowRevisions(false);
