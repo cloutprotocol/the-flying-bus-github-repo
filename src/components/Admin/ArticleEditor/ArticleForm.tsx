@@ -89,6 +89,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <ArticleFormLayout 
       debugSteps={debugSteps}
       onSubmit={form.handleSubmit(onSubmit)}
+      form={form}
     >
       <ArticleFormContent 
         form={form}
