@@ -5,9 +5,9 @@ import { useZodForm } from '@/hooks/useZodForm';
 import { createArticleSchema } from '@/utils/validation/articleValidation';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { useArticleForm } from '@/hooks/useArticleForm';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
 import useArticleRevisions from '@/hooks/useArticleRevisions';
+import { useOptimizedArticleForm } from '@/hooks/article/useOptimizedArticleForm';
 import FormActions from './FormActions';
 import ArticleFormLayout from './Layout/ArticleFormLayout';
 import ArticleFormContent from './Layout/ArticleFormContent';
@@ -48,17 +48,20 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     logContext: 'article_form'
   });
 
+  // Use our optimized form hook
   const { 
     content, 
     setContent, 
     saveStatus,
     lastSaved,
     isSubmitting,
+    isSaving,
     handleSubmit,
     handleSaveDraft,
     draftId
-  } = useArticleForm(form, articleId, articleType, isNewArticle);
+  } = useOptimizedArticleForm(form, articleId, articleType, isNewArticle);
 
+  // Form submission handler
   const onSubmit = async (data: any) => {
     try {
       addDebugStep('Form validation passed', {
@@ -70,7 +73,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         }
       });
       
-      await handleSubmit(data, false);
+      await handleSubmit(data);
       
     } catch (error) {
       updateLastStep('error', { error: String(error) });
@@ -105,7 +108,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         onViewRevisions={!isNewArticle && revisions.length > 0 ? () => setShowRevisions(true) : undefined}
         isSubmitting={isSubmitting}
         isDirty={form.formState.isDirty || content !== ''}
-        isSaving={saveStatus === 'saving'}
+        isSaving={isSaving}
         saveStatus={saveStatus}
         hasRevisions={!isNewArticle && revisions.length > 0}
       />

@@ -11,4 +11,5 @@ export * from './articles/articleMetricsService';
 export * from './articles/articleMutationService';
 export * from './articles/articleQueryService';
 export * from './articles/articleReviewService';
+export * from './articles/articleSubmissionService';
 

@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -7,11 +6,12 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff } from 'lucide-react';
+import { ChevronDown, Clock, Check, XCircle, Archive, EyeOff, Loader2 } from 'lucide-react';
 import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
 import { useToast } from '@/hooks/use-toast';
-import { submitArticleForReview, updateArticleStatus } from '@/services/articles/articleReviewService';
+import { updateArticleStatus } from '@/services/articles/status/articleStatusService';
+import { articleSubmissionService } from '@/services/articles/articleSubmissionService'; 
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -31,6 +31,7 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
   articleId
 }) => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getAvailableStatuses = (): { status: StatusType; label: string; icon: React.ReactNode }[] => {
     const allStatuses: { status: StatusType; label: string; icon: React.ReactNode }[] = [
@@ -56,24 +57,26 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
   };
 
   const handleStatusChange = async (newStatus: StatusType) => {
-    if (newStatus === currentStatus) return;
+    if (newStatus === currentStatus || isSubmitting) return;
     
-    logger.info(LogSource.EDITOR, 'Status change requested', { 
-      from: currentStatus, 
-      to: newStatus,
-      articleId,
-      hasArticleId: !!articleId
-    });
+    setIsSubmitting(true);
     
-    if (articleId && currentStatus === 'draft' && newStatus === 'pending') {
-      try {
+    try {
+      logger.info(LogSource.EDITOR, 'Status change requested', { 
+        from: currentStatus, 
+        to: newStatus,
+        articleId,
+        hasArticleId: !!articleId
+      });
+      
+      if (articleId && currentStatus === 'draft' && newStatus === 'pending') {
         logger.info(LogSource.EDITOR, 'Attempting to submit article for review', { 
           articleId,
           currentStatus,
           newStatus 
         });
         
-        const { success, error } = await submitArticleForReview(articleId);
+        const { success, error } = await articleSubmissionService.submitForReview(articleId);
         
         if (success) {
           onStatusChange(newStatus);
@@ -100,37 +103,61 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
             error 
           });
         }
-      } catch (err) {
-        logger.error(LogSource.EDITOR, "Error submitting article", err);
+      } else {
+        logger.info(LogSource.EDITOR, 'Direct status change', {
+          articleId,
+          newStatus,
+          currentStatus
+        });
+        
+        if (articleId) {
+          const { success, error } = await updateArticleStatus(articleId, newStatus);
+          
+          if (!success) {
+            toast({
+              title: "Status update failed",
+              description: error?.message || "Failed to update article status",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+        
+        onStatusChange(newStatus);
         
         toast({
-          title: "Submission failed",
-          description: "There was an error submitting your article",
-          variant: "destructive"
+          title: "Status updated",
+          description: `Article status changed to ${newStatus}`,
         });
       }
-    } else {
-      logger.info(LogSource.EDITOR, 'Direct status change', {
-        articleId,
-        newStatus,
-        currentStatus
-      });
-      
-      onStatusChange(newStatus);
+    } catch (err) {
+      logger.error(LogSource.EDITOR, "Error changing article status", err);
       
       toast({
-        title: "Status updated",
-        description: `Article status changed to ${newStatus}`,
+        title: "Status update failed",
+        description: "There was an error updating the article status",
+        variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild disabled={disabled}>
+      <DropdownMenuTrigger asChild disabled={disabled || isSubmitting}>
         <Button variant="outline" className="flex items-center gap-2">
-          <StatusBadge status={currentStatus} />
-          <ChevronDown className="h-4 w-4" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              <span>Updating...</span>
+            </>
+          ) : (
+            <>
+              <StatusBadge status={currentStatus} />
+              <ChevronDown className="h-4 w-4" />
+            </>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
@@ -138,7 +165,7 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
           <DropdownMenuItem 
             key={status} 
             onClick={() => handleStatusChange(status)}
-            disabled={status === currentStatus}
+            disabled={status === currentStatus || isSubmitting}
             className="flex items-center cursor-pointer"
           >
             {icon}
