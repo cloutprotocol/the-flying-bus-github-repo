@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2 } from 'lucide-react';
@@ -9,7 +10,7 @@ import { logger } from '@/utils/logger';
 import { LogSource } from '@/utils/logger/types';
 
 interface FormActionsProps {
-  onSaveDraft: () => void;
+  onSaveDraft: () => Promise<void>;
   onSubmit?: () => void;
   onViewRevisions?: () => void;
   isSubmitting?: boolean;

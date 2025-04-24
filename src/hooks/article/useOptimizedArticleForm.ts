@@ -127,7 +127,7 @@ export const useOptimizedArticleForm = (
   }, [form.formState.isDirty, content, isSubmitting, isSaving, debouncedSave]);
   
   // Manual save draft function
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (): Promise<void> => {
     try {
       setIsSaving(true);
       setSaveStatus('saving');
@@ -176,7 +176,6 @@ export const useOptimizedArticleForm = (
         source: 'manual-save'
       });
       
-      return result.articleId;
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Exception in manual draft save', { error });
       updateLastStep('error', { error });
@@ -188,7 +187,6 @@ export const useOptimizedArticleForm = (
         variant: "destructive"
       });
       
-      return undefined;
     } finally {
       setIsSaving(false);
     }
