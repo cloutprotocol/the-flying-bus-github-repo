@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Save, 
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { useToast } from '@/hooks/use-toast';
+import ArticleSubmitDialog from './ArticleSubmitDialog';
 
 interface EnhancedFormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -22,9 +23,6 @@ interface EnhancedFormActionsProps {
   disableSubmit?: boolean;
 }
 
-/**
- * Enhanced version of FormActions component with better state handling
- */
 const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
   onSaveDraft,
   onSubmit,
@@ -37,6 +35,7 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
   disableSubmit = false
 }) => {
   const { toast } = useToast();
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   
   const handleSave = async () => {
     try {
@@ -62,72 +61,92 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
     }
   };
   
+  const handleSubmitClick = () => {
+    if (isDirty || saveStatus === 'error') {
+      setShowSubmitDialog(true);
+    } else {
+      handleSubmit();
+    }
+  };
+  
   return (
-    <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t">
-      {hasRevisions && onViewRevisions && (
+    <>
+      <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t">
+        {hasRevisions && onViewRevisions && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onViewRevisions}
+            disabled={isSubmitting}
+          >
+            <History className="mr-2 h-4 w-4" />
+            View Revisions
+          </Button>
+        )}
+        
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={onViewRevisions}
-          disabled={isSubmitting}
+          onClick={handleSave}
+          disabled={isSubmitting || isSaving || !isDirty}
         >
-          <History className="mr-2 h-4 w-4" />
-          View Revisions
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Draft
+            </>
+          )}
         </Button>
-      )}
-      
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleSave}
-        disabled={isSubmitting || isSaving || !isDirty}
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            <Save className="mr-2 h-4 w-4" />
-            Save Draft
-          </>
+        
+        <Button
+          type="button"
+          onClick={handleSubmitClick}
+          disabled={isSubmitting || disableSubmit}
+          size="sm"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <SendHorizonal className="mr-2 h-4 w-4" />
+              Submit for Review
+            </>
+          )}
+        </Button>
+        
+        {saveStatus === 'saved' && (
+          <span className="text-xs text-green-600 ml-2">
+            Draft saved
+          </span>
         )}
-      </Button>
-      
-      <Button
-        type="button"
-        onClick={handleSubmit}
-        disabled={isSubmitting || disableSubmit}
-        size="sm"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Submitting...
-          </>
-        ) : (
-          <>
-            <SendHorizonal className="mr-2 h-4 w-4" />
-            Submit for Review
-          </>
+        
+        {saveStatus === 'error' && (
+          <span className="text-xs text-red-600 ml-2">
+            Error saving draft
+          </span>
         )}
-      </Button>
+      </div>
       
-      {saveStatus === 'saved' && (
-        <span className="text-xs text-green-600 ml-2">
-          Draft saved
-        </span>
-      )}
-      
-      {saveStatus === 'error' && (
-        <span className="text-xs text-red-600 ml-2">
-          Error saving draft
-        </span>
-      )}
-    </div>
+      <ArticleSubmitDialog
+        open={showSubmitDialog}
+        onOpenChange={setShowSubmitDialog}
+        onConfirm={() => {
+          setShowSubmitDialog(false);
+          handleSubmit();
+        }}
+        isDirty={isDirty}
+      />
+    </>
   );
 };
 

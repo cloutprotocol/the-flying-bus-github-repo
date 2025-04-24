@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger';

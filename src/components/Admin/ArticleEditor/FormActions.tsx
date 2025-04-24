@@ -1,12 +1,14 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import ArticleSubmitDialog from './ArticleSubmitDialog';
 
 interface FormActionsProps {
   onSaveDraft: () => void;
+  onSubmit: () => void;
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
@@ -17,6 +19,7 @@ interface FormActionsProps {
 
 const FormActions: React.FC<FormActionsProps> = ({ 
   onSaveDraft,
+  onSubmit,
   onViewRevisions,
   isSubmitting = false,
   isDirty = false,
@@ -25,6 +28,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   hasRevisions = false
 }) => {
   const { toast } = useToast();
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   
   useEffect(() => {
     if (saveStatus === 'saved') {
@@ -55,52 +59,73 @@ const FormActions: React.FC<FormActionsProps> = ({
     onSaveDraft();
   };
   
+  const handleSubmitClick = () => {
+    if (isDirty || saveStatus === 'error') {
+      setShowSubmitDialog(true);
+    } else {
+      onSubmit();
+    }
+  };
+  
   return (
-    <div className="flex justify-end gap-3">
-      {hasRevisions && onViewRevisions && (
+    <>
+      <div className="flex justify-end gap-3">
+        {hasRevisions && onViewRevisions && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onViewRevisions}
+            className="mr-auto"
+          >
+            <History className="mr-2 h-4 w-4" /> View Revisions
+          </Button>
+        )}
+        
         <Button
           type="button"
-          variant="ghost"
-          onClick={onViewRevisions}
-          className="mr-auto"
+          variant="outline"
+          onClick={handleSaveDraft}
+          disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error')}
         >
-          <History className="mr-2 h-4 w-4" /> View Revisions
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" /> 
+              {saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
+            </>
+          )}
         </Button>
-      )}
+        
+        <Button 
+          type="button"
+          onClick={handleSubmitClick}
+          disabled={isSubmitting || isSaving}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" /> Submit for Review
+            </>
+          )}
+        </Button>
+      </div>
       
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleSaveDraft}
-        disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error')}
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-          </>
-        ) : (
-          <>
-            <Save className="mr-2 h-4 w-4" /> 
-            {saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
-          </>
-        )}
-      </Button>
-      
-      <Button 
-        type="submit" 
-        disabled={isSubmitting || isSaving}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
-          </>
-        ) : (
-          <>
-            <Send className="mr-2 h-4 w-4" /> Submit for Review
-          </>
-        )}
-      </Button>
-    </div>
+      <ArticleSubmitDialog
+        open={showSubmitDialog}
+        onOpenChange={setShowSubmitDialog}
+        onConfirm={() => {
+          setShowSubmitDialog(false);
+          onSubmit();
+        }}
+        isDirty={isDirty}
+      />
+    </>
   );
 };
 
