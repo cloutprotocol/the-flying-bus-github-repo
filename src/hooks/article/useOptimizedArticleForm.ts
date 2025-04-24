@@ -18,18 +18,18 @@ export const useOptimizedArticleForm = (
     isSaving,
     saveStatus,
     lastSaved,
-    handleSaveDraft
+    handleSaveDraft: saveDraft
   } = useDraftState(articleId);
 
   const { isSubmitting, handleSubmit } = useSubmissionState({
     content,
     draftId,
-    onDraftIdChange: (newId) => handleSaveDraft({ ...form.getValues(), content })
+    onDraftIdChange: (newId) => saveDraft({ ...form.getValues(), content })
   });
 
   // Setup auto-save
   useAutoSave(
-    () => handleSaveDraft({ ...form.getValues(), content }),
+    () => saveDraft({ ...form.getValues(), content }),
     {
       isDirty: form.formState.isDirty || content !== '',
       isSubmitting,
@@ -38,6 +38,11 @@ export const useOptimizedArticleForm = (
       articleType
     }
   );
+
+  // Create a void-returning wrapper for saveDraft
+  const handleSaveDraft = async (): Promise<void> => {
+    await saveDraft({ ...form.getValues(), content });
+  };
 
   return {
     content,
@@ -48,6 +53,6 @@ export const useOptimizedArticleForm = (
     isSubmitting,
     isSaving,
     handleSubmit,
-    handleSaveDraft: () => handleSaveDraft({ ...form.getValues(), content }) // Return void
+    handleSaveDraft
   };
 };
