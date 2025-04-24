@@ -18,18 +18,19 @@ export const useOptimizedArticleForm = (
     isSaving,
     saveStatus,
     lastSaved,
-    handleSaveDraft: saveDraft
+    handleSaveDraft,
+    saveDraftVoid
   } = useDraftState(articleId);
 
   const { isSubmitting, handleSubmit } = useSubmissionState({
     content,
     draftId,
-    onDraftIdChange: (newId) => saveDraft({ ...form.getValues(), content })
+    onDraftIdChange: (newId) => handleSaveDraft({ ...form.getValues(), content })
   });
 
-  // Setup auto-save
+  // Setup auto-save with handleSaveDraft since we need the articleId internally
   useAutoSave(
-    () => saveDraft({ ...form.getValues(), content }),
+    () => handleSaveDraft({ ...form.getValues(), content }),
     {
       isDirty: form.formState.isDirty || content !== '',
       isSubmitting,
@@ -38,11 +39,6 @@ export const useOptimizedArticleForm = (
       articleType
     }
   );
-
-  // Create a void-returning wrapper for saveDraft
-  const handleSaveDraft = async (): Promise<void> => {
-    await saveDraft({ ...form.getValues(), content });
-  };
 
   return {
     content,
@@ -53,6 +49,7 @@ export const useOptimizedArticleForm = (
     isSubmitting,
     isSaving,
     handleSubmit,
-    handleSaveDraft
+    // Use saveDraftVoid for external interface
+    handleSaveDraft: () => saveDraftVoid({ ...form.getValues(), content })
   };
 };

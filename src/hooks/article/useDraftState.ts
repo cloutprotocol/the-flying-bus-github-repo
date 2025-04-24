@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
@@ -72,6 +71,11 @@ export const useDraftState = (initialDraftId?: string) => {
     }
   };
 
+  // New void-returning function for external use
+  const saveDraftVoid = async (formData: any): Promise<void> => {
+    await handleSaveDraft(formData);
+  };
+
   return {
     draftId,
     setDraftId,
@@ -81,6 +85,7 @@ export const useDraftState = (initialDraftId?: string) => {
     setSaveStatus,
     lastSaved,
     setLastSaved,
-    handleSaveDraft
+    handleSaveDraft,
+    saveDraftVoid
   };
 };
