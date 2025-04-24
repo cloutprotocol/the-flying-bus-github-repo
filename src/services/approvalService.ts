@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import logger, { LogSource } from '@/utils/logger';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
@@ -40,7 +39,12 @@ export const getArticlesForApproval = async (
     
     // Apply status filter if not 'all'
     if (status !== 'all') {
-      query = query.eq('status', status);
+      if (status === 'pending') {
+        // Include both 'draft' and 'pending_review' status for pending tab
+        query = query.in('status', ['draft', 'pending_review']);
+      } else {
+        query = query.eq('status', status);
+      }
     }
     
     // Apply category filter if not 'all'
@@ -89,7 +93,8 @@ export const getArticlesForApproval = async (
     
     logger.info(LogSource.DATABASE, 'Articles for approval fetched successfully', { 
       count, 
-      status
+      status,
+      articlesFound: articles.length
     });
     
     return { articles, count: count || 0, error: null };
