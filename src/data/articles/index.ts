@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { StoryboardArticleProps } from '@/data/articles/storyboard';
@@ -102,6 +103,21 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
   try {
     logger.info(LogSource.ARTICLE, `Fetching articles for category: ${categoryName}`);
     
+    // First get the category ID matching the provided name
+    const { data: categoryData, error: categoryError } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('name', categoryName)
+      .single();
+
+    if (categoryError || !categoryData) {
+      logger.error(LogSource.ARTICLE, `Error finding category with name ${categoryName}`, categoryError);
+      return [];
+    }
+
+    const categoryId = categoryData.id;
+    
+    // Then fetch articles belonging to this category
     const { data, error } = await supabase
       .from('articles')
       .select(`
@@ -114,7 +130,7 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
         created_at,
         published_at
       `)
-      .eq('categories.name', categoryName)
+      .eq('category_id', categoryId)
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(6);
