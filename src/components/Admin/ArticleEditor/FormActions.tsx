@@ -1,14 +1,16 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import ArticleSubmitDialog from './ArticleSubmitDialog';
+import { usePerformanceMonitoring, usePerformanceMeasurement } from '@/hooks/usePerformanceMonitoring';
+import { logger } from '@/utils/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface FormActionsProps {
   onSaveDraft: () => void;
-  onSubmit?: () => void; // Made optional with "?"
+  onSubmit?: () => void;
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
@@ -29,25 +31,37 @@ const FormActions: React.FC<FormActionsProps> = ({
 }) => {
   const { toast } = useToast();
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [startTiming, endTiming] = usePerformanceMeasurement();
+  
+  usePerformanceMonitoring('FormActions', {
+    hasSubmit: !!onSubmit,
+    hasRevisions
+  });
   
   useEffect(() => {
     if (saveStatus === 'saved') {
+      endTiming({ status: 'success' });
       toast({
         title: "Draft saved",
         description: "Your draft has been saved successfully",
         variant: "default"
       });
     } else if (saveStatus === 'error') {
+      endTiming({ status: 'error' });
       toast({
         title: "Save failed",
         description: "There was an error saving your draft",
         variant: "destructive"
       });
     }
-  }, [saveStatus, toast]);
+  }, [saveStatus, toast, endTiming]);
   
   const handleSaveDraft = () => {
     if (!isDirty && saveStatus !== 'error') {
+      logger.info(LogSource.EDITOR, 'No changes to save', {
+        isDirty,
+        saveStatus
+      });
       toast({
         title: "No changes to save",
         description: "Make some changes before saving a draft",
@@ -56,11 +70,13 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
+    startTiming('draft-save');
     onSaveDraft();
   };
   
   const handleSubmitClick = () => {
     if (!onSubmit) {
+      logger.info(LogSource.EDITOR, 'Submit functionality not available');
       toast({
         title: "Feature not available",
         description: "Submit functionality is not available in this context",
@@ -69,6 +85,7 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
+    startTiming('article-submission');
     if (isDirty || saveStatus === 'error') {
       setShowSubmitDialog(true);
     } else {
