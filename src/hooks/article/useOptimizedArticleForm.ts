@@ -48,6 +48,6 @@ export const useOptimizedArticleForm = (
     isSubmitting,
     isSaving,
     handleSubmit,
-    handleSaveDraft
+    handleSaveDraft: () => handleSaveDraft({ ...form.getValues(), content }) // Return void
   };
 };

@@ -17,7 +17,7 @@ export const useSubmissionState = ({ content, draftId, onDraftIdChange }: Submis
   const { toast } = useToast();
   const { addDebugStep, updateLastStep } = useArticleDebug();
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: any): Promise<string | undefined> => {
     if (isSubmitting) return;
 
     try {
@@ -44,6 +44,7 @@ export const useSubmissionState = ({ content, draftId, onDraftIdChange }: Submis
       );
 
       if (!handleSaveResult(saveResult)) {
+        setIsSubmitting(false);
         return;
       }
 
@@ -51,6 +52,7 @@ export const useSubmissionState = ({ content, draftId, onDraftIdChange }: Submis
       
       if (!submissionResult.success) {
         handleSubmissionError(submissionResult.error);
+        setIsSubmitting(false);
         return;
       }
 
@@ -67,12 +69,13 @@ export const useSubmissionState = ({ content, draftId, onDraftIdChange }: Submis
       addDebugStep('Article submission completed', { 
         articleId: saveResult.articleId
       }, 'success');
-
+      
+      setIsSubmitting(false);
       return saveResult.articleId;
     } catch (error) {
       handleSubmissionError(error);
-    } finally {
       setIsSubmitting(false);
+      return;
     }
   };
 

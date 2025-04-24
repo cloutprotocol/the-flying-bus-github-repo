@@ -15,7 +15,7 @@ export const useDraftState = (initialDraftId?: string) => {
   const { toast } = useToast();
   const { addDebugStep, updateLastStep } = useArticleDebug();
 
-  const handleSaveDraft = async (formData: any) => {
+  const handleSaveDraft = async (formData: any): Promise<string | undefined> => {
     try {
       setIsSaving(true);
       setSaveStatus('saving');
