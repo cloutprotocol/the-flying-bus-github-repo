@@ -105,6 +105,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       
       <FormActions 
         onSaveDraft={handleSaveDraft}
+        onSubmit={() => form.handleSubmit(onSubmit)()}
         onViewRevisions={!isNewArticle && revisions.length > 0 ? () => setShowRevisions(true) : undefined}
         isSubmitting={isSubmitting}
         isDirty={form.formState.isDirty || content !== ''}

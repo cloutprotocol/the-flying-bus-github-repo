@@ -8,7 +8,7 @@ import ArticleSubmitDialog from './ArticleSubmitDialog';
 
 interface FormActionsProps {
   onSaveDraft: () => void;
-  onSubmit: () => void;
+  onSubmit?: () => void; // Made optional with "?"
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
@@ -60,6 +60,15 @@ const FormActions: React.FC<FormActionsProps> = ({
   };
   
   const handleSubmitClick = () => {
+    if (!onSubmit) {
+      toast({
+        title: "Feature not available",
+        description: "Submit functionality is not available in this context",
+        variant: "default"
+      });
+      return;
+    }
+    
     if (isDirty || saveStatus === 'error') {
       setShowSubmitDialog(true);
     } else {
@@ -102,7 +111,7 @@ const FormActions: React.FC<FormActionsProps> = ({
         <Button 
           type="button"
           onClick={handleSubmitClick}
-          disabled={isSubmitting || isSaving}
+          disabled={isSubmitting || isSaving || !onSubmit}
         >
           {isSubmitting ? (
             <>
@@ -116,15 +125,17 @@ const FormActions: React.FC<FormActionsProps> = ({
         </Button>
       </div>
       
-      <ArticleSubmitDialog
-        open={showSubmitDialog}
-        onOpenChange={setShowSubmitDialog}
-        onConfirm={() => {
-          setShowSubmitDialog(false);
-          onSubmit();
-        }}
-        isDirty={isDirty}
-      />
+      {onSubmit && (
+        <ArticleSubmitDialog
+          open={showSubmitDialog}
+          onOpenChange={setShowSubmitDialog}
+          onConfirm={() => {
+            setShowSubmitDialog(false);
+            onSubmit();
+          }}
+          isDirty={isDirty}
+        />
+      )}
     </>
   );
 };
