@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import logger, { LogSource } from '@/utils/logger';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
@@ -34,7 +35,7 @@ export const getArticlesForApproval = async (
         created_at,
         updated_at,
         categories(id, name),
-        profiles(id, display_name)
+        profiles!articles_author_id_fkey(id, display_name)
       `, { count: 'exact' });
     
     // Apply status filter if not 'all'
@@ -54,7 +55,7 @@ export const getArticlesForApproval = async (
     
     // Apply search if provided
     if (searchTerm) {
-      query = query.or(`title.ilike.%${searchTerm}%,profiles.display_name.ilike.%${searchTerm}%`);
+      query = query.or(`title.ilike.%${searchTerm}%,profiles!articles_author_id_fkey.display_name.ilike.%${searchTerm}%`);
     }
     
     // Apply pagination
