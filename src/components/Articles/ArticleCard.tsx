@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -26,6 +25,7 @@ export interface ArticleProps {
   articleType?: string;
   videoUrl?: string;
   duration?: string;
+  onClick?: () => void;
 }
 
 interface ArticleCardProps extends ArticleProps {
@@ -44,6 +44,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   author,
   date,
   className,
+  onClick,
 }) => {
   const getCategoryColorClass = (colorName?: string) => {
     if (!colorName) return 'bg-flyingbus-red';
@@ -56,12 +57,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       articleTitle: title,
       navigationUrl: `/articles/${id}`
     });
+    onClick?.();
   };
 
   return (
-    <Link to={`/articles/${id}`} className="block" onClick={handleClick}>
+    <Link 
+      to={`/articles/${id}`} 
+      className="block" 
+      onClick={handleClick}
+    >
       <Card 
-        className={cn("overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow", className)}
+        className={cn(
+          "overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow", 
+          className
+        )}
       >
         <div className="relative h-40 overflow-hidden">
           {imageUrl ? (

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -11,6 +10,8 @@ import {
 } from '@/components/ui/custom-carousel';
 import { getCategoryColor } from '@/utils/categoryColors';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface CategorySectionProps {
   title: string;
@@ -64,10 +65,12 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   const colorClasses = getColorClass();
   const svgPath = getCategoryIcon(title);
   
-  // Generate the correct URL for the category
   const getCategoryUrl = () => {
-    // Use kebab case for multi-word categories in URLs
     return `/${slug.toLowerCase()}`;
+  };
+
+  const handleArticleClick = (articleId: string) => {
+    logger.info(LogSource.ARTICLE, 'Article clicked in carousel', { articleId, category: title });
   };
 
   return (
@@ -103,11 +106,11 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
       </div>
       
       <div className="hidden md:block relative">
-        <Carousel>
+        <Carousel disableDrag={true}>
           <CarouselContent className="-ml-6">
             {articles.map((article) => (
-              <CarouselItem key={article.id} className="pl-6 basis-1/3">
-                <ArticleCard {...article} />
+              <CarouselItem key={article.id} className="pl-6 basis-1/3 pointer-events-auto">
+                <ArticleCard {...article} onClick={() => handleArticleClick(article.id)} />
               </CarouselItem>
             ))}
           </CarouselContent>
