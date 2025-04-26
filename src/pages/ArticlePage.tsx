@@ -11,11 +11,27 @@ import ArticleNotFound from '@/components/Articles/ArticleNotFound';
 import { useArticleData } from '@/hooks/useArticleData';
 import { isStoryboardArticle } from '@/utils/articles';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
   const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
+
+  React.useEffect(() => {
+    if (articleId) {
+      logger.info(LogSource.ARTICLE, 'ArticlePage mounted', { articleId });
+    }
+    
+    if (article) {
+      logger.info(LogSource.ARTICLE, 'Article data loaded', { 
+        id: article.id, 
+        title: article.title,
+        imageUrl: article.imageUrl
+      });
+    }
+  }, [articleId, article]);
 
   // Redirect to Storyboard page if it's a storyboard article
   React.useEffect(() => {

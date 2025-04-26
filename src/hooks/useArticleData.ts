@@ -3,17 +3,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { getArticleById } from '@/services/articleService';
-import { 
-  isDebateArticle, 
-  fetchDebateSettings, 
-  fetchRelatedArticles
-} from '@/utils/articles';
+import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles';
+import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
 import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
 import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { withErrorHandling } from '@/utils/errorHandling';
 
 export const useArticleData = (articleId: string | undefined) => {
   const [article, setArticle] = useState<ArticleProps | null>(null);
@@ -33,11 +28,8 @@ export const useArticleData = (articleId: string | undefined) => {
         // Log that we're loading an article
         logger.info(LogSource.ARTICLE, 'Loading article', { articleId });
         
-        const { article: articleData, error } = await getArticleById(articleId);
-        
-        if (error) {
-          throw error;
-        }
+        // Use the fetchArticleById utility from utils/articles
+        const articleData = await fetchArticleById(articleId);
         
         if (!articleData) {
           setIsLoading(false);
@@ -49,15 +41,16 @@ export const useArticleData = (articleId: string | undefined) => {
           return;
         }
         
-        const processedArticle = {
-          ...articleData,
-          category: articleData.category || 'Uncategorized'
-        };
+        logger.info(LogSource.ARTICLE, 'Article loaded successfully', { 
+          id: articleData.id, 
+          title: articleData.title,
+          imageUrl: articleData.imageUrl
+        });
         
-        setArticle(processedArticle);
+        setArticle(articleData);
         
         // Only track views for published articles and when we have a valid article ID
-        if (articleData.status === 'published') {
+        if (articleData) {
           // Use .catch to handle errors without disrupting the main flow
           trackArticleViewWithRetry(articleId, user?.id)
             .catch(error => {
