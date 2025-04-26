@@ -5,6 +5,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArticleSortType, ArticleData, UseArticlePaginationReturn } from './article/types';
 import { ArticleFilterParams, getDefaultFilters, updateFilters, buildArticleQuery } from './article/articleFilters';
 import { transformArticleData } from './article/transformArticleData';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export type { ArticleSortType, ArticleData, UseArticlePaginationReturn };
 export type { ArticleFilterParams };
@@ -20,16 +22,26 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   // Fetch articles based on current filters
   useEffect(() => {
     const fetchArticles = async () => {
+      if (!filters.categoryId) {
+        return; // Don't fetch if no category is selected
+      }
+      
       setIsLoading(true);
       setError(null);
 
       try {
+        logger.info(LogSource.ARTICLE, 'Fetching articles with filters', { 
+          categoryId: filters.categoryId,
+          page: filters.page,
+          sortBy: filters.sortBy
+        });
+        
         // Build and execute the query
         const query = buildArticleQuery(supabase, filters);
-        const { data, error, count } = await query;
+        const { data, error: fetchError, count } = await query;
 
-        if (error) {
-          throw new Error(`Error fetching articles: ${error.message}`);
+        if (fetchError) {
+          throw new Error(`Error fetching articles: ${fetchError.message}`);
         }
 
         if (count !== null) {
@@ -37,10 +49,15 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         }
 
         // Transform the data
-        const transformedArticles = transformArticleData(data);
+        const transformedArticles = transformArticleData(data || []);
         setArticles(transformedArticles);
+        
+        logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
+          count: transformedArticles.length, 
+          totalCount: count
+        });
       } catch (err) {
-        console.error('Error in useArticlePagination:', err);
+        logger.error(LogSource.ARTICLE, 'Error in useArticlePagination', err);
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
         
         toast({

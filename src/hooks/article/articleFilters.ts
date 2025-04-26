@@ -49,7 +49,7 @@ export const buildArticleQuery = (supabase: any, filters: ArticleFilterParams) =
       cover_image, 
       category_id,
       categories(id, name, slug, color),
-      profiles(id, display_name),
+      author_id,
       created_at,
       published_at,
       article_type

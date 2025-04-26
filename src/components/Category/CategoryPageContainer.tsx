@@ -8,7 +8,8 @@ import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
 import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
 import { handleApiError } from '@/utils/errors';
-import logger, { LogSource } from '@/utils/loggerService';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -21,6 +22,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const [displayCategory, setDisplayCategory] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<any | null>(null);
   const [isLoadingCategory, setIsLoadingCategory] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Get the categoryId parameter from the URL
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -36,6 +38,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const {
     articles: paginatedArticles,
     isLoading,
+    error: articlesError,
     totalPages,
     currentPage,
     setPage,
@@ -53,6 +56,8 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     const fetchData = async () => {
       try {
         setIsLoadingCategory(true);
+        setError(null);
+        
         logger.info(LogSource.API, `Fetching category data for slug: ${categorySlug}`);
         
         // Fetch category data
@@ -61,6 +66,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
         if (!category) {
           logger.warn(LogSource.API, `Category not found for slug: ${categorySlug}`);
           setIsLoadingCategory(false);
+          setError('Category not found');
           return;
         }
         
@@ -82,12 +88,15 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       } catch (error) {
         logger.error(LogSource.API, 'Error fetching category data', error);
         handleApiError(error);
+        setError('Failed to load category data');
       } finally {
         setIsLoadingCategory(false);
       }
     };
     
-    fetchData();
+    if (categorySlug) {
+      fetchData();
+    }
   }, [categorySlug, setCategory]);
   
   // Update reading level filter
@@ -99,7 +108,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   }, [selectedReadingLevel, setReadingLevel]);
   
   // If no category found, show not found message
-  if (!isLoadingCategory && !isLoading && !categoryData) {
+  if (!isLoadingCategory && !categoryData) {
     logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
     return (
       <MainLayout>
@@ -107,6 +116,26 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
           title="Category Not Found"
           message="Sorry, we couldn't find the category you're looking for."
         />
+      </MainLayout>
+    );
+  }
+
+  // If there's an error, show error message
+  if (error || articlesError) {
+    return (
+      <MainLayout>
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-4">Oops! Something went wrong</h1>
+          <p className="text-gray-600 mb-6">
+            {error || "We couldn't load the articles for this category. Please try again later."}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-flyingbus-blue text-white rounded-md"
+          >
+            Try Again
+          </button>
+        </div>
       </MainLayout>
     );
   }
@@ -145,7 +174,13 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   // Render loading skeleton when data is loading
   if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
     logger.info(LogSource.CLIENT, 'Displaying category page skeleton loader');
-    return <CategoryPageSkeleton />;
+    return (
+      <MainLayout fullWidth={true}>
+        <div className="max-w-6xl mx-auto">
+          <CategoryPageSkeleton />
+        </div>
+      </MainLayout>
+    );
   }
 
   logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);

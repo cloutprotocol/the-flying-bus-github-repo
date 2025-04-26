@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -40,8 +41,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   category,
   categoryColor,
   readingLevel,
-  readTime,
-  author,
+  readTime = 3,
+  author = 'Unknown',
   date,
   className,
   onClick,
@@ -57,7 +58,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       articleTitle: title,
       navigationUrl: `/articles/${id}`
     });
-    onClick?.();
+    
+    if (onClick) {
+      onClick();
+    }
   };
 
   return (
@@ -86,7 +90,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
           )}
           <div className="absolute top-2 left-2">
             <Badge className={cn("text-white", getCategoryColorClass(categoryColor))}>
-              {category}
+              {category || 'Uncategorized'}
             </Badge>
           </div>
         </div>
@@ -95,7 +99,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
           <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
             {title}
           </h3>
-          <p className="text-gray-600 text-sm line-clamp-3">{excerpt}</p>
+          <p className="text-gray-600 text-sm line-clamp-3">{excerpt || 'No excerpt available'}</p>
         </CardContent>
         
         <CardFooter className="pt-0 pb-4 text-xs text-gray-500 flex items-center justify-between">
