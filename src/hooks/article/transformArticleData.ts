@@ -13,6 +13,7 @@ export const transformArticleData = (data: any[]): ArticleData[] => {
     // Get category information from the related categories data
     const categoryName = article.categories?.name || 'Uncategorized';
     const categoryColor = article.categories?.color?.split('-')[1] || 'blue'; 
+    const categorySlug = article.categories?.slug || 'uncategorized'; // Add the categorySlug property
 
     // Calculate estimated reading time (1 min per 200 words)
     const wordCount = article.content ? article.content.split(/\s+/).length : 0;
@@ -25,6 +26,7 @@ export const transformArticleData = (data: any[]): ArticleData[] => {
       content: article.content,
       imageUrl: article.cover_image,
       category: categoryName,
+      categorySlug, // Include the categorySlug in the returned object
       categoryColor,
       categoryId: article.category_id,
       readingLevel: 'Intermediate', // Placeholder until we have reading levels
