@@ -6,7 +6,6 @@ import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles';
 import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
 import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
-import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -15,27 +14,32 @@ export const useArticleData = (articleId: string | undefined) => {
   const [relatedArticles, setRelatedArticles] = useState<ArticleProps[]>([]);
   const [debateSettings, setDebateSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const loadArticle = async () => {
-      if (!articleId) return;
+      if (!articleId) {
+        setIsLoading(false);
+        setError('No article ID provided');
+        return;
+      }
       
       setIsLoading(true);
+      setError(null);
       
       try {
-        // Log that we're loading an article
         logger.info(LogSource.ARTICLE, 'Loading article', { articleId });
         
-        // Use the fetchArticleById utility from utils/articles
         const articleData = await fetchArticleById(articleId);
         
         if (!articleData) {
           setIsLoading(false);
+          setError('Article not found');
           toast({
             title: "Article not found",
-            description: "We couldn't find the article you're looking for.",
+            description: "The article you're looking for could not be found.",
             variant: "destructive"
           });
           return;
@@ -43,21 +47,20 @@ export const useArticleData = (articleId: string | undefined) => {
         
         logger.info(LogSource.ARTICLE, 'Article loaded successfully', { 
           id: articleData.id, 
-          title: articleData.title,
-          imageUrl: articleData.imageUrl
+          title: articleData.title
         });
         
         setArticle(articleData);
         
-        // Only track views for published articles and when we have a valid article ID
-        if (articleData) {
-          // Use .catch to handle errors without disrupting the main flow
-          trackArticleViewWithRetry(articleId, user?.id)
+        // Track article view
+        if (articleData.id) {
+          trackArticleViewWithRetry(articleData.id, user?.id)
             .catch(error => {
               logger.error(LogSource.DATABASE, 'Failed to track article view', error);
             });
         }
         
+        // Load debate settings if it's a debate article
         if (articleData && isDebateArticle(articleData.articleType)) {
           try {
             const debate = await fetchDebateSettings(articleId);
@@ -67,6 +70,7 @@ export const useArticleData = (articleId: string | undefined) => {
           }
         }
         
+        // Load related articles if we have a category ID
         if (articleData && articleData.categoryId) {
           try {
             const related = await fetchRelatedArticles(articleId, articleData.categoryId);
@@ -77,7 +81,12 @@ export const useArticleData = (articleId: string | undefined) => {
         }
       } catch (error) {
         logger.error(LogSource.ARTICLE, 'Error loading article', error);
-        handleApiError(error);
+        setError('Failed to load article');
+        toast({
+          title: "Error",
+          description: "Failed to load the article. Please try again later.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
@@ -86,5 +95,5 @@ export const useArticleData = (articleId: string | undefined) => {
     loadArticle();
   }, [articleId, user?.id, toast]);
 
-  return { article, relatedArticles, debateSettings, isLoading };
+  return { article, relatedArticles, debateSettings, isLoading, error };
 };

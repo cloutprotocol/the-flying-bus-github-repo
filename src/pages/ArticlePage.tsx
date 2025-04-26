@@ -17,7 +17,7 @@ import { LogSource } from '@/utils/logger/types';
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
-  const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
+  const { article, relatedArticles, debateSettings, isLoading, error } = useArticleData(articleId);
 
   React.useEffect(() => {
     if (articleId) {
@@ -48,7 +48,7 @@ const ArticlePage = () => {
     );
   }
 
-  if (!article) {
+  if (error || !article) {
     return (
       <MainLayout>
         <ArticleNotFound />

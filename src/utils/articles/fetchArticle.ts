@@ -1,53 +1,80 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { calculateReadTime } from './articleRead';
+import { logger } from '@/utils/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export const fetchArticleById = async (articleId: string): Promise<ArticleProps | null> => {
-  if (!articleId) return null;
-  
-  const { data, error } = await supabase
-    .from('articles')
-    .select(`
-      id, 
-      title, 
-      excerpt, 
-      content, 
-      cover_image, 
-      category_id,
-      categories(id, name, slug, color),
-      profiles(id, display_name),
-      created_at,
-      published_at,
-      article_type
-    `)
-    .eq('id', articleId)
-    .eq('status', 'published')
-    .single();
-
-  if (error) {
-    console.error('Error fetching article by ID:', error);
+  if (!articleId) {
+    logger.error(LogSource.ARTICLE, 'No article ID provided');
     return null;
   }
+  
+  try {
+    logger.info(LogSource.ARTICLE, `Fetching article with ID: ${articleId}`);
+    
+    const { data, error } = await supabase
+      .from('articles')
+      .select(`
+        id, 
+        title, 
+        excerpt, 
+        content, 
+        cover_image, 
+        category_id,
+        categories (
+          id,
+          name,
+          slug,
+          color
+        ),
+        profiles (
+          id,
+          display_name
+        ),
+        created_at,
+        published_at,
+        article_type
+      `)
+      .eq('id', articleId)
+      .eq('status', 'published')
+      .maybeSingle();
 
-  if (!data) return null;
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error fetching article by ID:', error);
+      return null;
+    }
 
-  return {
-    id: data.id,
-    title: data.title,
-    excerpt: data.excerpt || '',
-    content: data.content,
-    imageUrl: data.cover_image,
-    category: data.categories?.name || '',
-    categorySlug: data.categories?.slug || '',
-    categoryColor: data.categories?.color || '',
-    readingLevel: 'Intermediate',
-    readTime: calculateReadTime(data.content),
-    author: data.profiles?.display_name || 'Unknown',
-    date: new Date(data.published_at || data.created_at).toLocaleDateString(),
-    publishDate: new Date(data.published_at || data.created_at).toLocaleDateString(),
-    articleType: data.article_type
-  };
+    if (!data) {
+      logger.warn(LogSource.ARTICLE, `No article found with ID: ${articleId}`);
+      return null;
+    }
+
+    logger.info(LogSource.ARTICLE, 'Article fetched successfully', { 
+      id: data.id, 
+      title: data.title 
+    });
+
+    return {
+      id: data.id,
+      title: data.title,
+      excerpt: data.excerpt || '',
+      content: data.content,
+      imageUrl: data.cover_image,
+      category: data.categories?.name || '',
+      categorySlug: data.categories?.slug || '',
+      categoryColor: data.categories?.color || '',
+      readingLevel: 'Intermediate',
+      readTime: calculateReadTime(data.content),
+      author: data.profiles?.display_name || 'Unknown',
+      date: new Date(data.published_at || data.created_at).toLocaleDateString(),
+      publishDate: new Date(data.published_at || data.created_at).toLocaleDateString(),
+      articleType: data.article_type
+    };
+  } catch (error) {
+    logger.error(LogSource.ARTICLE, 'Exception fetching article:', error);
+    return null;
+  }
 };
 
 export const fetchRelatedArticles = async (
@@ -92,4 +119,3 @@ export const fetchRelatedArticles = async (
     publishDate: new Date(article.published_at || article.created_at).toLocaleDateString()
   }));
 };
-
