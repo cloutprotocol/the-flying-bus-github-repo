@@ -16,17 +16,23 @@ import { LogSource } from '@/utils/logger/types';
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
-  const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
-
+  
+  // Log the current URL and articleId for debugging
   React.useEffect(() => {
-    logger.info(LogSource.ARTICLE, 'Article page mounted', { articleId });
+    logger.info(LogSource.ARTICLE, 'Article page loaded', { 
+      articleId, 
+      currentUrl: window.location.href,
+      pathname: window.location.pathname
+    });
   }, [articleId]);
+  
+  const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
 
   // Redirect to Storyboard page if it's a storyboard article
   React.useEffect(() => {
     if (article && isStoryboardArticle(article.articleType)) {
       logger.info(LogSource.ARTICLE, 'Redirecting to storyboard', { articleId: article.id });
-      navigate(`/storyboard/${article.id}`);
+      navigate(`/storyboard/${article.id}`, { replace: true });
     }
   }, [article, navigate]);
 

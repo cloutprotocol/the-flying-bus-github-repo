@@ -6,8 +6,8 @@ import CategorySection from '@/components/Articles/CategorySection';
 import { getHeadlineArticle, getCategoryArticles } from '@/data/articles';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import logger from '@/utils/logger';
-import { LogSource } from '@/utils/logger';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const Index = () => {
   const [headlineArticle, setHeadlineArticle] = useState<ArticleProps | null>(null);

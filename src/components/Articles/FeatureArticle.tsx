@@ -9,8 +9,14 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
 const FeatureArticle = (props: ArticleProps) => {
+  const articleUrl = `/articles/${props.id}`;
+  
+  const handleClick = () => {
+    logger.info(LogSource.ARTICLE, 'Feature article clicked', { articleId: props.id });
+  };
+
   return (
-    <Link to={`/articles/${props.id}`} className="block">
+    <Link to={articleUrl} className="block" onClick={handleClick}>
       <article className="relative rounded-lg overflow-hidden shadow-md group w-full hover:shadow-lg transition-shadow">
         <FeatureArticleImage imageUrl={props.imageUrl} title={props.title} />
         
@@ -25,12 +31,10 @@ const FeatureArticle = (props: ArticleProps) => {
             {props.excerpt}
           </p>
           
-          <FeatureArticleFooter 
-            id={props.id}
-            author={props.author}
-            date={props.date}
-            publishDate={props.publishDate}
-          />
+          <div className="flex items-center justify-between text-xs text-white/80">
+            <span>{props.author}</span>
+            <span>{props.date}</span>
+          </div>
         </div>
       </article>
     </Link>

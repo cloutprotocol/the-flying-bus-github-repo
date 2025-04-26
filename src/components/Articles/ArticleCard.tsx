@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -49,8 +50,16 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
     return `bg-flyingbus-${colorName}`;
   };
 
+  const handleClick = () => {
+    logger.info(LogSource.ARTICLE, 'Article card clicked', { 
+      articleId: id, 
+      articleTitle: title,
+      navigationUrl: `/articles/${id}`
+    });
+  };
+
   return (
-    <Link to={`/articles/${id}`} className="block">
+    <Link to={`/articles/${id}`} className="block" onClick={handleClick}>
       <Card 
         className={cn("overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow", className)}
       >
