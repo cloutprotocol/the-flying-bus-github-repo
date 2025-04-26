@@ -3,64 +3,68 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles';
-import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
+import { getArticleById } from '@/services/articleService';
+import { 
+  isDebateArticle, 
+  fetchDebateSettings, 
+  fetchRelatedArticles
+} from '@/utils/articles';
 import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
+import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { withErrorHandling } from '@/utils/errorHandling';
 
 export const useArticleData = (articleId: string | undefined) => {
   const [article, setArticle] = useState<ArticleProps | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<ArticleProps[]>([]);
   const [debateSettings, setDebateSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const loadArticle = async () => {
-      if (!articleId) {
-        setIsLoading(false);
-        setError('No article ID provided');
-        return;
-      }
+      if (!articleId) return;
       
       setIsLoading(true);
-      setError(null);
       
       try {
+        // Log that we're loading an article
         logger.info(LogSource.ARTICLE, 'Loading article', { articleId });
         
-        const articleData = await fetchArticleById(articleId);
+        const { article: articleData, error } = await getArticleById(articleId);
+        
+        if (error) {
+          throw error;
+        }
         
         if (!articleData) {
           setIsLoading(false);
-          setError('Article not found');
           toast({
             title: "Article not found",
-            description: "The article you're looking for could not be found.",
+            description: "We couldn't find the article you're looking for.",
             variant: "destructive"
           });
           return;
         }
         
-        logger.info(LogSource.ARTICLE, 'Article loaded successfully', { 
-          id: articleData.id, 
-          title: articleData.title
-        });
+        const processedArticle = {
+          ...articleData,
+          category: articleData.category || 'Uncategorized'
+        };
         
-        setArticle(articleData);
+        setArticle(processedArticle);
         
-        // Track article view
-        if (articleData.id) {
-          trackArticleViewWithRetry(articleData.id, user?.id)
+        // Only track views for published articles and when we have a valid article ID
+        if (articleData.status === 'published') {
+          // Use .catch to handle errors without disrupting the main flow
+          trackArticleViewWithRetry(articleId, user?.id)
             .catch(error => {
               logger.error(LogSource.DATABASE, 'Failed to track article view', error);
             });
         }
         
-        // Load debate settings if it's a debate article
         if (articleData && isDebateArticle(articleData.articleType)) {
           try {
             const debate = await fetchDebateSettings(articleId);
@@ -70,7 +74,6 @@ export const useArticleData = (articleId: string | undefined) => {
           }
         }
         
-        // Load related articles if we have a category ID
         if (articleData && articleData.categoryId) {
           try {
             const related = await fetchRelatedArticles(articleId, articleData.categoryId);
@@ -81,12 +84,7 @@ export const useArticleData = (articleId: string | undefined) => {
         }
       } catch (error) {
         logger.error(LogSource.ARTICLE, 'Error loading article', error);
-        setError('Failed to load article');
-        toast({
-          title: "Error",
-          description: "Failed to load the article. Please try again later.",
-          variant: "destructive"
-        });
+        handleApiError(error);
       } finally {
         setIsLoading(false);
       }
@@ -95,5 +93,5 @@ export const useArticleData = (articleId: string | undefined) => {
     loadArticle();
   }, [articleId, user?.id, toast]);
 
-  return { article, relatedArticles, debateSettings, isLoading, error };
+  return { article, relatedArticles, debateSettings, isLoading };
 };

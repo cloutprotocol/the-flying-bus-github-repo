@@ -4,8 +4,6 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import DebateVote from '@/components/Articles/DebateVote';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import VideoPlayer from '@/components/Articles/VideoPlayer';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 
 interface ArticleContentProps {
   article: ArticleProps;
@@ -25,15 +23,6 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
   
   const isSpiceItUpWithVideo = article.category === 'Spice It Up' && article.videoUrl;
   
-  // Log the image URL to help with debugging
-  React.useEffect(() => {
-    logger.info(LogSource.ARTICLE, 'Article image URL:', { 
-      imageUrl: article.imageUrl,
-      articleId: article.id,
-      title: article.title
-    });
-  }, [article]);
-
   return (
     <div className="lg:col-span-8">
       {isSpiceItUpWithVideo && (
@@ -46,24 +35,11 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
       
       <div className={`mb-2 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-2' : ''}`}>
         <AspectRatio ratio={16/9} className="bg-gray-100">
-          {article.imageUrl ? (
-            <img 
-              src={article.imageUrl} 
-              alt={article.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Log error and fallback to placeholder if image fails to load
-                logger.error(LogSource.ARTICLE, 'Failed to load article image', { 
-                  imageUrl: article.imageUrl 
-                });
-                e.currentTarget.src = '/placeholder.svg';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-              <span className="text-gray-400">No image available</span>
-            </div>
-          )}
+          <img 
+            src={article.imageUrl} 
+            alt={article.title}
+            className="w-full h-full object-cover"
+          />
         </AspectRatio>
       </div>
       
