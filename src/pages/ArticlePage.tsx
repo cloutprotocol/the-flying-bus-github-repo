@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import ArticleHeader from '@/components/Articles/ArticleHeader';
 import ArticleContent from '@/components/Articles/ArticleContent';
@@ -10,16 +10,22 @@ import ArticleLoadingSkeleton from '@/components/Articles/ArticleLoadingSkeleton
 import ArticleNotFound from '@/components/Articles/ArticleNotFound';
 import { useArticleData } from '@/hooks/useArticleData';
 import { isStoryboardArticle } from '@/utils/articles';
-import { useNavigate } from 'react-router-dom';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();
   const navigate = useNavigate();
   const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
 
+  React.useEffect(() => {
+    logger.info(LogSource.ARTICLE, 'Article page mounted', { articleId });
+  }, [articleId]);
+
   // Redirect to Storyboard page if it's a storyboard article
   React.useEffect(() => {
     if (article && isStoryboardArticle(article.articleType)) {
+      logger.info(LogSource.ARTICLE, 'Redirecting to storyboard', { articleId: article.id });
       navigate(`/storyboard/${article.id}`);
     }
   }, [article, navigate]);
@@ -33,6 +39,7 @@ const ArticlePage = () => {
   }
 
   if (!article) {
+    logger.warn(LogSource.ARTICLE, 'Article not found', { articleId });
     return (
       <MainLayout>
         <ArticleNotFound />

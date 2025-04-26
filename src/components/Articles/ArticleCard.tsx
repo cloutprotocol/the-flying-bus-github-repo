@@ -1,9 +1,10 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export interface ArticleProps {
   id: string;
@@ -43,6 +44,13 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   date,
   className,
 }) => {
+  const navigate = useNavigate();
+  
+  const handleArticleClick = () => {
+    logger.info(LogSource.ARTICLE, 'Article card clicked', { articleId: id });
+    navigate(`/articles/${id}`);
+  };
+
   // Get category color class
   const getCategoryColorClass = (colorName?: string) => {
     if (!colorName) return 'bg-flyingbus-red';
@@ -50,7 +58,10 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   };
 
   return (
-    <Card className={cn("overflow-hidden h-full flex flex-col", className)}>
+    <Card 
+      className={cn("overflow-hidden h-full flex flex-col cursor-pointer", className)}
+      onClick={handleArticleClick}
+    >
       <div className="relative h-40 overflow-hidden">
         {imageUrl ? (
           <img
@@ -71,11 +82,9 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       </div>
       
       <CardContent className="pt-4 flex-grow">
-        <Link to={`/articles/${id}`}>
-          <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
-            {title}
-          </h3>
-        </Link>
+        <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
+          {title}
+        </h3>
         <p className="text-gray-600 text-sm line-clamp-3">{excerpt}</p>
       </CardContent>
       
