@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -44,59 +44,52 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   date,
   className,
 }) => {
-  const navigate = useNavigate();
-  
-  const handleArticleClick = () => {
-    logger.info(LogSource.ARTICLE, 'Article card clicked', { articleId: id });
-    navigate(`/articles/${id}`);
-  };
-
-  // Get category color class
   const getCategoryColorClass = (colorName?: string) => {
     if (!colorName) return 'bg-flyingbus-red';
     return `bg-flyingbus-${colorName}`;
   };
 
   return (
-    <Card 
-      className={cn("overflow-hidden h-full flex flex-col cursor-pointer", className)}
-      onClick={handleArticleClick}
-    >
-      <div className="relative h-40 overflow-hidden">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-400">No image</span>
+    <Link to={`/articles/${id}`} className="block">
+      <Card 
+        className={cn("overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow", className)}
+      >
+        <div className="relative h-40 overflow-hidden">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-400">No image</span>
+            </div>
+          )}
+          <div className="absolute top-2 left-2">
+            <Badge className={cn("text-white", getCategoryColorClass(categoryColor))}>
+              {category}
+            </Badge>
           </div>
-        )}
-        <div className="absolute top-2 left-2">
-          <Badge className={cn("text-white", getCategoryColorClass(categoryColor))}>
-            {category}
-          </Badge>
         </div>
-      </div>
-      
-      <CardContent className="pt-4 flex-grow">
-        <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
-          {title}
-        </h3>
-        <p className="text-gray-600 text-sm line-clamp-3">{excerpt}</p>
-      </CardContent>
-      
-      <CardFooter className="pt-0 pb-4 text-xs text-gray-500 flex items-center justify-between">
-        <div>
-          <span>{author}</span> • <span>{date}</span>
-        </div>
-        <div>
-          <span>{readTime} min read</span>
-        </div>
-      </CardFooter>
-    </Card>
+        
+        <CardContent className="pt-4 flex-grow">
+          <h3 className="text-lg font-bold mb-2 hover:text-blue-600 transition-colors">
+            {title}
+          </h3>
+          <p className="text-gray-600 text-sm line-clamp-3">{excerpt}</p>
+        </CardContent>
+        
+        <CardFooter className="pt-0 pb-4 text-xs text-gray-500 flex items-center justify-between">
+          <div>
+            <span>{author}</span> • <span>{date}</span>
+          </div>
+          <div>
+            <span>{readTime} min read</span>
+          </div>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 };
 
