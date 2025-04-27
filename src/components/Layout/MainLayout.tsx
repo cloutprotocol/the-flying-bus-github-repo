@@ -1,11 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ModernHeader from './ModernHeader';
 import Footer from './Footer';
 import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
 import { useLocation } from 'react-router-dom';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,8 @@ interface MainLayoutProps {
 
 const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
   const location = useLocation();
+  const { isTransitioning } = useNavigation();
+  const mainRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     logger.info(LogSource.APP, 'MainLayout mounted', {
@@ -33,11 +36,26 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
     };
   }, [location.pathname, location.key]);
 
+  // Scroll to top on location change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    
+    if (mainRef.current) {
+      mainRef.current.focus();
+    }
+  }, [location.pathname]);
+
   return (
     <div className="flex flex-col min-h-screen bg-flyingbus-background">
       <AuthDebugPanel />
       <ModernHeader />
-      <main className="flex-grow w-full">
+      <main 
+        ref={mainRef}
+        className={`flex-grow w-full transition-opacity duration-300 ${
+          isTransitioning ? 'opacity-95' : 'opacity-100'
+        }`}
+        tabIndex={-1} // Make it focusable for accessibility
+      >
         {fullWidth ? (
           <div className="w-full px-4 py-4">
             {children}

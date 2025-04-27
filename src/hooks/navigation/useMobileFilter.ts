@@ -1,5 +1,6 @@
 
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCallback } from 'react';
 
 export interface MobileOptionProps {
   value: 'newest' | 'oldest' | 'a-z';
@@ -9,5 +10,9 @@ export interface MobileOptionProps {
 
 export const useMobileFilter = () => {
   const isMobile = useIsMobile();
-  return { isMobile };
+  
+  // Use memoized values to prevent unnecessary re-renders
+  return {
+    isMobile
+  };
 };

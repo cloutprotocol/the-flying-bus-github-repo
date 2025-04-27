@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import Logo from '@/components/ui/logo';
@@ -23,7 +23,7 @@ const MobileLogo = () => (
   <Logo className="md:hidden block" size="md" />
 );
 
-const ModernHeader = () => {
+const ModernHeader = memo(() => {
   const location = useLocation();
   
   useEffect(() => {
@@ -38,7 +38,7 @@ const ModernHeader = () => {
         key: location.key
       });
     };
-  }, [location.key]);
+  }, []); // Only run on mount and unmount, not on location changes
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200" id="main-header">
@@ -69,6 +69,8 @@ const ModernHeader = () => {
       </div>
     </header>
   );
-};
+});
+
+ModernHeader.displayName = 'ModernHeader';
 
 export default ModernHeader;

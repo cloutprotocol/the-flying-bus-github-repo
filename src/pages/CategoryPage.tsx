@@ -1,6 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContainer from '@/components/Category/CategoryPageContainer';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -18,10 +19,14 @@ const CategoryPage: React.FC = () => {
   }, [categoryId, location.pathname, location.key]);
 
   return (
-    <CategoryPageContainer 
-      category={categoryId} 
-      key={`category-${location.key}-${categoryId || 'default'}`}
-    />
+    <MainLayout fullWidth={true}>
+      <div className="w-full">
+        <CategoryPageContainer 
+          category={categoryId} 
+          key={`category-${categoryId || 'default'}`}
+        />
+      </div>
+    </MainLayout>
   );
 };
 

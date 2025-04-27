@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
@@ -61,43 +60,33 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   if (!isLoadingCategory && !categoryData) {
     logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
     return (
-      <MainLayout>
-        <NotFoundMessage 
-          title="Category Not Found"
-          message="Sorry, we couldn't find the category you're looking for."
-        />
-      </MainLayout>
+      <NotFoundMessage 
+        title="Category Not Found"
+        message="Sorry, we couldn't find the category you're looking for."
+      />
     );
   }
 
   if (error || articlesError) {
     return (
-      <MainLayout>
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-4">Oops! Something went wrong</h1>
-          <p className="text-gray-600 mb-6">
-            {error || "We couldn't load the articles for this category. Please try again later."}
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-flyingbus-blue text-white rounded-md"
-          >
-            Try Again
-          </button>
-        </div>
-      </MainLayout>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-4">Oops! Something went wrong</h1>
+        <p className="text-gray-600 mb-6">
+          {error || "We couldn't load the articles for this category. Please try again later."}
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-flyingbus-blue text-white rounded-md"
+        >
+          Try Again
+        </button>
+      </div>
     );
   }
 
   if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
     logger.info(LogSource.CLIENT, 'Displaying category page skeleton loader');
-    return (
-      <MainLayout fullWidth={true}>
-        <div className="max-w-6xl mx-auto">
-          <CategoryPageSkeleton />
-        </div>
-      </MainLayout>
-    );
+    return <CategoryPageSkeleton />;
   }
 
   logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);
@@ -106,29 +95,27 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
   return (
-    <MainLayout fullWidth={true}>
-      <div className="max-w-6xl mx-auto">
-        <CategoryPageContent 
-          displayCategory={displayCategory} 
-          colorClass={colorClass}
-          breadcrumbItems={[
-            { label: 'Home', href: '/' },
-            { label: displayCategory || '', active: true }
-          ]}
-          sortBy={isLoading ? 'newest' : 'newest'}
-          onSortChange={handleSortChange}
-          availableReadingLevels={availableReadingLevels}
-          selectedReadingLevel={selectedReadingLevel}
-          onReadingLevelChange={handleReadingLevelChange}
-          hasActiveFilters={hasActiveFilters}
-          clearFilters={handleClearFilters}
-          paginatedArticles={paginatedArticles}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      </div>
-    </MainLayout>
+    <div className="max-w-6xl mx-auto">
+      <CategoryPageContent 
+        displayCategory={displayCategory} 
+        colorClass={colorClass}
+        breadcrumbItems={[
+          { label: 'Home', href: '/' },
+          { label: displayCategory || '', active: true }
+        ]}
+        sortBy={isLoading ? 'newest' : 'newest'}
+        onSortChange={handleSortChange}
+        availableReadingLevels={availableReadingLevels}
+        selectedReadingLevel={selectedReadingLevel}
+        onReadingLevelChange={handleReadingLevelChange}
+        hasActiveFilters={hasActiveFilters}
+        clearFilters={handleClearFilters}
+        paginatedArticles={paginatedArticles}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
+    </div>
   );
 };
 
