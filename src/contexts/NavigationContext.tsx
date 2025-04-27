@@ -29,7 +29,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setNavigationCount(count => count + 1);
     
     if (location.pathname !== previousPath && previousPath !== null) {
-      logger.info(LogSource.NAVIGATION, 'Navigation occurred', {
+      logger.info(LogSource.APP, 'Navigation occurred', {
         from: previousPath,
         to: location.pathname,
         navigationType,

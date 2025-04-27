@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
@@ -73,7 +74,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
   const handleCategoryNavigate = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     const categoryUrl = getCategoryUrl();
-    logger.info(LogSource.NAVIGATION, 'Navigating to category', { 
+    logger.info(LogSource.APP, 'Navigating to category', { 
       category: title,
       url: categoryUrl
     });

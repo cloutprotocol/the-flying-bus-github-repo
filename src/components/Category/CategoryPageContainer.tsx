@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
@@ -149,7 +150,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     );
   }
   
-  // Get category color
+  // Helper functions
   const getCategoryColorClass = (category: string | null): string => {
     if (!category) return '';
     if (!categoryData?.color) return '';
@@ -157,27 +158,22 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     return categoryData.color.replace('bg-flyingbus-', '');
   };
   
-  const colorClass = getCategoryColorClass(displayCategory);
-  
-  // Handle reading level filter change
   const handleReadingLevelChange = (level: string | null) => {
     logger.info(LogSource.CLIENT, `Reading level changed by user: ${level || 'All Levels'}`);
     setSelectedReadingLevel(level);
   };
 
-  // Handle sort change
   const handleSortChange = (sort: ArticleSortType) => {
     logger.info(LogSource.CLIENT, `Sort method changed by user: ${sort}`);
     setSortBy(sort);
   };
 
-  // Clear all filters
   const handleClearFilters = () => {
     logger.info(LogSource.CLIENT, 'User cleared all filters');
     setSelectedReadingLevel(null);
     clearFilters();
   };
-
+  
   const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
   // Render loading skeleton when data is loading
@@ -194,12 +190,14 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);
   
+  const colorClass = getCategoryColorClass(displayCategory);
+
   return (
     <MainLayout fullWidth={true}>
       <div className="max-w-6xl mx-auto">
         <CategoryPageContent 
           displayCategory={displayCategory} 
-          colorClass={getCategoryColorClass(displayCategory)}
+          colorClass={colorClass}
           breadcrumbItems={[
             { label: 'Home', href: '/' },
             { label: displayCategory || '', active: true }
@@ -219,32 +217,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       </div>
     </MainLayout>
   );
-  
-  // Helper functions
-  function getCategoryColorClass(category: string | null): string {
-    if (!category) return '';
-    if (!categoryData?.color) return '';
-    
-    return categoryData.color.replace('bg-flyingbus-', '');
-  }
-  
-  function handleReadingLevelChange(level: string | null) {
-    logger.info(LogSource.CLIENT, `Reading level changed by user: ${level || 'All Levels'}`);
-    setSelectedReadingLevel(level);
-  }
-
-  function handleSortChange(sort: ArticleSortType) {
-    logger.info(LogSource.CLIENT, `Sort method changed by user: ${sort}`);
-    setSortBy(sort);
-  }
-
-  function handleClearFilters() {
-    logger.info(LogSource.CLIENT, 'User cleared all filters');
-    setSelectedReadingLevel(null);
-    clearFilters();
-  }
-  
-  const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 };
 
 export default CategoryPageContainer;

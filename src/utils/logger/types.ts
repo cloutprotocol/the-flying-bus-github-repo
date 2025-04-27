@@ -32,7 +32,8 @@ export enum LogSource {
   SAFETY = 'safety',
   VALIDATION = 'validation',
   ARTICLE = 'article',
-  ACTIVITY = 'activity'
+  ACTIVITY = 'activity',
+  NAVIGATION = 'navigation' // Added missing NAVIGATION source
 }
 
 export interface LogEntry {
