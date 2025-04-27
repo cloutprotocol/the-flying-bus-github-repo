@@ -1,10 +1,23 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContainer from '@/components/Category/CategoryPageContainer';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+
+const CategoryPageContent = memo(({ categoryId }: { categoryId: string | undefined }) => {
+  return (
+    <div className="w-full">
+      <CategoryPageContainer 
+        category={categoryId} 
+        key={`category-${categoryId || 'default'}`}
+      />
+    </div>
+  );
+});
+
+CategoryPageContent.displayName = 'CategoryPageContent';
 
 const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -20,12 +33,7 @@ const CategoryPage: React.FC = () => {
 
   return (
     <MainLayout fullWidth={true}>
-      <div className="w-full">
-        <CategoryPageContainer 
-          category={categoryId} 
-          key={`category-${categoryId || 'default'}`}
-        />
-      </div>
+      <CategoryPageContent categoryId={categoryId} />
     </MainLayout>
   );
 };

@@ -15,13 +15,13 @@ import DrawerNavigation from '@/components/ui/drawer-navigation';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
-const HeaderLogo = () => (
+const HeaderLogo = memo(() => (
   <Logo className="md:block hidden" size="xl" />
-);
+));
 
-const MobileLogo = () => (
+const MobileLogo = memo(() => (
   <Logo className="md:hidden block" size="md" />
-);
+));
 
 const ModernHeader = memo(() => {
   const location = useLocation();
@@ -72,5 +72,7 @@ const ModernHeader = memo(() => {
 });
 
 ModernHeader.displayName = 'ModernHeader';
+HeaderLogo.displayName = 'HeaderLogo';
+MobileLogo.displayName = 'MobileLogo';
 
 export default ModernHeader;

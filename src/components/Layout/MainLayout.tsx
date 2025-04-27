@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import ModernHeader from './ModernHeader';
 import Footer from './Footer';
 import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
@@ -13,16 +13,20 @@ interface MainLayoutProps {
   fullWidth?: boolean;
 }
 
-const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
+const MainLayout: React.FC<MainLayoutProps> = memo(({ children, fullWidth = false }) => {
   const location = useLocation();
   const { isTransitioning } = useNavigation();
   const mainRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
   
   useEffect(() => {
-    logger.info(LogSource.APP, 'MainLayout mounted', {
-      pathname: location.pathname,
-      key: location.key
-    });
+    if (!mountedRef.current) {
+      logger.info(LogSource.APP, 'MainLayout mounted', {
+        pathname: location.pathname,
+        key: location.key
+      });
+      mountedRef.current = true;
+    }
     
     // Set header height for consistent spacing
     const headerHeight = document.querySelector('header')?.offsetHeight || 80;
@@ -33,8 +37,9 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
         pathname: location.pathname,
         key: location.key
       });
+      mountedRef.current = false;
     };
-  }, [location.pathname, location.key]);
+  }, []);
 
   // Scroll to top on location change
   useEffect(() => {
@@ -69,6 +74,8 @@ const MainLayout = ({ children, fullWidth = false }: MainLayoutProps) => {
       <Footer />
     </div>
   );
-};
+});
+
+MainLayout.displayName = 'MainLayout';
 
 export default MainLayout;

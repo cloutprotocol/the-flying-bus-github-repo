@@ -28,6 +28,17 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const location = useLocation();
   const navigationType = useNavigationType();
 
+  // Clear any lingering transition state on component mount
+  useEffect(() => {
+    setIsTransitioning(false);
+    
+    return () => {
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // Track navigation count and previous path
     setNavigationCount(count => count + 1);
