@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
-import { fetchCategoryBySlug, fetchReadingLevelsForCategory } from '@/utils/categoryUtils';
-import { useArticlePagination, ArticleSortType } from '@/hooks/useArticlePagination';
-import { handleApiError } from '@/utils/errors';
+import { useArticlePagination } from '@/hooks/useArticlePagination';
+import { useCategoryData } from '@/hooks/category/useCategoryData';
+import { useCategoryFilters } from '@/hooks/category/useCategoryFilters';
+import { getCategoryColorClass } from '@/utils/category/categoryHelpers';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -16,26 +17,19 @@ interface CategoryPageContainerProps {
 }
 
 const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category: propCategory }) => {
-  // State for filtering and category data
-  const [selectedReadingLevel, setSelectedReadingLevel] = useState<string | null>(null);
-  const [availableReadingLevels, setAvailableReadingLevels] = useState<string[]>([]);
-  const [displayCategory, setDisplayCategory] = useState<string | null>(null);
-  const [categoryData, setCategoryData] = useState<any | null>(null);
-  const [isLoadingCategory, setIsLoadingCategory] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Get the categoryId parameter from the URL
   const { categoryId } = useParams<{ categoryId: string }>();
-  
-  // Get path from location to determine category if not provided via props
   const location = useLocation();
-  const navigate = useNavigate();
   const pathCategory = location.pathname.split('/')[1];
-  
-  // Use prop category if provided, otherwise use parameter, then path
   const categorySlug = propCategory || categoryId || pathCategory;
 
-  // Initialize the article pagination hook
+  const {
+    categoryData,
+    displayCategory,
+    availableReadingLevels,
+    isLoadingCategory,
+    error
+  } = useCategoryData(categorySlug);
+
   const {
     articles: paginatedArticles,
     isLoading,
@@ -45,79 +39,25 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     setPage,
     setSortBy,
     setCategory,
-    setReadingLevel,
     clearFilters
   } = useArticlePagination({
-    sortBy: 'newest' as ArticleSortType,
+    sortBy: 'newest',
     pageSize: 6
   });
-  
-  // Log navigation for debugging
-  useEffect(() => {
-    logger.info(LogSource.APP, 'CategoryPage navigation', {
-      locationKey: location.key,
-      pathname: location.pathname,
-      categorySlug
-    });
-  }, [location.key, location.pathname, categorySlug]);
-  
-  // Load category data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoadingCategory(true);
-        setError(null);
-        
-        logger.info(LogSource.API, `Fetching category data for slug: ${categorySlug}`);
-        
-        // Fetch category data
-        const category = await fetchCategoryBySlug(categorySlug);
-        
-        if (!category) {
-          logger.warn(LogSource.API, `Category not found for slug: ${categorySlug}`);
-          setIsLoadingCategory(false);
-          setError('Category not found');
-          return;
-        }
-        
-        logger.info(LogSource.API, `Category data fetched: ${category.name}`);
-        setCategoryData(category);
-        setDisplayCategory(category.name);
-        setCategory(category.id);
-        
-        // Fetch reading levels
-        try {
-          logger.info(LogSource.API, `Fetching reading levels for category: ${category.id}`);
-          const levels = await fetchReadingLevelsForCategory(category.id);
-          setAvailableReadingLevels(levels);
-          logger.info(LogSource.API, `Found ${levels.length} reading levels for category`);
-        } catch (levelsError) {
-          logger.error(LogSource.API, 'Error fetching reading levels', levelsError);
-          // Don't block category display for reading levels error
-        }
-      } catch (error) {
-        logger.error(LogSource.API, 'Error fetching category data', error);
-        handleApiError(error);
-        setError('Failed to load category data');
-      } finally {
-        setIsLoadingCategory(false);
-      }
-    };
-    
-    if (categorySlug) {
-      fetchData();
+
+  const {
+    selectedReadingLevel,
+    handleReadingLevelChange,
+    handleSortChange,
+    handleClearFilters
+  } = useCategoryFilters(clearFilters);
+
+  React.useEffect(() => {
+    if (categoryData?.id) {
+      setCategory(categoryData.id);
     }
-  }, [categorySlug, setCategory]);
-  
-  // Update reading level filter
-  useEffect(() => {
-    setReadingLevel(selectedReadingLevel);
-    if (selectedReadingLevel) {
-      logger.info(LogSource.CLIENT, `Reading level filter changed: ${selectedReadingLevel}`);
-    }
-  }, [selectedReadingLevel, setReadingLevel]);
-  
-  // If no category found, show not found message
+  }, [categoryData?.id, setCategory]);
+
   if (!isLoadingCategory && !categoryData) {
     logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
     return (
@@ -130,7 +70,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     );
   }
 
-  // If there's an error, show error message
   if (error || articlesError) {
     return (
       <MainLayout>
@@ -149,34 +88,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       </MainLayout>
     );
   }
-  
-  // Helper functions
-  const getCategoryColorClass = (category: string | null): string => {
-    if (!category) return '';
-    if (!categoryData?.color) return '';
-    
-    return categoryData.color.replace('bg-flyingbus-', '');
-  };
-  
-  const handleReadingLevelChange = (level: string | null) => {
-    logger.info(LogSource.CLIENT, `Reading level changed by user: ${level || 'All Levels'}`);
-    setSelectedReadingLevel(level);
-  };
 
-  const handleSortChange = (sort: ArticleSortType) => {
-    logger.info(LogSource.CLIENT, `Sort method changed by user: ${sort}`);
-    setSortBy(sort);
-  };
-
-  const handleClearFilters = () => {
-    logger.info(LogSource.CLIENT, 'User cleared all filters');
-    setSelectedReadingLevel(null);
-    clearFilters();
-  };
-  
-  const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
-
-  // Render loading skeleton when data is loading
   if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
     logger.info(LogSource.CLIENT, 'Displaying category page skeleton loader');
     return (
@@ -190,7 +102,8 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);
   
-  const colorClass = getCategoryColorClass(displayCategory);
+  const colorClass = getCategoryColorClass(displayCategory, categoryData?.color);
+  const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
   return (
     <MainLayout fullWidth={true}>
