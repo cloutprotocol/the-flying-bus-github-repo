@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Menu } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import Logo from '@/components/ui/logo';
 import { HeaderButtons } from '@/components/ui/header-buttons';
 import {
@@ -11,6 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import menuItems from './menuItems';
 import DrawerNavigation from '@/components/ui/drawer-navigation';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const HeaderLogo = () => (
   <Logo className="md:block hidden" size="xl" />
@@ -21,8 +24,24 @@ const MobileLogo = () => (
 );
 
 const ModernHeader = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    logger.info(LogSource.APP, 'Header mounted', {
+      pathname: location.pathname,
+      key: location.key
+    });
+    
+    return () => {
+      logger.info(LogSource.APP, 'Header unmounted', {
+        pathname: location.pathname,
+        key: location.key
+      });
+    };
+  }, [location.key]);
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-gray-200" id="main-header">
       <div className="w-full px-4 md:px-6 lg:px-10 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center">

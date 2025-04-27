@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
@@ -29,6 +28,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   
   // Get path from location to determine category if not provided via props
   const location = useLocation();
+  const navigate = useNavigate();
   const pathCategory = location.pathname.split('/')[1];
   
   // Use prop category if provided, otherwise use parameter, then path
@@ -50,6 +50,15 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     sortBy: 'newest' as ArticleSortType,
     pageSize: 6
   });
+  
+  // Log navigation for debugging
+  useEffect(() => {
+    logger.info(LogSource.APP, 'CategoryPage navigation', {
+      locationKey: location.key,
+      pathname: location.pathname,
+      categorySlug
+    });
+  }, [location.key, location.pathname, categorySlug]);
   
   // Load category data
   useEffect(() => {
@@ -190,12 +199,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       <div className="max-w-6xl mx-auto">
         <CategoryPageContent 
           displayCategory={displayCategory} 
-          colorClass={colorClass}
+          colorClass={getCategoryColorClass(displayCategory)}
           breadcrumbItems={[
             { label: 'Home', href: '/' },
             { label: displayCategory || '', active: true }
           ]}
-          sortBy={isLoading ? 'newest' : 'newest'} // Default to newest
+          sortBy={isLoading ? 'newest' : 'newest'}
           onSortChange={handleSortChange}
           availableReadingLevels={availableReadingLevels}
           selectedReadingLevel={selectedReadingLevel}
@@ -210,6 +219,32 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       </div>
     </MainLayout>
   );
+  
+  // Helper functions
+  function getCategoryColorClass(category: string | null): string {
+    if (!category) return '';
+    if (!categoryData?.color) return '';
+    
+    return categoryData.color.replace('bg-flyingbus-', '');
+  }
+  
+  function handleReadingLevelChange(level: string | null) {
+    logger.info(LogSource.CLIENT, `Reading level changed by user: ${level || 'All Levels'}`);
+    setSelectedReadingLevel(level);
+  }
+
+  function handleSortChange(sort: ArticleSortType) {
+    logger.info(LogSource.CLIENT, `Sort method changed by user: ${sort}`);
+    setSortBy(sort);
+  }
+
+  function handleClearFilters() {
+    logger.info(LogSource.CLIENT, 'User cleared all filters');
+    setSelectedReadingLevel(null);
+    clearFilters();
+  }
+  
+  const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 };
 
 export default CategoryPageContainer;

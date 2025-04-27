@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Index from '@/pages/Index';
@@ -31,6 +30,7 @@ import { logger } from '@/utils/logger/logger';
 import '@/styles/index';
 import { ValidationProvider } from './providers/ValidationProvider';
 import { registerPerformanceObservers } from './services/monitoringService';
+import { NavigationProvider } from './contexts/NavigationContext';
 
 function App() {
   useEffect(() => {
@@ -102,146 +102,148 @@ function App() {
   return (
     <ValidationProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/articles/:articleId" element={<ArticlePage />} />
-          
-          <Route path="/category/:categoryId" element={<CategoryPage />} />
-          <Route path="/headliners" element={<CategoryPage />} />
-          <Route path="/debates" element={<CategoryPage />} />
-          <Route path="/spice-it-up" element={<CategoryPage />} />
-          <Route path="/in-the-neighborhood" element={<CategoryPage />} />
-          <Route path="/learning" element={<CategoryPage />} />
-          <Route path="/school-news" element={<CategoryPage />} />
-          
-          <Route path="/storyboard/:seriesId" element={<StoryboardPage />} />
-          <Route path="/storyboard" element={<StoryboardCategoryPage />} />
-          <Route path="/storyboard/:seriesId/episode/:episodeId" element={<StoryboardEpisodePage />} />
-          <Route path="/about" element={<About />} />
-          
-          <Route path="/reader-auth" element={<ReaderAuth />} />
-          
-          <Route path="/profile/:userId" element={<ProfilePage />} />
-          <Route 
-            path="/profile/edit" 
-            element={
-              <ProtectedRoute>
-                <ProfileEditPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute>
-                <AdminPortalIndex />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/articles" 
-            element={
-              <ProtectedRoute>
-                <MyArticles />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/articles/new" 
-            element={
-              <ProtectedRoute>
-                <ArticleEditor />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/articles/:articleId" 
-            element={
-              <ProtectedRoute>
-                <ArticleEditor />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/media" 
-            element={
-              <ProtectedRoute>
-                <MediaManager />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/users" 
-            element={
-              <ProtectedRoute>
-                <UserManagement />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin/approval-queue" 
-            element={
-              <ProtectedRoute>
-                <ApprovalQueue />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/reviews/:articleId" 
-            element={
-              <ProtectedRoute>
-                <ArticleReview />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin/comment-moderation" 
-            element={
-              <ProtectedRoute>
-                <CommentModeration />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/content-flagging" 
-            element={
-              <ProtectedRoute>
-                <ContentFlagging />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/report-management" 
-            element={
-              <ProtectedRoute>
-                <ReportManagement />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin/analytics" 
-            element={
-              <ProtectedRoute>
-                <AnalyticsDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route path="/admin/*" element={<Navigate to="/admin/dashboard" />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <NavigationProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/articles/:articleId" element={<ArticlePage />} />
+            
+            <Route path="/category/:categoryId" element={<CategoryPage />} />
+            <Route path="/headliners" element={<CategoryPage />} />
+            <Route path="/debates" element={<CategoryPage />} />
+            <Route path="/spice-it-up" element={<CategoryPage />} />
+            <Route path="/in-the-neighborhood" element={<CategoryPage />} />
+            <Route path="/learning" element={<CategoryPage />} />
+            <Route path="/school-news" element={<CategoryPage />} />
+            
+            <Route path="/storyboard/:seriesId" element={<StoryboardPage />} />
+            <Route path="/storyboard" element={<StoryboardCategoryPage />} />
+            <Route path="/storyboard/:seriesId/episode/:episodeId" element={<StoryboardEpisodePage />} />
+            <Route path="/about" element={<About />} />
+            
+            <Route path="/reader-auth" element={<ReaderAuth />} />
+            
+            <Route path="/profile/:userId" element={<ProfilePage />} />
+            <Route 
+              path="/profile/edit" 
+              element={
+                <ProtectedRoute>
+                  <ProfileEditPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminPortalIndex />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/articles" 
+              element={
+                <ProtectedRoute>
+                  <MyArticles />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/articles/new" 
+              element={
+                <ProtectedRoute>
+                  <ArticleEditor />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/articles/:articleId" 
+              element={
+                <ProtectedRoute>
+                  <ArticleEditor />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/media" 
+              element={
+                <ProtectedRoute>
+                  <MediaManager />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute>
+                  <UserManagement />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/approval-queue" 
+              element={
+                <ProtectedRoute>
+                  <ApprovalQueue />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/reviews/:articleId" 
+              element={
+                <ProtectedRoute>
+                  <ArticleReview />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/comment-moderation" 
+              element={
+                <ProtectedRoute>
+                  <CommentModeration />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/content-flagging" 
+              element={
+                <ProtectedRoute>
+                  <ContentFlagging />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/report-management" 
+              element={
+                <ProtectedRoute>
+                  <ReportManagement />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/analytics" 
+              element={
+                <ProtectedRoute>
+                  <AnalyticsDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route path="/admin/*" element={<Navigate to="/admin/dashboard" />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </NavigationProvider>
       </Router>
     </ValidationProvider>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
 import { ArrowRight } from 'lucide-react';
 import { 
@@ -22,6 +22,7 @@ interface CategorySectionProps {
 
 const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const getCategoryIcon = (category: string): string => {
     const categoryMap: Record<string, string> = {
@@ -69,6 +70,16 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     return `/${slug.toLowerCase()}`;
   };
 
+  const handleCategoryNavigate = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const categoryUrl = getCategoryUrl();
+    logger.info(LogSource.NAVIGATION, 'Navigating to category', { 
+      category: title,
+      url: categoryUrl
+    });
+    navigate(categoryUrl);
+  };
+
   const handleArticleClick = (articleId: string) => {
     logger.info(LogSource.ARTICLE, 'Article clicked in carousel', { articleId, category: title });
   };
@@ -79,11 +90,14 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
         <div className="flex flex-col gap-4">
           <div>
             <h2 className="category-title">{title}</h2>
-            <p className="text-sm text-gray-500 mt-1 max-w-md">{getCategoryDescription(title)}</p>
+            <p className="text-sm text-gray-500 mt-1 max-w-md">
+              {getCategoryDescription(title)}
+            </p>
           </div>
           
           <Link 
             to={getCategoryUrl()} 
+            onClick={handleCategoryNavigate}
             className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline self-start"
           >
             See All <ArrowRight size={16} className="ml-1" />
