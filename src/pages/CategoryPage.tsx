@@ -1,5 +1,5 @@
 
-import React, { useEffect, memo } from 'react';
+import React, { useEffect, memo, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContainer from '@/components/Category/CategoryPageContainer';
@@ -25,14 +25,25 @@ const CategoryPage: React.FC = () => {
   const location = useLocation();
   const categoryRoute = getCategoryByPath(location.pathname);
   const resolvedCategoryId = categoryId || categoryRoute?.slug;
+  const mountCountRef = useRef(0);
   
   useEffect(() => {
+    mountCountRef.current += 1;
+    
     logger.info(LogSource.APP, 'Category page loaded', {
       categoryId: resolvedCategoryId,
       pathname: location.pathname,
       key: location.key,
-      routeInfo: categoryRoute
+      routeInfo: categoryRoute,
+      mountCount: mountCountRef.current
     });
+    
+    return () => {
+      logger.info(LogSource.APP, 'Category page unmounted', {
+        categoryId: resolvedCategoryId,
+        pathname: location.pathname
+      });
+    };
   }, [resolvedCategoryId, location.pathname, location.key, categoryRoute]);
 
   return (
@@ -43,4 +54,3 @@ const CategoryPage: React.FC = () => {
 };
 
 export default CategoryPage;
-

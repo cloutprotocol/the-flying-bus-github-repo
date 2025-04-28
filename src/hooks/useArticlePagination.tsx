@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleSortType, ArticleData, UseArticlePaginationReturn } from './article/types';
@@ -19,25 +19,48 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   const [error, setError] = useState<Error | null>(null);
   const [filters, setFilters] = useState<ArticleFilterParams>(getDefaultFilters(initialFilters));
   const { toast } = useToast();
+  
+  // Track previous category ID to prevent redundant fetches
+  const prevCategoryIdRef = useRef<string | null>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isStale = false;
     const minLoadingTime = 750; // Minimum loading time in milliseconds
     
+    // Skip fetch if no category is selected
+    if (!filters.categoryId) {
+      return;
+    }
+    
+    // Skip fetch if the category hasn't changed and we've already loaded data
+    if (filters.categoryId === prevCategoryIdRef.current && articles.length > 0) {
+      logger.info(LogSource.ARTICLE, 'Skipping duplicate fetch for same category', { 
+        categoryId: filters.categoryId
+      });
+      return;
+    }
+    
+    // Update the previous category ID reference
+    prevCategoryIdRef.current = filters.categoryId;
+    
+    // Generate a unique request ID
+    const requestId = `fetch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    activeRequestIdRef.current = requestId;
+    
+    setStableLoading(true);
+    setIsLoading(true);
+    setError(null);
+
+    const startTime = Date.now();
+
     const fetchArticles = async () => {
-      if (!filters.categoryId) return;
-      
-      setStableLoading(true);
-      setIsLoading(true);
-      setError(null);
-
-      const startTime = Date.now();
-
       try {
         logger.info(LogSource.ARTICLE, 'Fetching articles with filters', { 
           categoryId: filters.categoryId,
           page: filters.page,
-          sortBy: filters.sortBy
+          sortBy: filters.sortBy,
+          requestId
         });
         
         const query = buildArticleQuery(supabase, filters);
@@ -45,6 +68,15 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
 
         if (fetchError) {
           throw new Error(`Error fetching articles: ${fetchError.message}`);
+        }
+
+        // If this request was superseded by a newer one, don't update state
+        if (activeRequestIdRef.current !== requestId) {
+          logger.info(LogSource.ARTICLE, 'Request superseded, discarding results', { 
+            requestId,
+            activeRequestId: activeRequestIdRef.current
+          });
+          return;
         }
 
         const loadingDuration = Date.now() - startTime;
@@ -59,11 +91,12 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           
           logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
             count: data?.length || 0, 
-            totalCount: count
+            totalCount: count,
+            requestId
           });
         }
       } catch (err) {
-        if (!isStale) {
+        if (!isStale && activeRequestIdRef.current === requestId) {
           logger.error(LogSource.ARTICLE, 'Error in useArticlePagination', err);
           setError(err instanceof Error ? err : new Error('Unknown error occurred'));
           
@@ -74,7 +107,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           });
         }
       } finally {
-        if (!isStale) {
+        if (!isStale && activeRequestIdRef.current === requestId) {
           setIsLoading(false);
           // Delayed removal of stable loading state for smooth transition
           setTimeout(() => setStableLoading(false), 150);
@@ -87,7 +120,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
     return () => {
       isStale = true;
     };
-  }, [filters, toast]);
+  }, [filters, toast, articles.length]);
 
   // Calculate total pages
   const totalPages = Math.ceil(totalCount / filters.pageSize!);
@@ -99,7 +132,12 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
 
   // Filter convenience methods
   const setPage = (page: number) => updateFiltersHandler({ page });
-  const setCategory = (categoryId: string) => updateFiltersHandler({ categoryId });
+  const setCategory = (categoryId: string) => {
+    // Only update if category has changed
+    if (categoryId !== filters.categoryId) {
+      updateFiltersHandler({ categoryId, page: 1 });
+    }
+  };
   const setReadingLevel = (readingLevel: string | null) => updateFiltersHandler({ readingLevel });
   const setSortBy = (sortBy: ArticleSortType) => updateFiltersHandler({ sortBy });
   const setSearchQuery = (searchQuery: string) => updateFiltersHandler({ searchQuery: searchQuery || undefined });

@@ -1,8 +1,13 @@
+
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { getCategoryBySlug } from '@/utils/navigation/categoryRoutes';
 import { fetchCategoryBySlug } from '@/utils/categoryUtils';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
+
+// Cache for category resolution to reduce redundant database calls
+const categoryResolutionCache: Record<string, { name: string | null; timestamp: number }> = {};
+const CACHE_EXPIRY = 60 * 1000; // 1 minute in milliseconds
 
 /**
  * Convert a slug to a display category name with improved error handling
@@ -11,6 +16,14 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
   if (!slug) {
     logger.warn(LogSource.APP, 'No slug provided to getCategoryFromSlug');
     return null;
+  }
+  
+  // Check cache first
+  const now = Date.now();
+  const cachedResult = categoryResolutionCache[slug];
+  if (cachedResult && now - cachedResult.timestamp < CACHE_EXPIRY) {
+    logger.info(LogSource.APP, `Using cached category for slug: ${slug}`);
+    return cachedResult.name;
   }
   
   try {
@@ -22,6 +35,7 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
     
     if (category?.name) {
       logger.info(LogSource.APP, `Category found in database: ${category.name}`);
+      categoryResolutionCache[slug] = { name: category.name, timestamp: now };
       return category.name;
     }
     
@@ -29,6 +43,7 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
     const localCategory = getCategoryBySlug(slug);
     if (localCategory) {
       logger.info(LogSource.APP, `Category found in local mapping: ${localCategory.name}`);
+      categoryResolutionCache[slug] = { name: localCategory.name, timestamp: now };
       return localCategory.name;
     }
     
@@ -38,12 +53,14 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
       const normalizedCategory = await fetchCategoryBySlug(normalizedSlug);
       if (normalizedCategory?.name) {
         logger.info(LogSource.APP, `Category found with normalized slug: ${normalizedCategory.name}`);
+        categoryResolutionCache[slug] = { name: normalizedCategory.name, timestamp: now };
         return normalizedCategory.name;
       }
     }
     
     // Log warning if category not found
     logger.warn(LogSource.APP, `Category not found for any slug variation: ${slug}`);
+    categoryResolutionCache[slug] = { name: null, timestamp: now };
     return null;
     
   } catch (error) {

@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
@@ -9,6 +10,7 @@ import { getCategoryColorClass } from '@/utils/category/categoryHelpers';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { getCategoryByPath, categoryRoutes } from '@/utils/navigation/categoryRoutes';
+import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -17,6 +19,7 @@ interface CategoryPageContainerProps {
 const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category: propCategory }) => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const location = useLocation();
+  const prevCategoryRef = useRef<string | null>(null);
   
   const pathCategory = location.pathname.split('/')[1];
   const routeCategory = getCategoryByPath(location.pathname);
@@ -59,10 +62,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     handleClearFilters
   } = useCategoryFilters(clearFilters);
 
-  React.useEffect(() => {
-    if (categoryData?.id) {
+  useEffect(() => {
+    // Only set category if we have valid category data and it's different from before
+    if (categoryData?.id && prevCategoryRef.current !== categoryData.id) {
+      prevCategoryRef.current = categoryData.id;
       setCategory(categoryData.id);
-      logger.info(LogSource.APP, `Category loaded: ${displayCategory}`);
+      logger.info(LogSource.APP, `Category loaded and set: ${displayCategory}`);
     }
   }, [categoryData?.id, displayCategory, setCategory]);
 
@@ -94,27 +99,37 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   return (
     <div className="max-w-6xl mx-auto">
-      <CategoryPageContent 
-        displayCategory={displayCategory} 
-        colorClass={colorClass}
-        breadcrumbItems={[
-          { label: 'Home', href: '/' },
-          { label: displayCategory || '', active: true }
-        ]}
-        sortBy={isLoadingArticles ? 'newest' : 'newest'}
-        onSortChange={handleSortChange}
-        availableReadingLevels={availableReadingLevels}
-        selectedReadingLevel={selectedReadingLevel}
-        onReadingLevelChange={handleReadingLevelChange}
-        hasActiveFilters={hasActiveFilters}
-        clearFilters={handleClearFilters}
-        paginatedArticles={paginatedArticles}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        isLoading={isLoadingArticles}
-        stableLoading={stableLoading}
-      />
+      <ErrorBoundary 
+        component="CategoryPageContent"
+        fallback={
+          <div className="p-6 bg-red-50 rounded-lg border border-red-200">
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error displaying category content</h3>
+            <p className="text-red-600">There was a problem loading the articles for this category.</p>
+          </div>
+        }
+      >
+        <CategoryPageContent 
+          displayCategory={displayCategory} 
+          colorClass={colorClass}
+          breadcrumbItems={[
+            { label: 'Home', href: '/' },
+            { label: displayCategory || '', active: true }
+          ]}
+          sortBy={isLoadingArticles ? 'newest' : 'newest'}
+          onSortChange={handleSortChange}
+          availableReadingLevels={availableReadingLevels}
+          selectedReadingLevel={selectedReadingLevel}
+          onReadingLevelChange={handleReadingLevelChange}
+          hasActiveFilters={hasActiveFilters}
+          clearFilters={handleClearFilters}
+          paginatedArticles={paginatedArticles}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          isLoading={isLoadingArticles}
+          stableLoading={stableLoading}
+        />
+      </ErrorBoundary>
     </div>
   );
 };
