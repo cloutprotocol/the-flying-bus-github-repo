@@ -1,6 +1,5 @@
 
 import { getNavItemsFromCategories } from '@/utils/navigation/categoryRoutes';
-import { NavItem } from '@/components/Layout/menuItems';
 
 // Define the NavItem interface that can be used throughout the app
 export interface NavItem {
@@ -24,4 +23,3 @@ const menuItems: NavItem[] = [
 ];
 
 export default menuItems;
-
