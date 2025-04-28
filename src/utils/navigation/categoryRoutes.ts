@@ -1,15 +1,12 @@
 
-import { getCategoryIcon } from '@/utils/getCategoryIcon';
-import { NavItem } from '@/components/Layout/menuItems';
-
 export interface CategoryRoute {
   path: string;
   slug: string;
   name: string;
   description?: string;
-  color?: string;
 }
 
+// Define routes with consistent slugs matching database
 export const categoryRoutes: CategoryRoute[] = [
   {
     path: '/headliners',
@@ -25,7 +22,7 @@ export const categoryRoutes: CategoryRoute[] = [
   },
   {
     path: '/spice-it-up',
-    slug: 'spice-it-up',
+    slug: 'spice',
     name: 'Spice It Up',
     description: 'Fun and interesting stories'
   },
@@ -36,8 +33,8 @@ export const categoryRoutes: CategoryRoute[] = [
     description: 'Stories that continue'
   },
   {
-    path: '/in-the-neighborhood',
-    slug: 'in-the-neighborhood',
+    path: '/neighborhood',
+    slug: 'neighborhood',
     name: 'In the Neighborhood',
     description: 'Local news and events'
   },
@@ -49,13 +46,13 @@ export const categoryRoutes: CategoryRoute[] = [
   },
   {
     path: '/school-news',
-    slug: 'school-news',
+    slug: 'school',
     name: 'School News',
     description: 'Updates from schools'
   }
 ];
 
-export function getNavItemsFromCategories(): NavItem[] {
+export function getNavItemsFromCategories() {
   return categoryRoutes.map(route => ({
     text: route.name,
     label: route.name,
@@ -66,10 +63,15 @@ export function getNavItemsFromCategories(): NavItem[] {
 }
 
 export function getCategoryBySlug(slug: string): CategoryRoute | undefined {
-  return categoryRoutes.find(route => route.slug === slug);
+  const sanitizedSlug = slug.toLowerCase();
+  return categoryRoutes.find(route => route.slug === sanitizedSlug);
 }
 
 export function getCategoryByPath(path: string): CategoryRoute | undefined {
-  return categoryRoutes.find(route => route.path === path);
+  // Remove leading slash for comparison if present
+  const sanitizedPath = path.startsWith('/') ? path.slice(1) : path;
+  return categoryRoutes.find(route => {
+    const routePath = route.path.startsWith('/') ? route.path.slice(1) : route.path;
+    return routePath === sanitizedPath;
+  });
 }
-

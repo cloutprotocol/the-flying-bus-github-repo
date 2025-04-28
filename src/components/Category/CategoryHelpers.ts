@@ -1,39 +1,42 @@
 
-import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
+import { getCategoryBySlug } from '@/utils/navigation/categoryRoutes';
 import { fetchCategoryBySlug } from '@/utils/categoryUtils';
+import { ArticleProps } from '@/components/Articles/ArticleCard';
 
 /**
- * Convert a slug to a display category name
- * @param slug The URL slug to convert
- * @returns The formatted category name
+ * Convert a slug to a display category name with improved error handling
  */
 export const getCategoryFromSlug = async (slug: string | undefined): Promise<string | null> => {
-  if (!slug) return null;
+  if (!slug) {
+    logger.warn(LogSource.APP, 'No slug provided to getCategoryFromSlug');
+    return null;
+  }
   
   try {
+    // First try to get category from database
     const category = await fetchCategoryBySlug(slug);
-    return category?.name || null;
+    
+    if (category?.name) {
+      logger.info(LogSource.APP, `Category found in database: ${category.name}`);
+      return category.name;
+    }
+    
+    // If not found in database, try local mapping
+    const localCategory = getCategoryBySlug(slug);
+    if (localCategory) {
+      logger.info(LogSource.APP, `Category found in local mapping: ${localCategory.name}`);
+      return localCategory.name;
+    }
+    
+    // Log warning if category not found
+    logger.warn(LogSource.APP, `Category not found for slug: ${slug}`);
+    return null;
+    
   } catch (error) {
-    console.error('Error getting category from slug:', error);
-    
-    // Fallback to local mapping if API fails
-    const categoryMap: Record<string, string> = {
-      'headliners': 'Headliners',
-      'debates': 'Debates',
-      'spice-it-up': 'Spice It Up',
-      'storyboard': 'Storyboard',
-      'in-the-neighborhood': 'In the Neighborhood',
-      'learning': 'Learning',
-      'school-news': 'School News',
-      'neighborhood': 'In the Neighborhood',
-      'spice': 'Spice It Up',
-      'school': 'School News'
-    };
-    
-    // Convert to lowercase to make the lookup case-insensitive
-    const normalizedSlug = slug.toLowerCase();
-    
-    return categoryMap[normalizedSlug] || null;
+    logger.error(LogSource.APP, `Error getting category from slug: ${slug}`, error);
+    return null;
   }
 };
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
@@ -9,6 +8,7 @@ import { useCategoryFilters } from '@/hooks/category/useCategoryFilters';
 import { getCategoryColorClass } from '@/utils/category/categoryHelpers';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { getCategoryByPath } from '@/utils/navigation/categoryRoutes';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -17,8 +17,10 @@ interface CategoryPageContainerProps {
 const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category: propCategory }) => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const location = useLocation();
+  
   const pathCategory = location.pathname.split('/')[1];
-  const categorySlug = propCategory || categoryId || pathCategory;
+  const routeCategory = getCategoryByPath(location.pathname);
+  const categorySlug = propCategory || categoryId || routeCategory?.slug || pathCategory;
 
   const {
     categoryData,
@@ -54,11 +56,11 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   React.useEffect(() => {
     if (categoryData?.id) {
       setCategory(categoryData.id);
+      logger.info(LogSource.APP, `Category loaded: ${displayCategory}`);
     }
-  }, [categoryData?.id, setCategory]);
+  }, [categoryData?.id, displayCategory, setCategory]);
 
-  // Show error states if needed
-  if (categoryError || articlesError) {
+  if (categoryError) {
     return (
       <div className="max-w-6xl mx-auto">
         <NotFoundMessage 
@@ -69,9 +71,8 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     );
   }
 
-  // Show not found if category doesn't exist
   if (!isLoadingCategory && !categoryData) {
-    logger.warn(LogSource.CLIENT, `Category not found: ${categorySlug}`);
+    logger.warn(LogSource.APP, `Category not found: ${categorySlug}`);
     return (
       <div className="max-w-6xl mx-auto">
         <NotFoundMessage 
