@@ -3,6 +3,7 @@ import React, { useEffect, memo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import CategoryPageContainer from '@/components/Category/CategoryPageContainer';
+import { getCategoryByPath } from '@/utils/navigation/categoryRoutes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -22,18 +23,21 @@ CategoryPageContent.displayName = 'CategoryPageContent';
 const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const location = useLocation();
+  const categoryRoute = getCategoryByPath(location.pathname);
+  const resolvedCategoryId = categoryId || categoryRoute?.slug;
   
   useEffect(() => {
     logger.info(LogSource.APP, 'Category page loaded', {
-      categoryId,
+      categoryId: resolvedCategoryId,
       pathname: location.pathname,
-      key: location.key
+      key: location.key,
+      routeInfo: categoryRoute
     });
-  }, [categoryId, location.pathname, location.key]);
+  }, [resolvedCategoryId, location.pathname, location.key, categoryRoute]);
 
   return (
     <MainLayout fullWidth={true}>
-      <CategoryPageContent categoryId={categoryId} />
+      <CategoryPageContent categoryId={resolvedCategoryId} />
     </MainLayout>
   );
 };

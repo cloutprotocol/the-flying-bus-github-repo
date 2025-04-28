@@ -1,4 +1,6 @@
 
+import React from 'react';
+import { categoryRoutes } from '@/utils/navigation/categoryRoutes';
 import Index from '@/pages/Index';
 import ArticlePage from '@/pages/ArticlePage';
 import CategoryPage from '@/pages/CategoryPage';
@@ -9,16 +11,17 @@ import NotFound from '@/pages/NotFound';
 import About from '@/pages/About';
 import ReaderAuth from '@/pages/ReaderAuth';
 
+// Generate category routes from our configuration
+const categoryRoutes = categoryRoutes.map(route => ({
+  path: route.path,
+  element: <CategoryPage />
+}));
+
 export const publicRoutes = [
   { path: "/", element: <Index /> },
   { path: "/articles/:articleId", element: <ArticlePage /> },
   { path: "/category/:categoryId", element: <CategoryPage /> },
-  { path: "/headliners", element: <CategoryPage /> },
-  { path: "/debates", element: <CategoryPage /> },
-  { path: "/spice-it-up", element: <CategoryPage /> },
-  { path: "/in-the-neighborhood", element: <CategoryPage /> },
-  { path: "/learning", element: <CategoryPage /> },
-  { path: "/school-news", element: <CategoryPage /> },
+  ...categoryRoutes,
   { path: "/storyboard/:seriesId", element: <StoryboardPage /> },
   { path: "/storyboard", element: <StoryboardCategoryPage /> },
   { path: "/storyboard/:seriesId/episode/:episodeId", element: <StoryboardEpisodePage /> },
@@ -26,3 +29,4 @@ export const publicRoutes = [
   { path: "/reader-auth", element: <ReaderAuth /> },
   { path: "*", element: <NotFound /> }
 ];
+
