@@ -50,7 +50,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     handleClearFilters
   } = useCategoryFilters(clearFilters);
 
-  // Set category ID for fetching articles once category data is loaded
   React.useEffect(() => {
     if (categoryData?.id) {
       setCategory(categoryData.id);
@@ -84,10 +83,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   const colorClass = getCategoryColorClass(displayCategory, categoryData?.color);
   const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
-  
-  // Determine if we're in a loading state - consider both category and article loading
-  // We're adding a slight artificial delay to category loading to prevent flashing
-  const isLoading = isLoadingCategory || isLoadingArticles;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -105,11 +100,11 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
         onReadingLevelChange={handleReadingLevelChange}
         hasActiveFilters={hasActiveFilters}
         clearFilters={handleClearFilters}
-        paginatedArticles={paginatedArticles || []}
+        paginatedArticles={paginatedArticles}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setPage}
-        isLoading={isLoading}
+        isLoading={isLoadingArticles}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import Breadcrumb from '@/components/Navigation/Breadcrumb';
@@ -85,21 +84,19 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
         hasActiveFilters={hasActiveFilters}
       />
       
-      {/* Articles Grid with Improved Loading State */}
+      {/* Articles Grid with Loading State */}
       <ArticlesGrid 
         articles={paginatedArticles}
         hasActiveFilters={hasActiveFilters}
         isLoading={isLoading}
       />
       
-      {/* Only show pagination when we have articles and aren't loading */}
-      {!isLoading && paginatedArticles.length > 0 && totalPages > 1 && (
-        <PaginationControls 
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-        />
-      )}
+      {/* Pagination */}
+      <PaginationControls 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+      />
     </>
   );
 };
