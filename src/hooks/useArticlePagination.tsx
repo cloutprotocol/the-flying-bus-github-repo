@@ -118,7 +118,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   return {
     articles,
     isLoading,
-    stableLoading, // Add this to the return object
+    stableLoading,
     error,
     totalCount,
     totalPages,

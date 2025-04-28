@@ -21,6 +21,7 @@ export interface ArticleData {
 export interface UseArticlePaginationReturn {
   articles: ArticleData[];
   isLoading: boolean;
+  stableLoading: boolean; // Added the stableLoading property
   error: Error | null;
   totalCount: number;
   totalPages: number;
