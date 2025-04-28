@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import Breadcrumb from '@/components/Navigation/Breadcrumb';
@@ -7,7 +6,6 @@ import CategoryHeader from '@/components/Category/CategoryHeader';
 import ActiveFilters from '@/components/Category/ActiveFilters';
 import ArticlesGrid from '@/components/Category/ArticlesGrid';
 import PaginationControls from '@/components/Category/PaginationControls';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface BreadcrumbItem {
   label: string;
@@ -30,6 +28,7 @@ interface CategoryPageContentProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  isLoading?: boolean;
 }
 
 const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
@@ -46,7 +45,8 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
   paginatedArticles,
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  isLoading = false
 }) => {
   if (!displayCategory) return null;
   
@@ -59,7 +59,6 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
           colorName={colorClass}
         />
         
-        {/* Enhanced Breadcrumb */}
         <Breadcrumb 
           items={breadcrumbItems} 
           className="bg-white/90 backdrop-blur-sm rounded-lg py-2 px-4 shadow-sm"
@@ -85,19 +84,12 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
         hasActiveFilters={hasActiveFilters}
       />
       
-      {/* Articles Grid with Suspense */}
-      <Suspense fallback={
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array(6).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-[300px] w-full rounded-lg" />
-          ))}
-        </div>
-      }>
-        <ArticlesGrid 
-          articles={paginatedArticles}
-          hasActiveFilters={hasActiveFilters}
-        />
-      </Suspense>
+      {/* Articles Grid with Loading State */}
+      <ArticlesGrid 
+        articles={paginatedArticles}
+        hasActiveFilters={hasActiveFilters}
+        isLoading={isLoading}
+      />
       
       {/* Pagination */}
       <PaginationControls 

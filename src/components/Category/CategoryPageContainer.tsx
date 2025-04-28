@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
-import CategoryPageSkeleton from '@/components/Category/CategoryPageSkeleton';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { useArticlePagination } from '@/hooks/useArticlePagination';
 import { useCategoryData } from '@/hooks/category/useCategoryData';
@@ -25,12 +25,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     displayCategory,
     availableReadingLevels,
     isLoadingCategory,
-    error
+    error: categoryError
   } = useCategoryData(categorySlug);
 
   const {
     articles: paginatedArticles,
-    isLoading,
+    isLoading: isLoadingArticles,
     error: articlesError,
     totalPages,
     currentPage,
@@ -56,8 +56,21 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     }
   }, [categoryData?.id, setCategory]);
 
+  // Show error states if needed
+  if (categoryError || articlesError) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <NotFoundMessage 
+          title="Error Loading Category"
+          message="We couldn't load the content for this category. Please try again later."
+        />
+      </div>
+    );
+  }
+
+  // Show not found if category doesn't exist
   if (!isLoadingCategory && !categoryData) {
-    logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
+    logger.warn(LogSource.CLIENT, `Category not found: ${categorySlug}`);
     return (
       <div className="max-w-6xl mx-auto">
         <NotFoundMessage 
@@ -68,30 +81,6 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     );
   }
 
-  if (error || articlesError) {
-    return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-4">Oops! Something went wrong</h1>
-        <p className="text-gray-600 mb-6">
-          {error || "We couldn't load the articles for this category. Please try again later."}
-        </p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="px-4 py-2 bg-flyingbus-blue text-white rounded-md"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  if ((isLoadingCategory || isLoading) && !paginatedArticles.length) {
-    logger.info(LogSource.CLIENT, 'Displaying category page skeleton loader');
-    return <CategoryPageSkeleton />;
-  }
-
-  logger.info(LogSource.CLIENT, `Rendering category page: ${displayCategory}, articles: ${paginatedArticles.length}`);
-  
   const colorClass = getCategoryColorClass(displayCategory, categoryData?.color);
   const hasActiveFilters = selectedReadingLevel !== null || currentPage > 1;
 
@@ -104,7 +93,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
           { label: 'Home', href: '/' },
           { label: displayCategory || '', active: true }
         ]}
-        sortBy={isLoading ? 'newest' : 'newest'}
+        sortBy={isLoadingArticles ? 'newest' : 'newest'}
         onSortChange={handleSortChange}
         availableReadingLevels={availableReadingLevels}
         selectedReadingLevel={selectedReadingLevel}
@@ -115,6 +104,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setPage}
+        isLoading={isLoadingArticles}
       />
     </div>
   );
