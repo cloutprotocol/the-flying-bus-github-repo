@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
@@ -60,10 +59,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   if (!isLoadingCategory && !categoryData) {
     logger.warn(LogSource.CLIENT, `Displaying not found message for category: ${categorySlug}`);
     return (
-      <NotFoundMessage 
-        title="Category Not Found"
-        message="Sorry, we couldn't find the category you're looking for."
-      />
+      <div className="max-w-6xl mx-auto">
+        <NotFoundMessage 
+          title="Category Not Found"
+          message="Sorry, we couldn't find the category you're looking for."
+        />
+      </div>
     );
   }
 
