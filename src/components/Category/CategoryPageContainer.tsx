@@ -9,7 +9,7 @@ import { useCategoryFilters } from '@/hooks/category/useCategoryFilters';
 import { getCategoryColorClass } from '@/utils/category/categoryHelpers';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { getCategoryByPath, categoryRoutes } from '@/utils/navigation/categoryRoutes';
+import { getCategoryByPath, getCategoryBySlug, categoryRoutes } from '@/utils/navigation/categoryRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary';
 
 interface CategoryPageContainerProps {
@@ -20,16 +20,30 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const { categoryId } = useParams<{ categoryId: string }>();
   const location = useLocation();
   const prevCategoryRef = useRef<string | null>(null);
+  const categorySetOnceRef = useRef(false);
   
   const pathCategory = location.pathname.split('/')[1];
   const routeCategory = getCategoryByPath(location.pathname);
-
+  
+  // Handle legacy URLs
   if (pathCategory === 'in-the-neighborhood') {
     logger.info(LogSource.APP, 'Redirecting from legacy URL to canonical URL');
     return <Navigate to="/neighborhood" replace />;
   }
-
-  const categorySlug = propCategory || categoryId || routeCategory?.slug || pathCategory;
+  
+  // Handle special cases for Spice It Up and School News
+  let categorySlug = propCategory || categoryId || routeCategory?.slug || pathCategory;
+  
+  // Handle known slug variants
+  if (categorySlug === 'spice') categorySlug = 'spice-it-up';
+  if (categorySlug === 'school') categorySlug = 'school-news';
+  
+  logger.info(LogSource.APP, `Resolving category for slug: ${categorySlug}`, {
+    propCategory,
+    categoryId,
+    routeCategory: routeCategory?.slug,
+    pathCategory
+  });
 
   const {
     categoryData,
@@ -64,10 +78,16 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   useEffect(() => {
     // Only set category if we have valid category data and it's different from before
-    if (categoryData?.id && prevCategoryRef.current !== categoryData.id) {
+    if (categoryData?.id && !categorySetOnceRef.current) {
+      categorySetOnceRef.current = true;
       prevCategoryRef.current = categoryData.id;
+      
+      logger.info(LogSource.APP, `Setting initial category: ${displayCategory}`, {
+        categoryId: categoryData.id,
+        displayName: displayCategory
+      });
+      
       setCategory(categoryData.id);
-      logger.info(LogSource.APP, `Category loaded and set: ${displayCategory}`);
     }
   }, [categoryData?.id, displayCategory, setCategory]);
 

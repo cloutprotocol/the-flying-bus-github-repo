@@ -38,6 +38,21 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
       categoryResolutionCache[slug] = { name: category.name, timestamp: now };
       return category.name;
     }
+
+    // Try with path variation for "spice-it-up" and "school-news"
+    const alternativeSlug = 
+      slug === 'spice' ? 'spice-it-up' : 
+      slug === 'school' ? 'school-news' : null;
+      
+    if (alternativeSlug) {
+      logger.info(LogSource.APP, `Trying alternative slug: ${alternativeSlug}`);
+      const alternativeCategory = await fetchCategoryBySlug(alternativeSlug);
+      if (alternativeCategory?.name) {
+        logger.info(LogSource.APP, `Category found with alternative slug: ${alternativeCategory.name}`);
+        categoryResolutionCache[slug] = { name: alternativeCategory.name, timestamp: now };
+        return alternativeCategory.name;
+      }
+    }
     
     // If not found in database, try local mapping
     const localCategory = getCategoryBySlug(slug);

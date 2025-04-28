@@ -23,6 +23,14 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   // Track previous category ID to prevent redundant fetches
   const prevCategoryIdRef = useRef<string | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isStale = false;
@@ -30,23 +38,30 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
     
     // Skip fetch if no category is selected
     if (!filters.categoryId) {
+      logger.info(LogSource.ARTICLE, 'No category ID provided, skipping fetch');
       return;
     }
     
     // Skip fetch if the category hasn't changed and we've already loaded data
-    if (filters.categoryId === prevCategoryIdRef.current && articles.length > 0) {
+    if (filters.categoryId === prevCategoryIdRef.current && articles.length > 0 && !filters.forceRefresh) {
       logger.info(LogSource.ARTICLE, 'Skipping duplicate fetch for same category', { 
-        categoryId: filters.categoryId
+        categoryId: filters.categoryId,
+        prevCategoryId: prevCategoryIdRef.current
       });
       return;
     }
     
-    // Update the previous category ID reference
-    prevCategoryIdRef.current = filters.categoryId;
-    
     // Generate a unique request ID
     const requestId = `fetch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     activeRequestIdRef.current = requestId;
+    
+    // Update the previous category ID reference
+    prevCategoryIdRef.current = filters.categoryId;
+    
+    logger.info(LogSource.ARTICLE, `Starting fetch for category: ${filters.categoryId}`, {
+      requestId,
+      prevArticlesCount: articles.length
+    });
     
     setStableLoading(true);
     setIsLoading(true);
@@ -65,6 +80,12 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         
         const query = buildArticleQuery(supabase, filters);
         const { data, error: fetchError, count } = await query;
+
+        // Don't update state if component unmounted
+        if (isStale || !isMountedRef.current) {
+          logger.info(LogSource.ARTICLE, 'Component unmounted, cancelling fetch', { requestId });
+          return;
+        }
 
         if (fetchError) {
           throw new Error(`Error fetching articles: ${fetchError.message}`);
@@ -85,18 +106,20 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         // Ensure minimum loading time for better UX
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
 
-        if (!isStale) {
+        // Final check that component is still mounted
+        if (!isStale && isMountedRef.current) {
           if (count !== null) setTotalCount(count);
           setArticles(transformArticleData(data || []));
           
           logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
             count: data?.length || 0, 
             totalCount: count,
-            requestId
+            requestId,
+            categoryId: filters.categoryId
           });
         }
       } catch (err) {
-        if (!isStale && activeRequestIdRef.current === requestId) {
+        if (!isStale && isMountedRef.current && activeRequestIdRef.current === requestId) {
           logger.error(LogSource.ARTICLE, 'Error in useArticlePagination', err);
           setError(err instanceof Error ? err : new Error('Unknown error occurred'));
           
@@ -107,10 +130,14 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           });
         }
       } finally {
-        if (!isStale && activeRequestIdRef.current === requestId) {
+        if (!isStale && isMountedRef.current && activeRequestIdRef.current === requestId) {
           setIsLoading(false);
           // Delayed removal of stable loading state for smooth transition
-          setTimeout(() => setStableLoading(false), 150);
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              setStableLoading(false);
+            }
+          }, 150);
         }
       }
     };
@@ -135,7 +162,12 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   const setCategory = (categoryId: string) => {
     // Only update if category has changed
     if (categoryId !== filters.categoryId) {
-      updateFiltersHandler({ categoryId, page: 1 });
+      logger.info(LogSource.ARTICLE, `Setting new category: ${categoryId}`, {
+        previousCategoryId: filters.categoryId
+      });
+      updateFiltersHandler({ categoryId, page: 1, forceRefresh: true });
+    } else {
+      logger.info(LogSource.ARTICLE, `Category unchanged: ${categoryId}, skipping update`);
     }
   };
   const setReadingLevel = (readingLevel: string | null) => updateFiltersHandler({ readingLevel });

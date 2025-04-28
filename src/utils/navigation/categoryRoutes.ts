@@ -23,10 +23,10 @@ export const categoryRoutes: CategoryRoute[] = [
   },
   {
     path: '/spice-it-up',
-    slug: 'spice',
+    slug: 'spice-it-up',
     name: 'Spice It Up',
     description: 'Fun and interesting stories',
-    aliases: ['spice-it-up']
+    aliases: ['spice']
   },
   {
     path: '/neighborhood',
@@ -49,10 +49,10 @@ export const categoryRoutes: CategoryRoute[] = [
   },
   {
     path: '/school-news',
-    slug: 'school',
+    slug: 'school-news',
     name: 'School News',
     description: 'Updates from schools',
-    aliases: ['school-news']
+    aliases: ['school']
   }
 ];
 
@@ -67,19 +67,28 @@ export function getNavItemsFromCategories() {
 }
 
 export function getCategoryBySlug(slug: string): CategoryRoute | undefined {
+  if (!slug) return undefined;
+  
   const sanitizedSlug = slug.toLowerCase();
+  
+  // First try exact slug match
+  const exactMatch = categoryRoutes.find(route => route.slug === sanitizedSlug);
+  if (exactMatch) return exactMatch;
+  
+  // Then try aliases
   return categoryRoutes.find(route => 
-    route.slug === sanitizedSlug || 
     route.aliases?.includes(sanitizedSlug)
   );
 }
 
 export function getCategoryByPath(path: string): CategoryRoute | undefined {
+  if (!path) return undefined;
+  
   // Remove leading slash for comparison if present
   const sanitizedPath = path.startsWith('/') ? path.slice(1) : path;
+  
   return categoryRoutes.find(route => {
     const routePath = route.path.startsWith('/') ? route.path.slice(1) : route.path;
     return routePath === sanitizedPath;
   });
 }
-

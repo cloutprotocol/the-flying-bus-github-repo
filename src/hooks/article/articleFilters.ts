@@ -1,72 +1,72 @@
 
-import { ArticleSortType } from './types';
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ArticleFilterParams {
-  categoryId?: string;
+  categoryId?: string | null;
   readingLevel?: string | null;
-  sortBy?: ArticleSortType;
+  searchQuery?: string;
+  sortBy?: 'newest' | 'oldest' | 'a-z';
   page?: number;
   pageSize?: number;
-  searchQuery?: string;
-  authorId?: string;
+  forceRefresh?: boolean;
 }
 
-export const getDefaultFilters = (initialFilters: Partial<ArticleFilterParams> = {}): ArticleFilterParams => {
+export function getDefaultFilters(initialFilters: Partial<ArticleFilterParams> = {}): ArticleFilterParams {
   return {
+    categoryId: null,
+    readingLevel: null,
+    searchQuery: undefined,
+    sortBy: 'newest',
     page: 1,
     pageSize: 6,
-    sortBy: 'newest',
-    ...initialFilters,
+    forceRefresh: false,
+    ...initialFilters
   };
-};
+}
 
-export const updateFilters = (
+export function updateFilters(
   currentFilters: ArticleFilterParams, 
   newFilters: Partial<ArticleFilterParams>
-): ArticleFilterParams => {
-  // If changing anything other than the page, reset to page 1
-  if (Object.keys(newFilters).some(key => key !== 'page')) {
-    return {
-      ...currentFilters,
-      ...newFilters,
-      page: 1,
-    };
-  } else {
-    return {
-      ...currentFilters,
-      ...newFilters,
-    };
-  }
-};
+): ArticleFilterParams {
+  // Reset to page 1 if any filter changes (except page itself)
+  const shouldResetPage = 
+    (newFilters.categoryId !== undefined && newFilters.categoryId !== currentFilters.categoryId) ||
+    (newFilters.readingLevel !== undefined && newFilters.readingLevel !== currentFilters.readingLevel) ||
+    (newFilters.searchQuery !== undefined && newFilters.searchQuery !== currentFilters.searchQuery) ||
+    (newFilters.sortBy !== undefined && newFilters.sortBy !== currentFilters.sortBy);
 
-export const buildArticleQuery = (supabase: any, filters: ArticleFilterParams) => {
+  return {
+    ...currentFilters,
+    ...newFilters,
+    page: shouldResetPage ? 1 : (newFilters.page || currentFilters.page),
+    // Reset forceRefresh to false after it's been applied
+    forceRefresh: newFilters.forceRefresh === true ? true : false
+  };
+}
+
+export function buildArticleQuery(
+  supabase: SupabaseClient,
+  filters: ArticleFilterParams
+): PostgrestFilterBuilder<any, any, any> {
   let query = supabase
     .from('articles')
-    .select(`
-      id, 
-      title, 
-      excerpt, 
-      cover_image, 
-      category_id,
-      categories(id, name, slug, color),
-      author_id,
-      created_at,
-      published_at,
-      article_type
-    `, { count: 'exact' })
+    .select('*', { count: 'exact' })
     .eq('status', 'published');
 
-  // Apply filters
+  // Apply category filter
   if (filters.categoryId) {
     query = query.eq('category_id', filters.categoryId);
   }
 
-  if (filters.authorId) {
-    query = query.eq('author_id', filters.authorId);
+  // Apply reading level filter
+  if (filters.readingLevel) {
+    query = query.eq('reading_level', filters.readingLevel);
   }
 
+  // Apply search filter
   if (filters.searchQuery) {
-    query = query.or(`title.ilike.%${filters.searchQuery}%,excerpt.ilike.%${filters.searchQuery}%`);
+    query = query.ilike('title', `%${filters.searchQuery}%`);
   }
 
   // Apply sorting
@@ -80,15 +80,14 @@ export const buildArticleQuery = (supabase: any, filters: ArticleFilterParams) =
     case 'a-z':
       query = query.order('title', { ascending: true });
       break;
-    default:
-      query = query.order('published_at', { ascending: false });
   }
 
   // Apply pagination
-  const from = (filters.page! - 1) * filters.pageSize!;
-  const to = from + filters.pageSize! - 1;
-  
-  query = query.range(from, to);
+  const startIndex = ((filters.page || 1) - 1) * (filters.pageSize || 6);
+  query = query.range(
+    startIndex,
+    startIndex + (filters.pageSize || 6) - 1
+  );
 
   return query;
-};
+}

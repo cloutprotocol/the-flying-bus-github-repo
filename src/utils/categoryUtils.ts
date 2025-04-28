@@ -1,6 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 /**
  * Fetch all available categories from Supabase
@@ -12,7 +13,7 @@ export const fetchCategories = async () => {
     .order('name');
 
   if (error) {
-    console.error('Error fetching categories:', error);
+    logger.error(LogSource.API, 'Error fetching categories:', error);
     return [];
   }
 
@@ -25,15 +26,48 @@ export const fetchCategories = async () => {
 export const fetchCategoryBySlug = async (slug: string) => {
   if (!slug) return null;
   
+  // Normalize slug for lookup
+  const normalizedSlug = slug.toLowerCase().trim();
+  
+  logger.info(LogSource.API, `Fetching category by slug: ${normalizedSlug}`);
+  
   const { data, error } = await supabase
     .from('categories')
     .select('id, name, slug, description, color, icon')
-    .eq('slug', slug.toLowerCase())
+    .eq('slug', normalizedSlug)
     .maybeSingle();
 
   if (error) {
-    console.error('Error fetching category by slug:', error);
+    logger.error(LogSource.API, 'Error fetching category by slug:', error);
     return null;
+  }
+
+  if (!data) {
+    // Try alternative slug mappings for special cases
+    const slugMappings: Record<string, string> = {
+      'spice': 'spice-it-up',
+      'spice-it-up': 'spice',
+      'school': 'school-news',
+      'school-news': 'school'
+    };
+    
+    const alternativeSlug = slugMappings[normalizedSlug];
+    if (alternativeSlug) {
+      logger.info(LogSource.API, `Trying alternative slug: ${alternativeSlug}`);
+      
+      const { data: altData, error: altError } = await supabase
+        .from('categories')
+        .select('id, name, slug, description, color, icon')
+        .eq('slug', alternativeSlug)
+        .maybeSingle();
+        
+      if (!altError && altData) {
+        logger.info(LogSource.API, `Found category with alternative slug: ${altData.name}`);
+        return altData;
+      }
+    }
+    
+    logger.warn(LogSource.API, `No category found for slug: ${normalizedSlug}`);
   }
 
   return data;
@@ -98,7 +132,7 @@ export const fetchArticlesByCategory = async (
     .eq('status', 'published');
   
   if (countError) {
-    console.error('Error counting articles:', countError);
+    logger.error(LogSource.API, 'Error counting articles:', countError);
   }
   
   // Apply pagination
@@ -109,7 +143,7 @@ export const fetchArticlesByCategory = async (
   const { data, error } = await query;
   
   if (error) {
-    console.error('Error fetching articles by category:', error);
+    logger.error(LogSource.API, 'Error fetching articles by category:', error);
     return { articles: [], count: 0 };
   }
   

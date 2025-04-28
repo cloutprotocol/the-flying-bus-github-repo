@@ -1,42 +1,46 @@
 
 import { ArticleData } from './types';
 
-export const transformArticleData = (data: any[]): ArticleData[] => {
-  if (!data || !Array.isArray(data)) {
-    return [];
-  }
-
-  return data.map(article => {
-    // Handle author data - might be separate query or join in the future
-    let authorName = 'Unknown';
-    
-    // Get category information from the related categories data
-    const categoryName = article.categories?.name || 'Uncategorized';
-    const categoryColor = article.categories?.color?.split('-')[1] || 'blue'; 
-    const categorySlug = article.categories?.slug || 'uncategorized';
-
-    // Calculate estimated reading time (1 min per 200 words)
-    const wordCount = article.content ? article.content.split(/\s+/).length : 0;
-    const readTime = Math.max(1, Math.ceil(wordCount / 200));
-
+export function transformArticleData(articles: any[]): ArticleData[] {
+  return articles.map(article => {
     return {
       id: article.id,
-      title: article.title,
+      title: article.title || 'Untitled Article',
       excerpt: article.excerpt || '',
       content: article.content,
-      imageUrl: article.cover_image,
-      category: categoryName,
-      categorySlug,
-      categoryColor,
-      categoryId: article.category_id,
-      readingLevel: 'Intermediate', // Placeholder until we have reading levels
-      readTime: readTime || 3,
-      author: authorName,
-      date: new Date(article.published_at || article.created_at).toLocaleDateString(),
-      publishDate: article.published_at
-        ? new Date(article.published_at).toLocaleDateString()
-        : null,
-      articleType: article.article_type || 'standard'
+      imageUrl: article.cover_image || null,
+      category: article.category || '',
+      readingLevel: article.reading_level || 'All Ages',
+      readTime: calculateReadTime(article.content) || 3,
+      author: article.author_name || 'Unknown Author',
+      date: formatDate(article.published_at || article.created_at),
+      publishDate: article.published_at ? formatDate(article.published_at) : null,
+      commentCount: article.comment_count || 0,
+      videoUrl: article.video_url || null,
+      slug: article.slug || ''
     };
   });
-};
+}
+
+function calculateReadTime(content?: string): number {
+  if (!content) return 2;
+  
+  // Average reading speed: 200 words per minute
+  const wordCount = content.split(/\s+/).length;
+  return Math.max(1, Math.ceil(wordCount / 200));
+}
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return 'Unknown Date';
+  
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  } catch (e) {
+    return 'Invalid Date';
+  }
+}
