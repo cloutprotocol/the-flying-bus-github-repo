@@ -3,13 +3,22 @@ import { ArticleData } from './types';
 
 export function transformArticleData(articles: any[]): ArticleData[] {
   return articles.map(article => {
+    // Handle category data
+    const categoryName = article.category || 'Uncategorized';
+    const categorySlug = article.categories?.slug || article.categorySlug || 'uncategorized';
+    const categoryColor = article.categories?.color?.split('-')[1] || 'blue';
+    const categoryId = article.category_id || article.categoryId || null;
+    
     return {
       id: article.id,
       title: article.title || 'Untitled Article',
       excerpt: article.excerpt || '',
       content: article.content,
       imageUrl: article.cover_image || null,
-      category: article.category || '',
+      category: article.categories?.name || categoryName,
+      categorySlug: categorySlug,  // Add missing property
+      categoryColor: categoryColor, // Add missing property
+      categoryId: categoryId,       // Add missing property
       readingLevel: article.reading_level || 'All Ages',
       readTime: calculateReadTime(article.content) || 3,
       author: article.author_name || 'Unknown Author',
@@ -17,7 +26,8 @@ export function transformArticleData(articles: any[]): ArticleData[] {
       publishDate: article.published_at ? formatDate(article.published_at) : null,
       commentCount: article.comment_count || 0,
       videoUrl: article.video_url || null,
-      slug: article.slug || ''
+      slug: article.slug || '',
+      articleType: article.article_type || 'standard'  // Add missing property
     };
   });
 }
