@@ -31,6 +31,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const {
     articles: paginatedArticles,
     isLoading: isLoadingArticles,
+    stableLoading,
     error: articlesError,
     totalPages,
     currentPage,
@@ -105,6 +106,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
         totalPages={totalPages}
         onPageChange={setPage}
         isLoading={isLoadingArticles}
+        stableLoading={stableLoading}
       />
     </div>
   );

@@ -29,6 +29,7 @@ interface CategoryPageContentProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
+  stableLoading?: boolean;
 }
 
 const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
@@ -46,13 +47,14 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
   currentPage,
   totalPages,
   onPageChange,
-  isLoading = false
+  isLoading = false,
+  stableLoading = false
 }) => {
   if (!displayCategory) return null;
   
   return (
     <>
-      {/* Category Header */}
+      {/* Category Header and Breadcrumb */}
       <div className="flex flex-col gap-4 mb-6">
         <CategoryHeader 
           displayCategory={displayCategory} 
@@ -89,6 +91,7 @@ const CategoryPageContent: React.FC<CategoryPageContentProps> = ({
         articles={paginatedArticles}
         hasActiveFilters={hasActiveFilters}
         isLoading={isLoading}
+        stableLoading={stableLoading}
       />
       
       {/* Pagination */}

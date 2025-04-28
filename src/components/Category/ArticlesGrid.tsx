@@ -3,11 +3,13 @@ import React, { lazy, Suspense } from 'react';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InboxIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ArticlesGridProps {
   articles: ArticleProps[];
   hasActiveFilters: boolean;
   isLoading?: boolean;
+  stableLoading?: boolean;
 }
 
 const ArticleCard = lazy(() => import('@/components/Articles/ArticleCard'));
@@ -37,18 +39,23 @@ const LoadingGrid = () => (
 const ArticlesGrid: React.FC<ArticlesGridProps> = ({
   articles,
   hasActiveFilters,
-  isLoading = false
+  isLoading = false,
+  stableLoading = false
 }) => {
-  if (isLoading) {
+  if (stableLoading) {
     return <LoadingGrid />;
   }
 
-  if (articles.length === 0) {
+  if (!stableLoading && articles.length === 0) {
     return <EmptyState hasActiveFilters={hasActiveFilters} />;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className={cn(
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+      "transition-opacity duration-300",
+      isLoading ? "opacity-50" : "opacity-100"
+    )}>
       {articles.map((article) => (
         <Suspense 
           key={article.id} 

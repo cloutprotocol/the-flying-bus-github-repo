@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleSortType, ArticleData, UseArticlePaginationReturn } from './article/types';
 import { ArticleFilterParams, getDefaultFilters, updateFilters, buildArticleQuery } from './article/articleFilters';
-import { transformArticleData } from './article/transformArticleData';
+import { transformArticleData } from './article/articleTransformData';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -15,19 +15,23 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   const [articles, setArticles] = useState<ArticleData[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [stableLoading, setStableLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [filters, setFilters] = useState<ArticleFilterParams>(getDefaultFilters(initialFilters));
   const { toast } = useToast();
 
-  // Fetch articles based on current filters
   useEffect(() => {
+    let isStale = false;
+    const minLoadingTime = 750; // Minimum loading time in milliseconds
+    
     const fetchArticles = async () => {
-      if (!filters.categoryId) {
-        return; // Don't fetch if no category is selected
-      }
+      if (!filters.categoryId) return;
       
+      setStableLoading(true);
       setIsLoading(true);
       setError(null);
+
+      const startTime = Date.now();
 
       try {
         logger.info(LogSource.ARTICLE, 'Fetching articles with filters', { 
@@ -36,7 +40,6 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           sortBy: filters.sortBy
         });
         
-        // Build and execute the query
         const query = buildArticleQuery(supabase, filters);
         const { data, error: fetchError, count } = await query;
 
@@ -44,33 +47,46 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           throw new Error(`Error fetching articles: ${fetchError.message}`);
         }
 
-        if (count !== null) {
-          setTotalCount(count);
-        }
+        const loadingDuration = Date.now() - startTime;
+        const remainingDelay = Math.max(0, minLoadingTime - loadingDuration);
 
-        // Transform the data
-        const transformedArticles = transformArticleData(data || []);
-        setArticles(transformedArticles);
-        
-        logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
-          count: transformedArticles.length, 
-          totalCount: count
-        });
+        // Ensure minimum loading time for better UX
+        await new Promise(resolve => setTimeout(resolve, remainingDelay));
+
+        if (!isStale) {
+          if (count !== null) setTotalCount(count);
+          setArticles(transformArticleData(data || []));
+          
+          logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
+            count: data?.length || 0, 
+            totalCount: count
+          });
+        }
       } catch (err) {
-        logger.error(LogSource.ARTICLE, 'Error in useArticlePagination', err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-        
-        toast({
-          title: "Error loading articles",
-          description: err instanceof Error ? err.message : "Failed to load articles",
-          variant: "destructive"
-        });
+        if (!isStale) {
+          logger.error(LogSource.ARTICLE, 'Error in useArticlePagination', err);
+          setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+          
+          toast({
+            title: "Error loading articles",
+            description: err instanceof Error ? err.message : "Failed to load articles",
+            variant: "destructive"
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (!isStale) {
+          setIsLoading(false);
+          // Delayed removal of stable loading state for smooth transition
+          setTimeout(() => setStableLoading(false), 150);
+        }
       }
     };
 
     fetchArticles();
+
+    return () => {
+      isStale = true;
+    };
   }, [filters, toast]);
 
   // Calculate total pages
@@ -102,6 +118,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   return {
     articles,
     isLoading,
+    stableLoading, // Add this to the return object
     error,
     totalCount,
     totalPages,
