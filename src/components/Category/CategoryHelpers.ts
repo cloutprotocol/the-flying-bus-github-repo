@@ -1,4 +1,3 @@
-
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { getCategoryBySlug } from '@/utils/navigation/categoryRoutes';
@@ -15,6 +14,9 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
   }
   
   try {
+    // Log the incoming slug for debugging
+    logger.info(LogSource.APP, `Resolving category for slug: ${slug}`);
+    
     // First try to get category from database
     const category = await fetchCategoryBySlug(slug);
     
@@ -30,8 +32,18 @@ export const getCategoryFromSlug = async (slug: string | undefined): Promise<str
       return localCategory.name;
     }
     
+    // Try resolving with normalized slug
+    const normalizedSlug = slug.toLowerCase().replace(/\s+/g, '-');
+    if (normalizedSlug !== slug) {
+      const normalizedCategory = await fetchCategoryBySlug(normalizedSlug);
+      if (normalizedCategory?.name) {
+        logger.info(LogSource.APP, `Category found with normalized slug: ${normalizedCategory.name}`);
+        return normalizedCategory.name;
+      }
+    }
+    
     // Log warning if category not found
-    logger.warn(LogSource.APP, `Category not found for slug: ${slug}`);
+    logger.warn(LogSource.APP, `Category not found for any slug variation: ${slug}`);
     return null;
     
   } catch (error) {

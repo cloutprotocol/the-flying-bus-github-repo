@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, Navigate } from 'react-router-dom';
 import CategoryPageContent from '@/components/Category/CategoryPageContent';
 import NotFoundMessage from '@/components/Storyboard/NotFoundMessage';
 import { useArticlePagination } from '@/hooks/useArticlePagination';
@@ -8,7 +8,7 @@ import { useCategoryFilters } from '@/hooks/category/useCategoryFilters';
 import { getCategoryColorClass } from '@/utils/category/categoryHelpers';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { getCategoryByPath } from '@/utils/navigation/categoryRoutes';
+import { getCategoryByPath, categoryRoutes } from '@/utils/navigation/categoryRoutes';
 
 interface CategoryPageContainerProps {
   category?: string;
@@ -20,6 +20,12 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   
   const pathCategory = location.pathname.split('/')[1];
   const routeCategory = getCategoryByPath(location.pathname);
+
+  if (pathCategory === 'in-the-neighborhood') {
+    logger.info(LogSource.APP, 'Redirecting from legacy URL to canonical URL');
+    return <Navigate to="/neighborhood" replace />;
+  }
+
   const categorySlug = propCategory || categoryId || routeCategory?.slug || pathCategory;
 
   const {

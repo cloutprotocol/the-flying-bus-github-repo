@@ -4,6 +4,7 @@ export interface CategoryRoute {
   slug: string;
   name: string;
   description?: string;
+  aliases?: string[];  // Add aliases for alternative paths
 }
 
 // Define routes with consistent slugs matching database
@@ -24,19 +25,21 @@ export const categoryRoutes: CategoryRoute[] = [
     path: '/spice-it-up',
     slug: 'spice',
     name: 'Spice It Up',
-    description: 'Fun and interesting stories'
+    description: 'Fun and interesting stories',
+    aliases: ['spice-it-up']
+  },
+  {
+    path: '/neighborhood',
+    slug: 'neighborhood',
+    name: 'In the Neighborhood',
+    description: 'Local news and events',
+    aliases: ['in-the-neighborhood']
   },
   {
     path: '/storyboard',
     slug: 'storyboard',
     name: 'Storyboard',
     description: 'Stories that continue'
-  },
-  {
-    path: '/neighborhood',
-    slug: 'neighborhood',
-    name: 'In the Neighborhood',
-    description: 'Local news and events'
   },
   {
     path: '/learning',
@@ -48,7 +51,8 @@ export const categoryRoutes: CategoryRoute[] = [
     path: '/school-news',
     slug: 'school',
     name: 'School News',
-    description: 'Updates from schools'
+    description: 'Updates from schools',
+    aliases: ['school-news']
   }
 ];
 
@@ -64,7 +68,10 @@ export function getNavItemsFromCategories() {
 
 export function getCategoryBySlug(slug: string): CategoryRoute | undefined {
   const sanitizedSlug = slug.toLowerCase();
-  return categoryRoutes.find(route => route.slug === sanitizedSlug);
+  return categoryRoutes.find(route => 
+    route.slug === sanitizedSlug || 
+    route.aliases?.includes(sanitizedSlug)
+  );
 }
 
 export function getCategoryByPath(path: string): CategoryRoute | undefined {
@@ -75,3 +82,4 @@ export function getCategoryByPath(path: string): CategoryRoute | undefined {
     return routePath === sanitizedPath;
   });
 }
+
