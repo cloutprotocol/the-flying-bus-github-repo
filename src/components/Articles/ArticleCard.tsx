@@ -39,7 +39,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   excerpt,
   imageUrl,
   category,
-  categoryColor,
+  categoryColor = 'red',
   readingLevel,
   readTime = 3,
   author = 'Unknown',
@@ -47,16 +47,31 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   className,
   onClick,
 }) => {
+  // Helper function to get the appropriate color class for category badges
   const getCategoryColorClass = (colorName?: string) => {
-    if (!colorName) return 'bg-flyingbus-red';
-    return `bg-flyingbus-${colorName}`;
+    if (!colorName || colorName === 'undefined') {
+      logger.warn(LogSource.APP, `Missing category color for article ${id}, using default red`);
+      return 'bg-flyingbus-red';
+    }
+    
+    // Try to normalize the color name if it's in a different format
+    const normalizedColor = colorName.toLowerCase().trim();
+    
+    // Handle case where the full class name is provided
+    if (normalizedColor.startsWith('bg-')) {
+      return normalizedColor;
+    }
+    
+    return `bg-flyingbus-${normalizedColor}`;
   };
 
   const handleClick = () => {
     logger.info(LogSource.ARTICLE, 'Article card clicked', { 
       articleId: id, 
       articleTitle: title,
-      navigationUrl: `/articles/${id}`
+      navigationUrl: `/articles/${id}`,
+      category,
+      categoryColor
     });
     
     if (onClick) {

@@ -49,9 +49,24 @@ export function buildArticleQuery(
   supabase: SupabaseClient,
   filters: ArticleFilterParams
 ): PostgrestFilterBuilder<any, any, any> {
+  // Use explicit select with categories join to get category data
   let query = supabase
     .from('articles')
-    .select('*', { count: 'exact' })
+    .select(`
+      id,
+      title,
+      excerpt,
+      content,
+      cover_image,
+      category_id,
+      reading_level,
+      published_at,
+      created_at,
+      author_id,
+      status,
+      article_type,
+      categories(id, name, slug, color)
+    `, { count: 'exact' })
     .eq('status', 'published');
 
   // Apply category filter
