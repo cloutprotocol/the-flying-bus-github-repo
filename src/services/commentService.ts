@@ -26,7 +26,13 @@ export const getFlaggedComments = async (
         user_id,
         status,
         profiles!user_id(display_name, avatar_url),
-        flagged_comments:flagged_content!content_id(*)
+        flagged_comments:flagged_content!inner(
+          id,
+          reason,
+          reporter_id,
+          status,
+          created_at
+        )
       `, { count: 'exact' });
     
     // Apply filters
@@ -36,7 +42,9 @@ export const getFlaggedComments = async (
         query = query.eq('status', 'flagged');
       } else if (filter === 'reported') {
         // Get comments that have been reported by users
-        query = query.eq('status', 'flagged');
+        query = query
+          .eq('status', 'flagged')
+          .not('flagged_comments.reporter_id', 'is', null);
       } else {
         // Filter by comment status
         query = query.eq('status', filter);
@@ -63,8 +71,7 @@ export const getFlaggedComments = async (
     // Transform the data for the UI
     const comments = data?.map(comment => {
       // Get the flagged_content associated with this comment
-      const flaggedContentArray = Array.isArray(comment.flagged_comments) ? comment.flagged_comments : [];
-      const firstFlaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {};
+      const flaggedContent = Array.isArray(comment.flagged_comments) ? comment.flagged_comments[0] : {};
       
       return {
         id: comment.id,
@@ -78,8 +85,9 @@ export const getFlaggedComments = async (
         articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
         createdAt: new Date(comment.created_at),
         status: comment.status || 'pending',
-        flagReason: firstFlaggedContent.reason || '',
-        reportedBy: firstFlaggedContent.reporter_id ? 'User' : 'System',
+        flagReason: flaggedContent.reason || '',
+        reportedBy: flaggedContent.reporter_id ? 'User' : 'System',
+        reportedAt: flaggedContent.created_at ? new Date(flaggedContent.created_at) : null,
       };
     }) || [];
     

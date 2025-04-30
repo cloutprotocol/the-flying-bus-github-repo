@@ -15,6 +15,7 @@ interface CommentModerationContentProps {
   processingIds: string[];
   onApprove: (commentId: string) => Promise<void>;
   onReject: (commentId: string) => Promise<void>;
+  loadMoreComments?: () => void;
 }
 
 const CommentModerationContent: React.FC<CommentModerationContentProps> = ({
@@ -23,9 +24,10 @@ const CommentModerationContent: React.FC<CommentModerationContentProps> = ({
   totalCount,
   processingIds,
   onApprove,
-  onReject
+  onReject,
+  loadMoreComments
 }) => {
-  if (loading) {
+  if (loading && comments.length === 0) {
     return (
       <Card>
         <CardContent className="py-10 flex justify-center">
@@ -57,10 +59,21 @@ const CommentModerationContent: React.FC<CommentModerationContentProps> = ({
         processingIds={processingIds}
       />
       
-      {totalCount > comments.length && (
+      {totalCount > comments.length && loadMoreComments && (
         <div className="flex justify-center mt-4">
-          <Button variant="outline">
-            Load More
+          <Button 
+            variant="outline" 
+            onClick={loadMoreComments}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More'
+            )}
           </Button>
         </div>
       )}

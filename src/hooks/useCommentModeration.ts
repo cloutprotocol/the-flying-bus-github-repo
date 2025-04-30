@@ -12,41 +12,47 @@ export const useCommentModeration = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
   const { toast } = useToast();
   const { handleApprove, handleReject, processingIds } = useModeration();
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      setLoading(true);
-      try {
-        logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm });
-        const { comments, count, error } = await getFlaggedComments(filter, searchTerm);
-        if (error) {
-          logger.error(LogSource.MODERATION, 'Error fetching comments', { error });
-          toast({
-            title: "Error",
-            description: "Could not load comments for moderation",
-            variant: "destructive"
-          });
-        } else {
-          setComments(comments);
-          setTotalCount(count);
-          logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count });
-        }
-      } catch (err) {
-        logger.error(LogSource.MODERATION, 'Exception fetching comments', err);
+  const fetchComments = useCallback(async () => {
+    setLoading(true);
+    try {
+      logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm, page });
+      const { comments, count, error } = await getFlaggedComments(filter, searchTerm, page, limit);
+      if (error) {
+        logger.error(LogSource.MODERATION, 'Error fetching comments', { error });
         toast({
           title: "Error",
-          description: "An unexpected error occurred",
+          description: "Could not load comments for moderation",
           variant: "destructive"
         });
-      } finally {
-        setLoading(false);
+      } else {
+        setComments(comments);
+        setTotalCount(count);
+        logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count });
       }
-    };
+    } catch (err) {
+      logger.error(LogSource.MODERATION, 'Exception fetching comments', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, searchTerm, page, limit, toast]);
 
+  useEffect(() => {
     fetchComments();
-  }, [filter, searchTerm, toast]);
+  }, [fetchComments]);
+
+  const loadMoreComments = useCallback(() => {
+    setPage(prev => prev + 1);
+  }, []);
 
   const onApprove = useCallback(async (commentId: string) => {
     logger.info(LogSource.MODERATION, 'Approving comment', { commentId });
@@ -76,7 +82,9 @@ export const useCommentModeration = () => {
     loading,
     processingIds,
     onApprove,
-    onReject
+    onReject,
+    loadMoreComments,
+    page
   };
 };
 

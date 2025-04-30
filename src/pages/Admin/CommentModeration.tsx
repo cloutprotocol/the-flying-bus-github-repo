@@ -18,7 +18,8 @@ const CommentModeration = () => {
     loading,
     processingIds,
     onApprove,
-    onReject
+    onReject,
+    loadMoreComments
   } = useCommentModeration();
 
   return (
@@ -59,6 +60,7 @@ const CommentModeration = () => {
                     processingIds={processingIds}
                     onApprove={onApprove}
                     onReject={onReject}
+                    loadMoreComments={loadMoreComments}
                   />
                 </TabsContent>
               </Tabs>
