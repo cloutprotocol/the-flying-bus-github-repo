@@ -60,6 +60,12 @@ const Dashboard: React.FC = () => {
     await refetchMetrics(page, ARTICLES_PER_PAGE);
   };
 
+  // Create a retry handler that requires no arguments
+  const handleRetry = () => {
+    // We can call handleFilterChange with the current selectedTypes
+    handleFilterChange(selectedTypes);
+  };
+
   const isMetricVisible = (metricId: string) => {
     return preferences.find(p => p.id === metricId)?.enabled ?? true;
   };
@@ -173,7 +179,7 @@ const Dashboard: React.FC = () => {
                 error={activitiesError}
                 selectedTypes={selectedTypes}
                 onFilterChange={handleFilterChange}
-                onRetry={handleFilterChange} // Add retry handler
+                onRetry={handleRetry} // Use the wrapper function that takes no arguments
               />
             </Card>
           </section>

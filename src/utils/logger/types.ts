@@ -52,6 +52,7 @@ export interface LogEntry {
   message: string;
   timestamp: string;
   data?: any;
+  userId?: string; // Add the userId property that's used in storage.ts
 }
 
 /**
