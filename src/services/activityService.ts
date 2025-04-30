@@ -59,7 +59,7 @@ export const getRecentActivities = async (limit: number = 10) => {
     const transformedActivities = activities.map(activity => ({
       id: activity.id,
       user_id: activity.user_id,
-      activity_type: activity.activity_type,
+      activity_type: activity.activity_type as ActivityType,
       entity_type: activity.entity_type,
       entity_id: activity.entity_id,
       metadata: activity.metadata,

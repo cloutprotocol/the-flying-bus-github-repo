@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { format } from 'date-fns';
-import { Activity } from '@/services/activityService';
+import { Activity, ActivityType } from '@/services/activityService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ActivityIcon from './ActivityIcon';
 import ActivityFilters from './ActivityFilters';
@@ -31,10 +30,16 @@ const getActivityDescription = (activity: Activity) => {
         'No content'}"`;
     case 'article_updated':
       return `updated article "${metadata.title || 'Untitled'}"`;
-    case 'article_deleted':
-      return `deleted an article`;
-    case 'review_submitted':
+    case 'article_reviewed':
       return `reviewed an article`;
+    case 'article_approved':
+      return `approved an article`;
+    case 'article_rejected':
+      return `rejected an article`;
+    case 'comment_edited':
+      return `edited a comment`;
+    case 'comment_deleted':
+      return `deleted a comment`;
     default:
       return activity.activity_type.replace(/_/g, ' ');
   }
