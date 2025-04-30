@@ -38,9 +38,10 @@ const Dashboard: React.FC = () => {
   
   const { 
     activities, 
-    loading: activitiesLoading,
+    isLoading: activitiesLoading,
+    error: activitiesError,
     selectedTypes,
-    setSelectedTypes 
+    handleFilterChange 
   } = useActivityFeed(10);
 
   const mapArticles = (): DashboardRecentArticle[] => {
@@ -169,8 +170,10 @@ const Dashboard: React.FC = () => {
               <ActivityFeed 
                 activities={activities} 
                 isLoading={activitiesLoading}
+                error={activitiesError}
                 selectedTypes={selectedTypes}
-                onFilterChange={setSelectedTypes}
+                onFilterChange={handleFilterChange}
+                onRetry={handleFilterChange} // Add retry handler
               />
             </Card>
           </section>

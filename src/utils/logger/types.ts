@@ -32,7 +32,15 @@ export enum LogSource {
   MEDIA = 'media',
   USER = 'user',
   VALIDATION = 'validation',
-  TRACKING = 'tracking'
+  TRACKING = 'tracking',
+  // Added missing log sources
+  EDITOR = 'editor',
+  CLIENT = 'client',
+  CONTENT = 'content',
+  VOTING = 'voting',
+  DASHBOARD = 'dashboard',
+  SAFETY = 'safety',
+  REALTIME = 'realtime'
 }
 
 /**
@@ -55,4 +63,5 @@ export interface LoggerConfig {
   persistToStorage: boolean;
   sendToServer: boolean;
   toastOutput: boolean;
+  maxStorageEntries?: number;
 }

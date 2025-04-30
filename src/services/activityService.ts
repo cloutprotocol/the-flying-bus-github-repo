@@ -64,7 +64,7 @@ export const getRecentActivities = async (limit: number = 10) => {
       activity_type: activity.activity_type as ActivityType,
       entity_type: activity.entity_type,
       entity_id: activity.entity_id,
-      metadata: activity.metadata,
+      metadata: activity.metadata as Record<string, any>,
       created_at: activity.created_at,
       profile: activity.profiles
     }));

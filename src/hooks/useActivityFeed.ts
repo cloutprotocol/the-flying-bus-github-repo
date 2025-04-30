@@ -43,7 +43,8 @@ export const useActivityFeed = (limit: number = 10): UseActivityFeedReturn => {
         );
       }
       
-      setActivities(filteredActivities);
+      // Type assertion to ensure activities match the Activity interface
+      setActivities(filteredActivities as Activity[]);
       logger.info(LogSource.ACTIVITY, 'Activities fetched successfully', {
         count: filteredActivities.length
       });
