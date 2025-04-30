@@ -33,7 +33,8 @@ export enum LogSource {
   VALIDATION = 'validation',
   ARTICLE = 'article',
   ACTIVITY = 'activity',
-  NAVIGATION = 'navigation' // Added missing NAVIGATION source
+  NAVIGATION = 'navigation', // Added missing NAVIGATION source
+  MEDIA = 'media' // Added the missing MEDIA source
 }
 
 export interface LogEntry {
