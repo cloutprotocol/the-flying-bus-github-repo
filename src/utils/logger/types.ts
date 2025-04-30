@@ -1,9 +1,12 @@
 
 /**
  * Logger Types
- * Type definitions for the logging system
+ * Type definitions for the logger system
  */
 
+/**
+ * Log levels enum
+ */
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
@@ -12,45 +15,44 @@ export enum LogLevel {
   FATAL = 'fatal'
 }
 
+/**
+ * Log sources enum
+ * Used to categorize the source of log messages
+ */
 export enum LogSource {
+  APP = 'app',
   API = 'api',
   AUTH = 'auth',
-  UI = 'ui',
   DATABASE = 'database',
-  EDITOR = 'editor',
-  APP = 'app',
-  SERVICE = 'service',
-  METRICS = 'metrics',
-  // Restore the missing values to fix build errors
-  CLIENT = 'client',
-  MODERATION = 'moderation',
-  ADMIN = 'admin',
-  DASHBOARD = 'dashboard',
-  CONTENT = 'content',
-  REALTIME = 'realtime',
-  VOTING = 'voting',
-  SAFETY = 'safety',
-  VALIDATION = 'validation',
-  ARTICLE = 'article',
   ACTIVITY = 'activity',
-  NAVIGATION = 'navigation', // Added missing NAVIGATION source
-  MEDIA = 'media' // Added the missing MEDIA source
+  MODERATION = 'moderation',
+  APPROVAL = 'approval',
+  ARTICLE = 'article',
+  COMMENT = 'comment',
+  MEDIA = 'media',
+  USER = 'user',
+  VALIDATION = 'validation',
+  TRACKING = 'tracking'
 }
 
+/**
+ * Log entry interface
+ */
 export interface LogEntry {
-  timestamp: string;
-  level: string;
-  source: string;
+  level: LogLevel;
+  source: LogSource;
   message: string;
+  timestamp: string;
   data?: any;
-  userId?: string; // Added missing userId property as optional
 }
 
+/**
+ * Logger configuration interface
+ */
 export interface LoggerConfig {
   minLevel: LogLevel;
   consoleOutput: boolean;
-  toastOutput: boolean;
   persistToStorage: boolean;
   sendToServer: boolean;
-  maxStorageEntries?: number;
+  toastOutput: boolean;
 }

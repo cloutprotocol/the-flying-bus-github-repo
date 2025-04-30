@@ -31,6 +31,8 @@ export interface Activity {
 
 export const getRecentActivities = async (limit: number = 10) => {
   try {
+    logger.info(LogSource.ACTIVITY, 'Fetching activities', { limit });
+    
     // Use a more direct query approach with explicit join
     const { data: activities, error, count } = await supabase
       .from('activities')
@@ -84,6 +86,10 @@ export const createActivity = async (
   metadata: Record<string, any> = {}
 ) => {
   try {
+    logger.info(LogSource.ACTIVITY, 'Creating activity record', { 
+      userId, activityType, entityType, entityId 
+    });
+    
     const { data, error } = await supabase
       .from('activities')
       .insert({

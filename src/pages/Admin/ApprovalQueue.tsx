@@ -9,6 +9,9 @@ import { Search, Loader2 } from 'lucide-react';
 import { getArticlesForApproval } from '@/services/approvalService';
 import { useToast } from '@/components/ui/use-toast';
 import { reviewArticle } from '@/services/articleService';
+import ErrorDisplay from '@/components/Admin/Common/ErrorDisplay';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const ApprovalQueue = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,43 +19,58 @@ const ApprovalQueue = () => {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [articles, setArticles] = useState<ArticleReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const { toast } = useToast();
   
-  useEffect(() => {
-    const fetchArticles = async () => {
-      setLoading(true);
-      try {
-        const { articles: fetchedArticles, error } = await getArticlesForApproval(
-          statusFilter, 
-          categoryFilter, 
-          searchTerm
-        );
-        
-        if (error) {
-          console.error('Error fetching approval queue:', error);
-          toast({
-            title: "Error",
-            description: "Could not load the approval queue",
-            variant: "destructive"
-          });
-        } else {
-          setArticles(fetchedArticles);
-        }
-      } catch (err) {
-        console.error('Exception fetching approval queue:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchArticles = async () => {
+    setLoading(true);
+    setError(null);
     
+    try {
+      logger.info(LogSource.APPROVAL, 'Fetching approval queue', {
+        status: statusFilter,
+        category: categoryFilter,
+        search: searchTerm
+      });
+      
+      const { articles: fetchedArticles, error: fetchError } = await getArticlesForApproval(
+        statusFilter, 
+        categoryFilter, 
+        searchTerm
+      );
+      
+      if (fetchError) {
+        logger.error(LogSource.APPROVAL, 'Error fetching approval queue', fetchError);
+        throw new Error(fetchError.message || 'Could not load the approval queue');
+      }
+      
+      setArticles(fetchedArticles);
+      
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('An unknown error occurred');
+      setError(error);
+      
+      // Log the error for debugging
+      logger.error(LogSource.APPROVAL, 'Exception fetching approval queue', err);
+      
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchArticles();
-  }, [statusFilter, categoryFilter, searchTerm, toast]);
+  }, [statusFilter, categoryFilter, searchTerm]);
 
   const handleStatusChange = async (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => {
     setProcessingIds(prev => [...prev, articleId]);
     
     try {
+      logger.info(LogSource.APPROVAL, `Changing article status to ${newStatus}`, {
+        articleId, newStatus
+      });
+      
       const { success, error } = await reviewArticle(articleId, {
         status: newStatus,
         feedback: `Article status changed to ${newStatus}`
@@ -69,8 +87,13 @@ const ApprovalQueue = () => {
           description: `The article has been ${newStatus === 'published' ? 'published' : 
                          newStatus === 'rejected' ? 'rejected' : 'moved to drafts'}`,
         });
+        
+        logger.info(LogSource.APPROVAL, `Article status changed successfully`, {
+          articleId, newStatus
+        });
       } else {
-        console.error(`Error changing article status to ${newStatus}:`, error);
+        logger.error(LogSource.APPROVAL, `Error changing article status`, error);
+        
         toast({
           title: "Error",
           description: `Could not change article status to ${newStatus}`,
@@ -78,10 +101,13 @@ const ApprovalQueue = () => {
         });
       }
     } catch (err) {
-      console.error(`Exception changing article status to ${newStatus}:`, err);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      
+      logger.error(LogSource.APPROVAL, `Exception changing article status to ${newStatus}`, err);
+      
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -140,7 +166,15 @@ const ApprovalQueue = () => {
             </TabsList>
             
             <TabsContent value={statusFilter} className="mt-4">
-              {loading ? (
+              {error ? (
+                <ErrorDisplay
+                  title="Failed to load articles"
+                  message={error.message}
+                  details={error.stack}
+                  onRetry={fetchArticles}
+                  className="mb-4"
+                />
+              ) : loading ? (
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
