@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { Activity, ActivityType } from '@/services/activityService';
@@ -41,7 +42,8 @@ const getActivityDescription = (activity: Activity) => {
     case 'comment_deleted':
       return `deleted a comment`;
     default:
-      return activity.activity_type.replace(/_/g, ' ');
+      // Ensure we're handling activity_type as a string
+      return (activity.activity_type as string).replace(/_/g, ' ');
   }
 };
 
