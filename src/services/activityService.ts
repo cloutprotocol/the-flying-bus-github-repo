@@ -33,7 +33,7 @@ export const getRecentActivities = async (limit: number = 10) => {
   try {
     logger.info(LogSource.ACTIVITY, 'Fetching activities', { limit });
     
-    // Use a more direct query approach with explicit join
+    // With the foreign key constraint in place, we can use a more reliable join
     const { data: activities, error, count } = await supabase
       .from('activities')
       .select(`
@@ -44,7 +44,7 @@ export const getRecentActivities = async (limit: number = 10) => {
         entity_id,
         metadata,
         created_at,
-        profiles!user_id(
+        profiles (
           display_name,
           avatar_url
         )

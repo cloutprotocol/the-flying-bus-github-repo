@@ -7,8 +7,7 @@ import ActivityIcon from './ActivityIcon';
 import ActivityFilters from './ActivityFilters';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import ErrorDisplay from '@/components/Admin/Common/ErrorDisplay';
 
 interface ActivityFeedProps {
   activities: Activity[];
@@ -59,46 +58,15 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
   onFilterChange,
   onRetry
 }) => {
-  const [showFullError, setShowFullError] = useState(false);
-  
   // Show error state if there's an error
   if (error) {
     return (
       <div className="space-y-4">
-        <Alert variant="destructive" className="bg-red-50">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <div className="space-y-2">
-            <AlertDescription className="text-sm">
-              {error.message || 'Failed to load activity feed'}
-            </AlertDescription>
-            
-            {error.stack && (
-              <div className="mt-2">
-                {showFullError ? (
-                  <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-[200px] mt-2">
-                    {error.stack}
-                  </pre>
-                ) : (
-                  <button 
-                    className="text-xs text-blue-600 hover:underline" 
-                    onClick={() => setShowFullError(true)}
-                  >
-                    Show details
-                  </button>
-                )}
-              </div>
-            )}
-            
-            {onRetry && (
-              <button
-                className="mt-2 text-sm px-3 py-1 bg-primary text-white rounded hover:bg-primary/90"
-                onClick={onRetry}
-              >
-                Try Again
-              </button>
-            )}
-          </div>
-        </Alert>
+        <ErrorDisplay 
+          message={error.message || 'Failed to load activity feed'}
+          details={error.stack}
+          onRetry={onRetry}
+        />
         
         <ActivityFilters 
           selectedTypes={selectedTypes}
