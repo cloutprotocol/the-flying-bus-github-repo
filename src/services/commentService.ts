@@ -3,6 +3,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
+// Define interfaces for better type safety
+interface FlaggedContent {
+  id: string;
+  reason: string;
+  reporter_id: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface CommentWithFlagged {
+  id: string;
+  content: string;
+  created_at: string;
+  article_id: string;
+  user_id: string;
+  status: string;
+  profiles?: {
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  flagged_comments: FlaggedContent[] | FlaggedContent;
+}
+
 /**
  * Fetch comments that need moderation
  */
@@ -69,9 +92,13 @@ export const getFlaggedComments = async (
     }
     
     // Transform the data for the UI
-    const comments = data?.map(comment => {
+    const comments = data?.map((comment: CommentWithFlagged) => {
       // Get the flagged_content associated with this comment
-      const flaggedContent = Array.isArray(comment.flagged_comments) ? comment.flagged_comments[0] : {};
+      const flaggedContentArray = Array.isArray(comment.flagged_comments) 
+        ? comment.flagged_comments 
+        : [comment.flagged_comments];
+      
+      const flaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {} as FlaggedContent;
       
       return {
         id: comment.id,
