@@ -19,7 +19,7 @@ export interface Activity {
 
 export const getRecentActivities = async (limit: number = 10) => {
   try {
-    // Updated query to properly join profiles using user_id
+    // Use a more direct query approach with explicit join
     const { data: activities, error, count } = await supabase
       .from('activities')
       .select(`
@@ -30,7 +30,7 @@ export const getRecentActivities = async (limit: number = 10) => {
         entity_id,
         metadata,
         created_at,
-        profile:profiles!user_id(
+        profiles!user_id(
           display_name,
           avatar_url
         )
@@ -43,9 +43,59 @@ export const getRecentActivities = async (limit: number = 10) => {
       return { activities: [], error, count: 0 };
     }
 
-    return { activities, error: null, count: count || 0 };
+    // Transform the data to match our Activity interface
+    const transformedActivities = activities.map(activity => ({
+      id: activity.id,
+      user_id: activity.user_id,
+      activity_type: activity.activity_type,
+      entity_type: activity.entity_type,
+      entity_id: activity.entity_id,
+      metadata: activity.metadata,
+      created_at: activity.created_at,
+      profile: activity.profiles
+    }));
+
+    logger.info(LogSource.ACTIVITY, `Fetched ${transformedActivities.length} activities successfully`);
+    return { activities: transformedActivities, error: null, count: count || 0 };
   } catch (e) {
     logger.error(LogSource.ACTIVITY, 'Exception fetching activities', e);
     return { activities: [], error: e, count: 0 };
+  }
+};
+
+// Add a helper function to create activity records
+export const createActivity = async (
+  userId: string,
+  activityType: string,
+  entityType: string,
+  entityId: string,
+  metadata: Record<string, any> = {}
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('activities')
+      .insert({
+        user_id: userId,
+        activity_type: activityType,
+        entity_type: entityType,
+        entity_id: entityId,
+        metadata
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error(LogSource.ACTIVITY, 'Error creating activity record', error);
+      return { success: false, error };
+    }
+
+    logger.info(LogSource.ACTIVITY, 'Activity record created successfully', {
+      activityId: data.id,
+      activityType
+    });
+    return { success: true, activity: data, error: null };
+  } catch (e) {
+    logger.error(LogSource.ACTIVITY, 'Exception creating activity record', e);
+    return { success: false, error: e };
   }
 };

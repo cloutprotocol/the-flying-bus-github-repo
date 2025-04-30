@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
@@ -33,8 +34,7 @@ const ARTICLES_PER_PAGE = 5;
 const Dashboard: React.FC = () => {
   const [preferences, setPreferences] = useState<Preference[]>(defaultPreferences);
   const [currentPage, setCurrentPage] = useState(1);
-  const { metrics, loading, error, refetchMetrics } = useDashboardMetrics();
-  const [totalPages, setTotalPages] = useState(1);
+  const { metrics, loading, error, totalPages, refetchMetrics } = useDashboardMetrics();
   
   const { 
     activities, 

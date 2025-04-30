@@ -25,14 +25,24 @@ export const useDashboardMetrics = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
   
   const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
     try {
-      // Fetch dashboard metrics
-      const { data: metricsData, error: metricsError } = await getDashboardMetrics();
+      // Perform all queries in parallel for better performance
+      const [metricsPromise, moderationPromise, articlesPromise] = await Promise.all([
+        getDashboardMetrics(),
+        getModerationMetrics(),
+        getArticlesByStatus('all', undefined, page, limit)
+      ]);
       
+      const { data: metricsData, error: metricsError } = metricsPromise;
+      const { stats: moderationStats, error: moderationError } = moderationPromise;
+      const { articles, count, error: articlesError } = articlesPromise;
+      
+      // Handle errors
       if (metricsError) {
         console.error('Error fetching dashboard metrics:', metricsError);
         setError(new Error('Failed to load dashboard metrics'));
@@ -44,22 +54,15 @@ export const useDashboardMetrics = () => {
         return;
       }
       
-      // Fetch moderation metrics
-      const { stats: moderationStats, error: moderationError } = await getModerationMetrics();
-      
-      if (moderationError) {
-        console.error('Error fetching moderation metrics:', moderationError);
-        // Continue with available data, don't block the dashboard
-      }
-      
-      // Fetch paginated articles
-      const { articles, count, error: articlesError } = await getArticlesByStatus('all', undefined, page, limit);
-      
       if (articlesError) {
         console.error('Error fetching articles:', articlesError);
         setError(new Error('Failed to load articles'));
         return;
       }
+      
+      // Calculate total pages
+      const calculatedTotalPages = count ? Math.ceil(count / limit) : 1;
+      setTotalPages(calculatedTotalPages);
       
       if (metricsData && articles) {
         setMetrics({
@@ -92,6 +95,7 @@ export const useDashboardMetrics = () => {
     metrics, 
     loading, 
     error,
+    totalPages,
     refetchMetrics: fetchMetrics 
   };
 };

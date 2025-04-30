@@ -20,11 +20,21 @@ const getActivityDescription = (activity: Activity) => {
   
   switch (activity.activity_type) {
     case 'article_created':
-      return `created article "${metadata.title}"`;
+      return `created article "${metadata.title || 'Untitled'}"`;
     case 'article_published':
-      return `published article "${metadata.title}"`;
+      return `published article "${metadata.title || 'Untitled'}"`;
     case 'comment_added':
-      return `commented: "${metadata.content}..."`;
+      return `commented: "${metadata.content ? 
+        (metadata.content.length > 40 ? 
+          `${metadata.content.substring(0, 40)}...` : 
+          metadata.content) : 
+        'No content'}"`;
+    case 'article_updated':
+      return `updated article "${metadata.title || 'Untitled'}"`;
+    case 'article_deleted':
+      return `deleted an article`;
+    case 'review_submitted':
+      return `reviewed an article`;
     default:
       return activity.activity_type.replace(/_/g, ' ');
   }
@@ -70,10 +80,22 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       />
       
       {activities.map((activity) => {
-        // Safely access profile data
-        const profileName = activity.profile?.display_name || 'Unknown user';
-        const profileAvatar = activity.profile?.avatar_url || '';
-        const profileInitial = profileName ? profileName[0].toUpperCase() : 'U';
+        // Extract profile data safely
+        let profileName = "Unknown user";
+        let profileAvatar = "";
+        let profileInitial = "U";
+        
+        if (activity.profile) {
+          profileName = activity.profile.display_name || "Unknown user";
+          profileAvatar = activity.profile.avatar_url || "";
+          profileInitial = profileName.charAt(0).toUpperCase();
+        } else {
+          logger.warn(
+            LogSource.ACTIVITY, 
+            "Activity missing profile data",
+            { activityId: activity.id, userId: activity.user_id }
+          );
+        }
 
         return (
           <div key={activity.id} className="flex gap-3 items-start">
