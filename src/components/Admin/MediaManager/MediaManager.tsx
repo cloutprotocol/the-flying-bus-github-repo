@@ -9,30 +9,34 @@ import MediaGrid from './MediaGrid';
 import MediaList from './MediaList';
 import FilterPanel from './FilterPanel';
 import SelectionToolbar from './SelectionToolbar';
-import MediaUploader from '@/components/Admin/ArticleEditor/MediaUploader';
+import MediaUploader from './MediaUpload/MediaUploader';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import useMediaManager from '@/hooks/useMediaManager';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 const MediaManager = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   
-  const mockImages = [
-    { id: '1', url: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b', title: 'Laptop', type: 'image', date: '2023-04-15' },
-    { id: '2', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475', title: 'Circuit Board', type: 'image', date: '2023-04-14' },
-    { id: '3', url: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6', title: 'Code', type: 'image', date: '2023-04-12' },
-    { id: '4', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158', title: 'Woman with Laptop', type: 'image', date: '2023-04-10' },
-    { id: '5', url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5', title: 'Matrix', type: 'image', date: '2023-04-05' },
-    { id: '6', url: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7', title: 'Code Editor', type: 'image', date: '2023-04-03' },
-    { id: '7', url: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21', title: 'Ocean Wave', type: 'image', date: '2023-03-28' },
-    { id: '8', url: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7', title: 'Woman with Laptop', type: 'image', date: '2023-03-25' },
-  ];
-  
-  const mockVideos = [
-    { id: 'v1', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', title: 'Sample Video 1', type: 'video', date: '2023-04-18' },
-    { id: 'v2', url: 'https://www.youtube.com/embed/jNQXAC9IVRw', title: 'Sample Video 2', type: 'video', date: '2023-04-16' },
-    { id: 'v3', url: 'https://www.youtube.com/embed/8jLOx1hD3_o', title: 'Sample Video 3', type: 'video', date: '2023-04-11' },
-    { id: 'v4', url: 'https://www.youtube.com/embed/yIoLQF0I8tc', title: 'Sample Video 4', type: 'video', date: '2023-04-06' },
-  ];
+  const { 
+    media, 
+    loading, 
+    filter, 
+    setFilter, 
+    searchTerm, 
+    setSearchTerm,
+    totalCount,
+    handleUpload,
+    handleDelete,
+    isUploading,
+    uploadProgress
+  } = useMediaManager();
   
   const handleMediaSelect = (id: string) => {
     if (selectedMedia.includes(id)) {
@@ -42,24 +46,45 @@ const MediaManager = () => {
     }
   };
   
-  const handleMediaUpload = (url: string, isVideo: boolean) => {
-    console.log('Media uploaded:', url, 'Is video:', isVideo);
-    // In a real app, we would update the state with the new media
+  const handleMediaUpload = async (file: File, altText: string) => {
+    logger.info(LogSource.MEDIA, 'Handling media upload', { 
+      filename: file.name,
+      size: file.size,
+      type: file.type
+    });
+    
+    const asset = await handleUpload(file, altText);
+    if (asset) {
+      setUploadOpen(false);
+    }
   };
   
   const handleSelectAll = () => {
-    const allMediaIds = [...mockImages, ...mockVideos].map(media => media.id);
-    setSelectedMedia(allMediaIds);
+    if (selectedMedia.length === media.length) {
+      setSelectedMedia([]);
+    } else {
+      setSelectedMedia(media.map(item => item.id));
+    }
   };
   
   const handleDeselectAll = () => {
     setSelectedMedia([]);
   };
   
-  const handleDeleteSelected = () => {
-    // In a real app, we would delete the selected media
-    console.log('Deleting media:', selectedMedia);
+  const handleDeleteSelected = async () => {
+    // Delete each selected media item
+    const promises = selectedMedia.map(id => handleDelete(id));
+    await Promise.all(promises);
     setSelectedMedia([]);
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchTerm(searchInput);
+  };
+  
+  const handleFilterChange = (newFilter: 'all' | 'image' | 'video') => {
+    setFilter(newFilter);
   };
   
   return (
@@ -72,35 +97,49 @@ const MediaManager = () => {
               Organize and manage your media files
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setUploadOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Upload Media
           </Button>
         </div>
         
-        <Tabs defaultValue="all">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+          <form onSubmit={handleSearch} className="relative flex-1">
+            <Input
+              placeholder="Search media files..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full"
+            />
+            <Button type="submit" variant="ghost" size="sm" className="absolute right-0 top-0 h-full">
+              Search
+            </Button>
+          </form>
+          
+          <MediaToolbar 
+            viewMode={viewMode} 
+            setViewMode={setViewMode} 
+            filterOpen={filterOpen}
+            setFilterOpen={setFilterOpen}
+          />
+        </div>
+        
+        <Tabs defaultValue={filter} onValueChange={(value) => handleFilterChange(value as 'all' | 'image' | 'video')}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 mb-4">
             <TabsList>
               <TabsTrigger value="all">
                 <FolderOpen className="mr-2 h-4 w-4" />
                 All
               </TabsTrigger>
-              <TabsTrigger value="images">
+              <TabsTrigger value="image">
                 <Image className="mr-2 h-4 w-4" />
                 Images
               </TabsTrigger>
-              <TabsTrigger value="videos">
+              <TabsTrigger value="video">
                 <Video className="mr-2 h-4 w-4" />
                 Videos
               </TabsTrigger>
             </TabsList>
-            
-            <MediaToolbar 
-              viewMode={viewMode} 
-              setViewMode={setViewMode} 
-              filterOpen={filterOpen}
-              setFilterOpen={setFilterOpen}
-            />
           </div>
           
           {filterOpen && <FilterPanel />}
@@ -113,49 +152,24 @@ const MediaManager = () => {
             />
           )}
           
-          <TabsContent value="all">
-            {viewMode === 'grid' ? (
+          <TabsContent value={filter}>
+            {loading ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">Loading media assets...</p>
+              </div>
+            ) : media.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">No media assets found. Try uploading some!</p>
+              </div>
+            ) : viewMode === 'grid' ? (
               <MediaGrid 
-                media={[...mockImages, ...mockVideos]} 
+                media={media} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />
             ) : (
               <MediaList 
-                media={[...mockImages, ...mockVideos]} 
-                selectedMedia={selectedMedia}
-                onMediaSelect={handleMediaSelect}
-              />
-            )}
-          </TabsContent>
-          
-          <TabsContent value="images">
-            {viewMode === 'grid' ? (
-              <MediaGrid 
-                media={mockImages} 
-                selectedMedia={selectedMedia}
-                onMediaSelect={handleMediaSelect}
-              />
-            ) : (
-              <MediaList 
-                media={mockImages} 
-                selectedMedia={selectedMedia}
-                onMediaSelect={handleMediaSelect}
-              />
-            )}
-          </TabsContent>
-          
-          <TabsContent value="videos">
-            {viewMode === 'grid' ? (
-              <MediaGrid 
-                media={mockVideos} 
-                selectedMedia={selectedMedia}
-                onMediaSelect={handleMediaSelect}
-                videoGridCols="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-              />
-            ) : (
-              <MediaList 
-                media={mockVideos} 
+                media={media} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />
@@ -163,6 +177,24 @@ const MediaManager = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Media</DialogTitle>
+            <DialogDescription>
+              Upload images or videos to your media library
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <MediaUploader 
+              onUploadComplete={handleMediaUpload}
+              isUploading={isUploading}
+              uploadProgress={uploadProgress}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminPortalLayout>
   );
 };

@@ -5,6 +5,8 @@ import { Activity } from '@/services/activityService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ActivityIcon from './ActivityIcon';
 import ActivityFilters from './ActivityFilters';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface ActivityFeedProps {
   activities: Activity[];
@@ -67,34 +69,38 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
         onFilterChange={onFilterChange}
       />
       
-      {activities.map((activity) => (
-        <div key={activity.id} className="flex gap-3 items-start">
-          <Avatar className="w-10 h-10">
-            <AvatarImage 
-              src={activity.profiles?.avatar_url || ''} 
-              alt={activity.profiles?.display_name || ''} 
-            />
-            <AvatarFallback>
-              {(activity.profiles?.display_name || 'U')[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <ActivityIcon type={activity.activity_type} />
-              <span className="font-medium">
-                {activity.profiles?.display_name || 'Unknown user'}
-              </span>
-              <span className="text-gray-600">
-                {getActivityDescription(activity)}
-              </span>
-            </div>
-            <div className="text-sm text-gray-500">
-              {format(new Date(activity.created_at), 'MMM d, yyyy h:mm a')}
+      {activities.map((activity) => {
+        // Safely access profile data
+        const profileName = activity.profile?.display_name || 'Unknown user';
+        const profileAvatar = activity.profile?.avatar_url || '';
+        const profileInitial = profileName ? profileName[0].toUpperCase() : 'U';
+
+        return (
+          <div key={activity.id} className="flex gap-3 items-start">
+            <Avatar className="w-10 h-10">
+              <AvatarImage src={profileAvatar} alt={profileName} />
+              <AvatarFallback>
+                {profileInitial}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <ActivityIcon type={activity.activity_type} />
+                <span className="font-medium">
+                  {profileName}
+                </span>
+                <span className="text-gray-600">
+                  {getActivityDescription(activity)}
+                </span>
+              </div>
+              <div className="text-sm text-gray-500">
+                {format(new Date(activity.created_at), 'MMM d, yyyy h:mm a')}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

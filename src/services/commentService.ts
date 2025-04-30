@@ -1,6 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import logger, { LogSource } from '@/utils/logger';
-import { toast } from 'sonner';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 /**
  * Fetch comments that need moderation
@@ -14,6 +15,7 @@ export const getFlaggedComments = async (
   try {
     logger.info(LogSource.DATABASE, 'Fetching flagged comments', { filter, page });
     
+    // Start building the query to get comments
     let query = supabase
       .from('comments')
       .select(`
@@ -23,18 +25,18 @@ export const getFlaggedComments = async (
         article_id,
         user_id,
         status,
-        profiles(id, display_name, avatar_url),
-        flagged_content(*)
+        profiles!user_id(display_name, avatar_url),
+        flagged_comments:flagged_content!content_id(*)
       `, { count: 'exact' });
     
     // Apply filters
     if (filter !== 'all') {
       if (filter === 'flagged') {
-        // Get comments that have flagged_content entries with status 'pending'
-        query = query.neq('flagged_content.status', null);
+        // Get comments that have a 'flagged' status
+        query = query.eq('status', 'flagged');
       } else if (filter === 'reported') {
-        // Get comments reported by users
-        query = query.eq('flagged_content.content_type', 'comment');
+        // Get comments that have been reported by users
+        query = query.eq('status', 'flagged');
       } else {
         // Filter by comment status
         query = query.eq('status', filter);
@@ -60,8 +62,8 @@ export const getFlaggedComments = async (
     
     // Transform the data for the UI
     const comments = data?.map(comment => {
-      // Ensure flagged_content is an array and not empty
-      const flaggedContentArray = Array.isArray(comment.flagged_content) ? comment.flagged_content : [];
+      // Get the flagged_content associated with this comment
+      const flaggedContentArray = Array.isArray(comment.flagged_comments) ? comment.flagged_comments : [];
       const firstFlaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {};
       
       return {
@@ -76,7 +78,7 @@ export const getFlaggedComments = async (
         articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
         createdAt: new Date(comment.created_at),
         status: comment.status || 'pending',
-        reason: firstFlaggedContent.reason || '',
+        flagReason: firstFlaggedContent.reason || '',
         reportedBy: firstFlaggedContent.reporter_id ? 'User' : 'System',
       };
     }) || [];

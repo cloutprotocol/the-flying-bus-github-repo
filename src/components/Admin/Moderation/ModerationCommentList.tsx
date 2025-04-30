@@ -6,8 +6,24 @@ import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+export interface ModerationComment {
+  id: string;
+  content: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  articleId: string;
+  articleTitle?: string;
+  createdAt: Date;
+  status: string;
+  flagReason?: string;
+  reportedBy?: string;
+}
+
 export interface ModerationCommentListProps {
-  comments: any[]; // Changed from 'items' to 'comments' to match usage
+  comments: ModerationComment[];
   onApprove: (commentId: string) => void;
   onReject: (commentId: string) => void;
   processingIds: string[];

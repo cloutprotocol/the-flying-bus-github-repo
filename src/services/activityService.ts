@@ -11,7 +11,7 @@ export interface Activity {
   entity_id: string;
   metadata: Record<string, any>;
   created_at: string;
-  profiles?: {
+  profile?: {
     display_name: string;
     avatar_url: string | null;
   };
@@ -19,11 +19,18 @@ export interface Activity {
 
 export const getRecentActivities = async (limit: number = 10) => {
   try {
+    // Updated query to properly join profiles using user_id
     const { data: activities, error, count } = await supabase
       .from('activities')
       .select(`
-        *,
-        profiles:user_id (
+        id,
+        user_id,
+        activity_type,
+        entity_type,
+        entity_id,
+        metadata,
+        created_at,
+        profile:profiles!user_id(
           display_name,
           avatar_url
         )
