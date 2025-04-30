@@ -3,10 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
+// Define the valid activity types as they are in the database enum
+export type ActivityType = 
+  | 'article_created'
+  | 'article_updated'
+  | 'article_published'
+  | 'comment_added'
+  | 'comment_edited'
+  | 'comment_deleted'
+  | 'article_reviewed'
+  | 'article_approved'
+  | 'article_rejected';
+
 export interface Activity {
   id: string;
   user_id: string;
-  activity_type: string;
+  activity_type: ActivityType;
   entity_type: string;
   entity_id: string;
   metadata: Record<string, any>;
@@ -66,7 +78,7 @@ export const getRecentActivities = async (limit: number = 10) => {
 // Add a helper function to create activity records
 export const createActivity = async (
   userId: string,
-  activityType: string,
+  activityType: ActivityType, // Use the strict ActivityType instead of string
   entityType: string,
   entityId: string,
   metadata: Record<string, any> = {}
