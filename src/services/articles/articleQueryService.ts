@@ -3,14 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
+import { ArticleProps } from '@/components/Articles/ArticleCard';
+import { calculateReadTime } from '@/utils/articles/articleRead';
 
-export const getArticleById = async (articleId: string) => {
+export const getArticleById = async (articleId: string): Promise<{ article: ArticleProps | null, error: any }> => {
   try {
     logger.info(LogSource.ARTICLE, `Fetching article with ID ${articleId}`);
     
     const { data, error } = await supabase
       .from('articles')
-      .select('*')
+      .select(`
+        *,
+        profiles:author_id(*),
+        categories:category_id(*)
+      `)
       .eq('id', articleId)
       .single();
     
@@ -24,7 +30,26 @@ export const getArticleById = async (articleId: string) => {
       return { article: null, error: new Error('Article not found') };
     }
     
-    return { article: data, error: null };
+    // Transform the database response into the expected ArticleProps format
+    const article: ArticleProps = {
+      id: data.id,
+      title: data.title,
+      excerpt: data.excerpt || '',
+      content: data.content,
+      imageUrl: data.cover_image,
+      category: data.categories?.name || 'Uncategorized',
+      categorySlug: data.categories?.slug || '',
+      categoryColor: data.categories?.color || 'red',
+      categoryId: data.category_id,
+      readingLevel: 'Intermediate', // Default value
+      readTime: calculateReadTime(data.content),
+      author: data.profiles?.display_name || 'Unknown Author',
+      date: new Date(data.published_at || data.created_at).toLocaleDateString(),
+      publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : '',
+      articleType: data.article_type || 'standard'
+    };
+
+    return { article, error: null };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception fetching article by ID', e);
     return { article: null, error: e };

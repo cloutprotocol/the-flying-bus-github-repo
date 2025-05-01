@@ -3,17 +3,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { getArticleById } from '@/services/articleService';
-import { 
-  isDebateArticle, 
-  fetchDebateSettings, 
-  fetchRelatedArticles
-} from '@/utils/articles';
+import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles/fetchArticle';
+import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
 import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
 import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { withErrorHandling } from '@/utils/errorHandling';
 
 export const useArticleData = (articleId: string | undefined) => {
   const [article, setArticle] = useState<ArticleProps | null>(null);
@@ -25,7 +20,10 @@ export const useArticleData = (articleId: string | undefined) => {
 
   useEffect(() => {
     const loadArticle = async () => {
-      if (!articleId) return;
+      if (!articleId) {
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       
@@ -33,11 +31,8 @@ export const useArticleData = (articleId: string | undefined) => {
         // Log that we're loading an article
         logger.info(LogSource.ARTICLE, 'Loading article', { articleId });
         
-        const { article: articleData, error } = await getArticleById(articleId);
-        
-        if (error) {
-          throw error;
-        }
+        // Fetch the article with our improved fetchArticleById function
+        const articleData = await fetchArticleById(articleId);
         
         if (!articleData) {
           setIsLoading(false);
@@ -49,23 +44,16 @@ export const useArticleData = (articleId: string | undefined) => {
           return;
         }
         
-        const processedArticle = {
-          ...articleData,
-          category: articleData.category || 'Uncategorized'
-        };
+        setArticle(articleData);
         
-        setArticle(processedArticle);
+        // Track article view
+        trackArticleViewWithRetry(articleId, user?.id)
+          .catch(error => {
+            logger.error(LogSource.DATABASE, 'Failed to track article view', error);
+          });
         
-        // Only track views for published articles and when we have a valid article ID
-        if (articleData.status === 'published') {
-          // Use .catch to handle errors without disrupting the main flow
-          trackArticleViewWithRetry(articleId, user?.id)
-            .catch(error => {
-              logger.error(LogSource.DATABASE, 'Failed to track article view', error);
-            });
-        }
-        
-        if (articleData && isDebateArticle(articleData.articleType)) {
+        // Load debate settings if it's a debate article
+        if (isDebateArticle(articleData.articleType)) {
           try {
             const debate = await fetchDebateSettings(articleId);
             setDebateSettings(debate);
@@ -74,12 +62,14 @@ export const useArticleData = (articleId: string | undefined) => {
           }
         }
         
-        if (articleData && articleData.categoryId) {
+        // Load related articles
+        if (articleData.categoryId) {
           try {
             const related = await fetchRelatedArticles(articleId, articleData.categoryId);
             setRelatedArticles(related);
           } catch (relatedError) {
             logger.error(LogSource.ARTICLE, 'Error loading related articles', relatedError);
+            setRelatedArticles([]);
           }
         }
       } catch (error) {

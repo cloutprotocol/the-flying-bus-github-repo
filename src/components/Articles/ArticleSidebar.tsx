@@ -3,6 +3,7 @@ import React from 'react';
 import { ArticleProps } from './ArticleCard';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface ArticleSidebarProps {
@@ -19,6 +20,16 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
     return `bg-flyingbus-${colorName}`;
   };
 
+  // Get author initials for avatar fallback
+  const getAuthorInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
   return (
     <aside className="lg:col-span-4">
       <div className="sticky top-24 space-y-6">
@@ -26,11 +37,17 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
           <CardContent className="p-4">
             <h3 className="font-bold text-lg mb-3">About the Author</h3>
             <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                {/* Avatar placeholder */}
-              </div>
+              <Avatar className="w-12 h-12">
+                {article.authorAvatar ? (
+                  <AvatarImage src={article.authorAvatar} alt={article.author} />
+                ) : (
+                  <AvatarFallback>
+                    {getAuthorInitials(article.author || 'UA')}
+                  </AvatarFallback>
+                )}
+              </Avatar>
               <div>
-                <p className="font-medium">{article.author}</p>
+                <p className="font-medium">{article.author || 'Unknown Author'}</p>
                 <p className="text-sm text-gray-600">
                   Writer at The Flying Bus
                 </p>
@@ -67,7 +84,7 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
                               getCategoryColorClass(related.categoryColor)
                             )}
                           >
-                            {related.category}
+                            {related.category || 'Uncategorized'}
                           </span>
                         </div>
                       </div>
@@ -93,7 +110,7 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Published:</span>
-                <span className="font-medium">{article.publishDate}</span>
+                <span className="font-medium">{article.publishDate || article.date}</span>
               </div>
             </div>
           </CardContent>

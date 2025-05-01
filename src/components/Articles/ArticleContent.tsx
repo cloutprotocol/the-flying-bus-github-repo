@@ -33,15 +33,20 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
         />
       )}
       
-      <div className={`mb-2 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-2' : ''}`}>
-        <AspectRatio ratio={16/9} className="bg-gray-100">
-          <img 
-            src={article.imageUrl} 
-            alt={article.title}
-            className="w-full h-full object-cover"
-          />
-        </AspectRatio>
-      </div>
+      {article.imageUrl && (
+        <div className={`mb-2 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-2' : ''}`}>
+          <AspectRatio ratio={16/9} className="bg-gray-100">
+            <img 
+              src={article.imageUrl} 
+              alt={article.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = 'https://placehold.co/800x450/e2e8f0/64748b?text=Image+Not+Found';
+              }}
+            />
+          </AspectRatio>
+        </div>
+      )}
       
       <div 
         className="article-content prose prose-lg max-w-none mt-6 mb-12 
@@ -60,7 +65,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
           prose-figure:my-8 prose-figure:mx-auto
           prose-figcaption:text-center prose-figcaption:text-gray-600 prose-figcaption:mt-2 prose-figcaption:text-sm
           prose-img:rounded-md prose-img:mx-auto"
-        dangerouslySetInnerHTML={{ __html: articleContent }}
+        dangerouslySetInnerHTML={{ __html: articleContent || '<p>No content available.</p>' }}
       />
       
       {isDebate && debateSettings && (
