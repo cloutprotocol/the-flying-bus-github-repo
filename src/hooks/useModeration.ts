@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
@@ -9,6 +10,8 @@ import { logModerationAction } from '@/services/moderationService';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { handleApiError } from '@/utils/errors';
+import { withErrorHandling } from '@/utils/errorHandling';
 
 /**
  * Custom hook for moderator actions
@@ -67,17 +70,13 @@ export const useModeration = () => {
         logger.error(LogSource.MODERATION, 'Error approving comment:', error);
         toast({
           title: "Error",
-          description: "There was a problem approving the comment",
+          description: error?.message || "There was a problem approving the comment",
           variant: "destructive"
         });
       }
     } catch (err) {
       logger.error(LogSource.MODERATION, 'Exception approving comment:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      handleApiError(err, true);
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== commentId));
     }
@@ -105,10 +104,17 @@ export const useModeration = () => {
     try {
       logger.info(LogSource.MODERATION, 'Rejecting comment', { commentId, moderatorId, reason });
       
-      // First reject the comment
-      const { success, error } = await rejectComment(commentId);
+      // Use withErrorHandling for better error management
+      const { data, error } = await withErrorHandling(
+        () => rejectComment(commentId),
+        {
+          errorMessage: "Failed to reject comment",
+          logSource: LogSource.MODERATION,
+          showToast: false
+        }
+      );
       
-      if (success) {
+      if (data?.success) {
         // Log the moderation action
         await logModerationAction(
           commentId,
@@ -131,17 +137,13 @@ export const useModeration = () => {
         logger.error(LogSource.MODERATION, 'Error rejecting comment:', error);
         toast({
           title: "Error",
-          description: "There was a problem rejecting the comment",
+          description: error?.message || "There was a problem rejecting the comment",
           variant: "destructive"
         });
       }
     } catch (err) {
       logger.error(LogSource.MODERATION, 'Exception rejecting comment:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      handleApiError(err, true);
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== commentId));
     }
@@ -183,20 +185,16 @@ export const useModeration = () => {
           onSuccess(commentId);
         }
       } else {
-        console.error('Error flagging comment:', error);
+        logger.error(LogSource.MODERATION, 'Error flagging comment:', error);
         toast({
           title: "Error",
-          description: "There was a problem flagging the content",
+          description: error?.message || "There was a problem flagging the content",
           variant: "destructive"
         });
       }
     } catch (err) {
-      console.error('Exception flagging comment:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
+      logger.error(LogSource.MODERATION, 'Exception flagging comment:', err);
+      handleApiError(err, true);
     } finally {
       setProcessingIds(prev => prev.filter(id => id !== commentId));
     }

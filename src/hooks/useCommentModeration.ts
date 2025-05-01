@@ -4,6 +4,7 @@ import { getFlaggedComments } from '@/services/commentService';
 import { useModeration } from '@/hooks/useModeration';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { withErrorHandling } from '@/utils/errorHandling';
 
 export const useCommentModeration = () => {
   const [filter, setFilter] = useState('flagged');
@@ -19,41 +20,41 @@ export const useCommentModeration = () => {
   // Ensure we reset the page when filter or search changes
   useEffect(() => {
     setPage(1);
+    setComments([]); // Clear comments when filter changes to avoid showing incorrect data
   }, [filter, searchTerm]);
 
   const fetchComments = useCallback(async (currentPage = 1) => {
     setLoading(true);
-    try {
-      logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm, page: currentPage });
-      const { comments, count, error } = await getFlaggedComments(filter, searchTerm, currentPage, limit);
-      if (error) {
-        logger.error(LogSource.MODERATION, 'Error fetching comments', { error });
-        toast({
-          title: "Error",
-          description: "Could not load comments for moderation",
-          variant: "destructive"
-        });
-      } else {
-        // If loading more pages, append to existing comments
-        if (currentPage > 1) {
-          setComments(prev => [...prev, ...comments]);
-        } else {
-          // Otherwise replace comments
-          setComments(comments);
-        }
-        setTotalCount(count);
-        logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count, commentsFound: comments.length });
+    
+    const { data, error } = await withErrorHandling(
+      () => getFlaggedComments(filter, searchTerm, currentPage, limit),
+      {
+        errorMessage: "Could not load comments for moderation",
+        logSource: LogSource.MODERATION,
+        showToast: true
       }
-    } catch (err) {
-      logger.error(LogSource.MODERATION, 'Exception fetching comments', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
+    );
+    
+    if (data) {
+      const { comments: fetchedComments, count } = data;
+      
+      // If loading more pages, append to existing comments
+      if (currentPage > 1) {
+        setComments(prev => [...prev, ...fetchedComments]);
+      } else {
+        // Otherwise replace comments
+        setComments(fetchedComments);
+      }
+      
+      setTotalCount(count);
+      logger.info(LogSource.MODERATION, 'Comments fetched successfully', { 
+        count, 
+        commentsFound: fetchedComments.length,
+        filter
       });
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   }, [filter, searchTerm, limit, toast]);
 
   useEffect(() => {
@@ -102,7 +103,8 @@ export const useCommentModeration = () => {
     onApprove,
     onReject,
     loadMoreComments,
-    page
+    page,
+    refreshComments: () => fetchComments(1)
   };
 };
 

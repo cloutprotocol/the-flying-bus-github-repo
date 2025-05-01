@@ -1,12 +1,14 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { 
   Search, 
   Filter, 
   MessageSquare, 
   Flag, 
-  AlertTriangle
+  AlertTriangle,
+  Check,
+  X
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +26,7 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
   searchTerm,
   setSearchTerm
 }) => {
-  // Ensure dropdown and tabs stay in sync
+  // Handle filter change from either dropdown or tabs
   const handleFilterChange = (value: string) => {
     setFilter(value);
   };
@@ -61,7 +63,7 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
       </div>
       
       <Tabs value={filter} onValueChange={handleFilterChange}>
-        <TabsList>
+        <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="flagged">
             <Flag className="h-4 w-4 mr-2" />
             Flagged
@@ -73,6 +75,14 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
           <TabsTrigger value="pending">
             <MessageSquare className="h-4 w-4 mr-2" />
             Pending
+          </TabsTrigger>
+          <TabsTrigger value="approved">
+            <Check className="h-4 w-4 mr-2" />
+            Approved
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            <X className="h-4 w-4 mr-2" />
+            Rejected
           </TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>

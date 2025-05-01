@@ -34,7 +34,7 @@ export const logModerationAction = async (
       .insert({
         content_id: contentId,
         content_type: contentType,
-        status: 'resolved',
+        status: 'reviewed', // Changed from 'resolved' to 'reviewed'
         reason: `${action}: ${notes || 'No additional notes'}`,
         reporter_id: moderatorId,
         reviewer_id: moderatorId,

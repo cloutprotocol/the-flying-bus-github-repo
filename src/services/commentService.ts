@@ -71,9 +71,12 @@ export const getFlaggedComments = async (
       } else if (filter === 'pending') {
         // Get comments with 'pending' status
         query = query.eq('status', 'pending');
-      } else {
-        // Filter by any other specific comment status (approved, rejected)
-        query = query.eq('status', filter);
+      } else if (filter === 'approved') {
+        // Get comments with 'published' status
+        query = query.eq('status', 'published');
+      } else if (filter === 'rejected') {
+        // Get comments with 'rejected' status
+        query = query.eq('status', 'rejected');
       }
     }
     
@@ -164,7 +167,7 @@ export const approveComment = async (commentId: string): Promise<{ success: bool
     const { error: flagError } = await supabase
       .from('flagged_content')
       .update({ 
-        status: 'resolved',
+        status: 'reviewed',
         reviewer_id: moderatorId,
         reviewed_at: new Date().toISOString()
       })
@@ -215,7 +218,7 @@ export const rejectComment = async (commentId: string): Promise<{ success: boole
     const { error: flagError } = await supabase
       .from('flagged_content')
       .update({ 
-        status: 'resolved',
+        status: 'reviewed',
         reviewer_id: moderatorId,
         reviewed_at: new Date().toISOString()
       })

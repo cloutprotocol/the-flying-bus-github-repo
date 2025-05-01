@@ -1,13 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModeratorDashboard from '@/components/Admin/Moderation/ModeratorDashboard';
 import CommentModerationFilters from '@/components/Admin/Moderation/CommentModerationFilters';
 import CommentModerationContent from '@/components/Admin/Moderation/CommentModerationContent';
 import useCommentModeration from '@/hooks/useCommentModeration';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const CommentModeration = () => {
+  const [activeTab, setActiveTab] = useState('comments');
+  
   const {
     filter,
     setFilter,
@@ -19,7 +23,8 @@ const CommentModeration = () => {
     processingIds,
     onApprove,
     onReject,
-    loadMoreComments
+    loadMoreComments,
+    refreshComments
   } = useCommentModeration();
 
   return (
@@ -32,7 +37,12 @@ const CommentModeration = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="comments" className="w-full">
+        <Tabs 
+          defaultValue="comments" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
@@ -49,6 +59,16 @@ const CommentModeration = () => {
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
             />
+            
+            {processingIds.length > 0 && (
+              <Alert className="mt-4 bg-blue-50 border-blue-200">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertTitle>Processing</AlertTitle>
+                <AlertDescription>
+                  Processing {processingIds.length} comment{processingIds.length > 1 ? 's' : ''}. Please wait...
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="mt-4">
               <CommentModerationContent
