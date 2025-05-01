@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { handleApiError } from '@/utils/errors';
-import { withErrorHandling } from '@/utils/errorHandling';
 
 /**
  * Custom hook for moderator actions
@@ -39,6 +38,7 @@ export const useModeration = () => {
       return;
     }
     
+    // Add comment to processing list
     setProcessingIds(prev => [...prev, commentId]);
     
     try {
@@ -57,11 +57,6 @@ export const useModeration = () => {
           'Comment approved by moderator'
         );
         
-        toast({
-          title: "Comment approved",
-          description: "The comment has been published",
-        });
-        
         // Call the success callback if provided
         if (onSuccess) {
           onSuccess(commentId);
@@ -78,6 +73,7 @@ export const useModeration = () => {
       logger.error(LogSource.MODERATION, 'Exception approving comment:', err);
       handleApiError(err, true);
     } finally {
+      // Remove comment from processing list regardless of outcome
       setProcessingIds(prev => prev.filter(id => id !== commentId));
     }
   }, [moderatorId, toast]);
@@ -99,22 +95,16 @@ export const useModeration = () => {
       return;
     }
     
+    // Add comment to processing list
     setProcessingIds(prev => [...prev, commentId]);
     
     try {
       logger.info(LogSource.MODERATION, 'Rejecting comment', { commentId, moderatorId, reason });
       
-      // Use withErrorHandling for better error management
-      const { data, error } = await withErrorHandling(
-        () => rejectComment(commentId),
-        {
-          errorMessage: "Failed to reject comment",
-          logSource: LogSource.MODERATION,
-          showToast: false
-        }
-      );
+      // Reject the comment
+      const { success, error } = await rejectComment(commentId);
       
-      if (data?.success) {
+      if (success) {
         // Log the moderation action
         await logModerationAction(
           commentId,
@@ -123,11 +113,6 @@ export const useModeration = () => {
           moderatorId,
           reason || 'Comment rejected by moderator'
         );
-        
-        toast({
-          title: "Comment rejected",
-          description: "The comment has been removed",
-        });
         
         // Call the success callback if provided
         if (onSuccess) {
@@ -145,6 +130,7 @@ export const useModeration = () => {
       logger.error(LogSource.MODERATION, 'Exception rejecting comment:', err);
       handleApiError(err, true);
     } finally {
+      // Remove comment from processing list regardless of outcome
       setProcessingIds(prev => prev.filter(id => id !== commentId));
     }
   }, [moderatorId, toast]);

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModeratorDashboard from '@/components/Admin/Moderation/ModeratorDashboard';
@@ -26,6 +26,13 @@ const CommentModeration = () => {
     loadMoreComments,
     refreshComments
   } = useCommentModeration();
+
+  // Refresh comments when switching back to the comments tab
+  useEffect(() => {
+    if (activeTab === 'comments') {
+      refreshComments();
+    }
+  }, [activeTab, refreshComments]);
 
   return (
     <AdminPortalLayout>

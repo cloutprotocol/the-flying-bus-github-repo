@@ -298,8 +298,8 @@ export const getModerationMetrics = async (): Promise<{
       flaggedUsersCount: 0,
       // Add action counts (get from recentActivity or return placeholders)
       byAction: [
-        { action: 'approve', count: stats?.recentActivity?.filter((a: any) => a.status === 'resolved' && a.reason?.includes('approve'))?.length || 0 },
-        { action: 'reject', count: stats?.recentActivity?.filter((a: any) => a.status === 'resolved' && a.reason?.includes('reject'))?.length || 0 },
+        { action: 'approve', count: stats?.recentActivity?.filter((a: any) => a.status === 'reviewed' && a.reason?.includes('approve'))?.length || 0 },
+        { action: 'reject', count: stats?.recentActivity?.filter((a: any) => a.status === 'reviewed' && a.reason?.includes('reject'))?.length || 0 },
         { action: 'flag', count: stats?.recentActivity?.filter((a: any) => a.status === 'pending')?.length || 0 }
       ],
       // Format the recent actions for the dashboard

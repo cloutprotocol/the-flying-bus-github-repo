@@ -94,7 +94,7 @@ export const getFlaggedComments = async (
     
     if (error) {
       logger.error(LogSource.DATABASE, 'Error fetching flagged comments', { error });
-      throw error;
+      return { comments: [], count: 0, error };
     }
     
     // Transform the data for the UI

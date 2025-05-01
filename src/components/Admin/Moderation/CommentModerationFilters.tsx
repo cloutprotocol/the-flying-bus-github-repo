@@ -3,7 +3,6 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { 
   Search, 
-  Filter, 
   MessageSquare, 
   Flag, 
   AlertTriangle,
