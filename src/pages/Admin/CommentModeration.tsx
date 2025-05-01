@@ -8,6 +8,7 @@ import CommentModerationContent from '@/components/Admin/Moderation/CommentModer
 import useCommentModeration from '@/hooks/useCommentModeration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import ErrorDisplay from '@/components/Admin/Common/ErrorDisplay';
 
 const CommentModeration = () => {
   const [activeTab, setActiveTab] = useState('comments');
@@ -20,6 +21,7 @@ const CommentModeration = () => {
     comments,
     totalCount,
     loading,
+    error,
     processingIds,
     onApprove,
     onReject,
@@ -60,6 +62,16 @@ const CommentModeration = () => {
           </TabsContent>
           
           <TabsContent value="comments" className="mt-6">
+            {error && (
+              <ErrorDisplay
+                title="Error loading comments"
+                message="There was a problem loading comments for moderation."
+                details={error.message}
+                onRetry={refreshComments}
+                className="mb-4"
+              />
+            )}
+            
             <CommentModerationFilters
               filter={filter}
               setFilter={setFilter}

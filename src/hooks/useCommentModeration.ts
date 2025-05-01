@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { getFlaggedComments } from '@/services/commentService';
 import { useModeration } from '@/hooks/useModeration';
@@ -14,29 +15,76 @@ export const useCommentModeration = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
   const { handleApprove, handleReject, processingIds } = useModeration();
+  
+  // Ref to store if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+  
+  // Ref to store the fetch abortcontroller for cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Debounce timer ref for search
+  const searchTimerRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    return () => {
+      // Set mounted flag to false on cleanup
+      isMounted.current = false;
+      
+      // Cancel any pending fetch
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Clear any pending search timer
+      if (searchTimerRef.current) {
+        window.clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, []);
 
   // Update filter handler to ensure UI and state are consistent
   const handleFilterChange = (newFilter: string) => {
+    // Cancel any pending fetch
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     setFilter(newFilter);
     setPage(1); // Reset to first page when filter changes
+    setComments([]); // Clear comments when filter changes
+    setError(null); // Clear any previous errors
   };
 
-  // Ensure we reset the page when search term changes
-  useEffect(() => {
-    if (searchTerm) {
-      setPage(1);
+  // Debounced search handler
+  const handleSearchChange = useCallback((term: string) => {
+    // Clear previous timer
+    if (searchTimerRef.current) {
+      window.clearTimeout(searchTimerRef.current);
     }
-  }, [searchTerm]);
+    
+    // Set a new timer to update search after delay
+    searchTimerRef.current = window.setTimeout(() => {
+      setSearchTerm(term);
+      setPage(1); // Reset to first page when search changes
+      setComments([]); // Clear comments when search changes
+      setError(null); // Clear any previous errors
+    }, 500);
+  }, []);
 
-  // Separate useEffect for clearing comments when filter changes
-  useEffect(() => {
-    setComments([]); // Clear comments when filter changes to avoid showing incorrect data
-  }, [filter]);
-
-  const fetchComments = useCallback(async (currentPage = 1) => {
+  const fetchComments = useCallback(async (currentPage = 1, shouldAppend = false) => {
+    // If we're in the middle of fetching, cancel that request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this fetch
+    abortControllerRef.current = new AbortController();
+    
     setLoading(true);
+    setError(null);
     
     try {
       const { data, error } = await withErrorHandling(
@@ -48,11 +96,14 @@ export const useCommentModeration = () => {
         }
       );
       
+      // Check if component is still mounted before updating state
+      if (!isMounted.current) return;
+      
       if (data) {
         const { comments: fetchedComments, count } = data;
         
         // If loading more pages, append to existing comments
-        if (currentPage > 1) {
+        if (shouldAppend && currentPage > 1) {
           setComments(prev => [...prev, ...fetchedComments]);
         } else {
           // Otherwise replace comments
@@ -60,32 +111,64 @@ export const useCommentModeration = () => {
         }
         
         setTotalCount(count);
-        logger.info(LogSource.MODERATION, 'Comments fetched successfully', { 
+        
+        // Use reduced logging level to avoid filling up storage
+        logger.debug(LogSource.MODERATION, 'Comments fetched successfully', { 
           count, 
           commentsFound: fetchedComments.length,
           filter
         });
       }
-    } catch (err) {
-      logger.error(LogSource.MODERATION, 'Error fetching comments', err);
+      
+      if (error && isMounted.current) {
+        setError(error);
+      }
     } finally {
-      setLoading(false);
+      // Make sure we only update state if still mounted
+      if (isMounted.current) {
+        setLoading(false);
+        abortControllerRef.current = null;
+      }
     }
-  }, [filter, searchTerm, limit, toast]);
+  }, [filter, searchTerm, limit]);
 
+  // Separate useEffect hooks for the three sources of refetch
+  
+  // 1. Filter changes
   useEffect(() => {
-    fetchComments(page);
-  }, [fetchComments, page]);
+    fetchComments(1, false);
+  }, [filter, fetchComments]);
+  
+  // 2. Search term changes
+  useEffect(() => {
+    if (searchTerm !== '') {
+      fetchComments(1, false);
+    }
+  }, [searchTerm, fetchComments]);
+  
+  // 3. Page changes for pagination
+  useEffect(() => {
+    // Only fetch if this isn't the initial render for page 1
+    if (page > 1) {
+      fetchComments(page, true);
+    }
+  }, [page, fetchComments]);
 
   const loadMoreComments = useCallback(() => {
-    setPage(prev => prev + 1);
-  }, []);
+    if (!loading) {
+      setPage(prev => prev + 1);
+    }
+  }, [loading]);
 
   const onApprove = useCallback(async (commentId: string) => {
-    logger.info(LogSource.MODERATION, 'Approving comment', { commentId });
+    if (processingIds.includes(commentId)) {
+      return; // Prevent duplicate processing
+    }
+    
+    logger.debug(LogSource.MODERATION, 'Approving comment', { commentId });
     await handleApprove(commentId, (id) => {
       // Remove the comment from the list after successful approval if not viewing "approved" filter
-      if (filter !== 'approved') {
+      if (filter !== 'approved' && isMounted.current) {
         setComments(prev => prev.filter(comment => comment.id !== id));
         setTotalCount(prev => Math.max(0, prev - 1));
       }
@@ -95,13 +178,17 @@ export const useCommentModeration = () => {
         description: "The comment has been published successfully",
       });
     });
-  }, [handleApprove, toast, filter]);
+  }, [handleApprove, toast, filter, processingIds]);
 
   const onReject = useCallback(async (commentId: string) => {
-    logger.info(LogSource.MODERATION, 'Rejecting comment', { commentId });
+    if (processingIds.includes(commentId)) {
+      return; // Prevent duplicate processing
+    }
+    
+    logger.debug(LogSource.MODERATION, 'Rejecting comment', { commentId });
     await handleReject(commentId, undefined, (id) => {
       // Remove the comment from the list after successful rejection if not viewing "rejected" filter
-      if (filter !== 'rejected') {
+      if (filter !== 'rejected' && isMounted.current) {
         setComments(prev => prev.filter(comment => comment.id !== id));
         setTotalCount(prev => Math.max(0, prev - 1));
       }
@@ -111,22 +198,34 @@ export const useCommentModeration = () => {
         description: "The comment has been removed successfully",
       });
     });
-  }, [handleReject, toast, filter]);
+  }, [handleReject, toast, filter, processingIds]);
+
+  const refreshComments = useCallback(() => {
+    // Cancel any pending fetch
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    setPage(1);
+    setComments([]);
+    fetchComments(1, false);
+  }, [fetchComments]);
 
   return {
     filter,
     setFilter: handleFilterChange,
     searchTerm,
-    setSearchTerm,
+    setSearchTerm: handleSearchChange,
     comments,
     totalCount,
     loading,
+    error,
     processingIds,
     onApprove,
     onReject,
     loadMoreComments,
     page,
-    refreshComments: () => fetchComments(1)
+    refreshComments
   };
 };
 

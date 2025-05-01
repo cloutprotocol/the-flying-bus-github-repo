@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { 
   Search, 
@@ -25,9 +24,24 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
   searchTerm,
   setSearchTerm
 }) => {
+  const [inputValue, setInputValue] = useState(searchTerm);
+  
+  // Keep the local input value in sync with the external searchTerm
+  useEffect(() => {
+    setInputValue(searchTerm);
+  }, [searchTerm]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    setSearchTerm(value);
+  };
+  
   // Handle filter change from either dropdown or tabs
   const handleFilterChange = (value: string) => {
-    setFilter(value);
+    if (value !== filter) { // Only update if the value actually changed
+      setFilter(value);
+    }
   };
 
   return (
@@ -37,8 +51,8 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search comments or users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={inputValue}
+            onChange={handleSearchChange}
             className="pl-8"
           />
         </div>
@@ -62,7 +76,7 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
       </div>
       
       <Tabs value={filter} onValueChange={handleFilterChange}>
-        <TabsList className="w-full sm:w-auto">
+        <TabsList className="w-full sm:w-auto overflow-auto">
           <TabsTrigger value="flagged">
             <Flag className="h-4 w-4 mr-2" />
             Flagged
