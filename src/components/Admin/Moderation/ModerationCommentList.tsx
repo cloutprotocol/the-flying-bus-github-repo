@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -20,6 +20,7 @@ export interface ModerationComment {
   status: string;
   flagReason?: string;
   reportedBy?: string;
+  reportedAt?: Date | null;
 }
 
 export interface ModerationCommentListProps {
@@ -98,12 +99,32 @@ const ModerationCommentList: React.FC<ModerationCommentListProps> = ({
                 </div>
               </div>
               <div className="text-sm">{comment.content}</div>
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                  comment.status === 'flagged' ? 'bg-amber-100 text-amber-800' : 
+                  comment.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                  comment.status === 'published' ? 'bg-green-100 text-green-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {comment.status.charAt(0).toUpperCase() + comment.status.slice(1)}
+                </span>
+              </div>
             </div>
             
             {comment.flagReason && (
               <div className="bg-amber-50 p-3 text-sm">
-                <p className="font-medium text-amber-800">Flag reason:</p>
-                <p className="text-amber-700">{comment.flagReason}</p>
+                <div className="flex items-center">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mr-1" />
+                  <p className="font-medium text-amber-800">Flag reason:</p>
+                </div>
+                <p className="text-amber-700 mt-1">{comment.flagReason}</p>
+                {comment.reportedBy && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Reported by: {comment.reportedBy} {comment.reportedAt && (
+                      <>· {formatDistanceToNow(new Date(comment.reportedAt), { addSuffix: true })}</>
+                    )}
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

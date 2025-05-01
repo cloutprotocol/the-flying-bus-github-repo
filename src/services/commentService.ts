@@ -58,18 +58,21 @@ export const getFlaggedComments = async (
         )
       `, { count: 'exact' });
     
-    // Apply filters
+    // Apply filters based on the selected filter type
     if (filter !== 'all') {
       if (filter === 'flagged') {
-        // Get comments that have a 'flagged' status
+        // Get comments with 'flagged' status, regardless of reporter
         query = query.eq('status', 'flagged');
       } else if (filter === 'reported') {
-        // Get comments that have been reported by users
+        // Get comments that have been reported by users specifically
         query = query
           .eq('status', 'flagged')
           .not('flagged_comments.reporter_id', 'is', null);
+      } else if (filter === 'pending') {
+        // Get comments with 'pending' status
+        query = query.eq('status', 'pending');
       } else {
-        // Filter by comment status
+        // Filter by any other specific comment status (approved, rejected)
         query = query.eq('status', filter);
       }
     }
@@ -120,7 +123,8 @@ export const getFlaggedComments = async (
     
     logger.info(LogSource.DATABASE, 'Flagged comments fetched successfully', { 
       count, 
-      filter
+      filter,
+      commentsCount: comments.length
     });
     
     return { comments, count: count || 0, error: null };
@@ -192,6 +196,7 @@ export const rejectComment = async (commentId: string): Promise<{ success: boole
     const moderatorId = session?.user?.id;
     
     if (!moderatorId) {
+      logger.error(LogSource.DATABASE, 'Authentication required for rejecting comment');
       return { success: false, error: new Error('Authentication required') };
     }
     

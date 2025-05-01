@@ -1,7 +1,6 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { 
   Search, 
   Filter, 
@@ -25,6 +24,11 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
   searchTerm,
   setSearchTerm
 }) => {
+  // Ensure dropdown and tabs stay in sync
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -40,7 +44,7 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
         
         <Select
           value={filter}
-          onValueChange={setFilter}
+          onValueChange={handleFilterChange}
         >
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter" />
@@ -56,7 +60,7 @@ const CommentModerationFilters: React.FC<CommentModerationFiltersProps> = ({
         </Select>
       </div>
       
-      <Tabs defaultValue={filter} onValueChange={setFilter}>
+      <Tabs value={filter} onValueChange={handleFilterChange}>
         <TabsList>
           <TabsTrigger value="flagged">
             <Flag className="h-4 w-4 mr-2" />

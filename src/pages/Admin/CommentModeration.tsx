@@ -32,7 +32,7 @@ const CommentModeration = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="comments">
+        <Tabs defaultValue="comments" className="w-full">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
@@ -51,19 +51,15 @@ const CommentModeration = () => {
             />
             
             <div className="mt-4">
-              <Tabs defaultValue={filter} value={filter}>
-                <TabsContent value={filter}>
-                  <CommentModerationContent
-                    loading={loading}
-                    comments={comments}
-                    totalCount={totalCount}
-                    processingIds={processingIds}
-                    onApprove={onApprove}
-                    onReject={onReject}
-                    loadMoreComments={loadMoreComments}
-                  />
-                </TabsContent>
-              </Tabs>
+              <CommentModerationContent
+                loading={loading}
+                comments={comments}
+                totalCount={totalCount}
+                processingIds={processingIds}
+                onApprove={onApprove}
+                onReject={onReject}
+                loadMoreComments={loadMoreComments}
+              />
             </div>
           </TabsContent>
         </Tabs>

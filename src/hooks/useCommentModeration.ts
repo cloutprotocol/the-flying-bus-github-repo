@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { getFlaggedComments } from '@/services/commentService';
@@ -17,11 +16,16 @@ export const useCommentModeration = () => {
   const { toast } = useToast();
   const { handleApprove, handleReject, processingIds } = useModeration();
 
-  const fetchComments = useCallback(async () => {
+  // Ensure we reset the page when filter or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter, searchTerm]);
+
+  const fetchComments = useCallback(async (currentPage = 1) => {
     setLoading(true);
     try {
-      logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm, page });
-      const { comments, count, error } = await getFlaggedComments(filter, searchTerm, page, limit);
+      logger.info(LogSource.MODERATION, 'Fetching comments for moderation', { filter, searchTerm, page: currentPage });
+      const { comments, count, error } = await getFlaggedComments(filter, searchTerm, currentPage, limit);
       if (error) {
         logger.error(LogSource.MODERATION, 'Error fetching comments', { error });
         toast({
@@ -30,9 +34,15 @@ export const useCommentModeration = () => {
           variant: "destructive"
         });
       } else {
-        setComments(comments);
+        // If loading more pages, append to existing comments
+        if (currentPage > 1) {
+          setComments(prev => [...prev, ...comments]);
+        } else {
+          // Otherwise replace comments
+          setComments(comments);
+        }
         setTotalCount(count);
-        logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count });
+        logger.info(LogSource.MODERATION, 'Comments fetched successfully', { count, commentsFound: comments.length });
       }
     } catch (err) {
       logger.error(LogSource.MODERATION, 'Exception fetching comments', err);
@@ -44,11 +54,11 @@ export const useCommentModeration = () => {
     } finally {
       setLoading(false);
     }
-  }, [filter, searchTerm, page, limit, toast]);
+  }, [filter, searchTerm, limit, toast]);
 
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    fetchComments(page);
+  }, [fetchComments, page]);
 
   const loadMoreComments = useCallback(() => {
     setPage(prev => prev + 1);
@@ -60,8 +70,12 @@ export const useCommentModeration = () => {
       // Remove the comment from the list after successful approval
       setComments(prev => prev.filter(comment => comment.id !== id));
       setTotalCount(prev => Math.max(0, prev - 1));
+      toast({
+        title: "Comment Approved",
+        description: "The comment has been published successfully",
+      });
     });
-  }, [handleApprove]);
+  }, [handleApprove, toast]);
 
   const onReject = useCallback(async (commentId: string) => {
     logger.info(LogSource.MODERATION, 'Rejecting comment', { commentId });
@@ -69,8 +83,12 @@ export const useCommentModeration = () => {
       // Remove the comment from the list after successful rejection
       setComments(prev => prev.filter(comment => comment.id !== id));
       setTotalCount(prev => Math.max(0, prev - 1));
+      toast({
+        title: "Comment Rejected",
+        description: "The comment has been removed successfully",
+      });
     });
-  }, [handleReject]);
+  }, [handleReject, toast]);
 
   return {
     filter,
