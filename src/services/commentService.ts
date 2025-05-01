@@ -23,7 +23,7 @@ interface CommentWithFlagged {
     display_name: string | null;
     avatar_url: string | null;
   };
-  flagged_comments: FlaggedContent[] | FlaggedContent;
+  flagged_comments: FlaggedContent[] | FlaggedContent | null;
 }
 
 /**
@@ -49,7 +49,7 @@ export const getFlaggedComments = async (
         user_id,
         status,
         profiles!user_id(display_name, avatar_url),
-        flagged_comments:flagged_content!inner(
+        flagged_comments:flagged_content(
           id,
           reason,
           reporter_id,
@@ -96,7 +96,7 @@ export const getFlaggedComments = async (
       // Get the flagged_content associated with this comment
       const flaggedContentArray = Array.isArray(comment.flagged_comments) 
         ? comment.flagged_comments 
-        : [comment.flagged_comments];
+        : comment.flagged_comments ? [comment.flagged_comments] : [];
       
       const flaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {} as FlaggedContent;
       
