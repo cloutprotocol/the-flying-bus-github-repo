@@ -21,7 +21,7 @@ export const fetchArticleById = async (articleId: string): Promise<ArticleProps 
         cover_image, 
         category_id,
         categories(id, name, slug, color),
-        profiles(id, display_name, avatar_url),
+        profiles!articles_author_id_fkey(id, display_name, avatar_url),
         created_at,
         published_at,
         article_type
@@ -35,7 +35,10 @@ export const fetchArticleById = async (articleId: string): Promise<ArticleProps 
       return null;
     }
 
-    if (!data) return null;
+    if (!data) {
+      logger.warn(LogSource.ARTICLE, `Article not found with ID: ${articleId}`);
+      return null;
+    }
 
     return {
       id: data.id,
@@ -78,7 +81,7 @@ export const fetchRelatedArticles = async (
         cover_image, 
         category_id,
         categories(id, name, slug, color),
-        profiles(id, display_name),
+        profiles!articles_author_id_fkey(id, display_name),
         created_at,
         published_at,
         content

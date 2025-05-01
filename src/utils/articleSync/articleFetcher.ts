@@ -52,7 +52,7 @@ export const fetchArticleFromAPI = async (articleId: string): Promise<ArticlePro
         cover_image, 
         category_id,
         categories(id, name, slug, color),
-        profiles(id, display_name),
+        profiles!articles_author_id_fkey(id, display_name),
         created_at,
         published_at,
         article_type

@@ -14,7 +14,7 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
       .from('articles')
       .select(`
         *,
-        profiles:author_id(*),
+        profiles!articles_author_id_fkey(*),
         categories:category_id(*)
       `)
       .eq('id', articleId)
@@ -44,6 +44,7 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
       readingLevel: 'Intermediate', // Default value
       readTime: calculateReadTime(data.content),
       author: data.profiles?.display_name || 'Unknown Author',
+      authorAvatar: data.profiles?.avatar_url || '',
       date: new Date(data.published_at || data.created_at).toLocaleDateString(),
       publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : '',
       articleType: data.article_type || 'standard'
