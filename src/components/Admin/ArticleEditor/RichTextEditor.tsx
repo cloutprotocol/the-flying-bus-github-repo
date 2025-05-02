@@ -1,23 +1,23 @@
 
 import React, { useEffect, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { RichTextPlugin } from '@lexical/react/RichTextPlugin';
-import { ContentEditable } from '@lexical/react/ContentEditable';
-import { HistoryPlugin } from '@lexical/react/HistoryPlugin';
-import { AutoFocusPlugin } from '@lexical/react/AutoFocusPlugin';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { TableNode, TableCellNode, TableRowNode } from '@lexical/table';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
-import { LinkPlugin } from '@lexical/react/LinkPlugin';
-import { ListPlugin } from '@lexical/react/ListPlugin';
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { OnChangePlugin } from '@lexical/react/OnChangePlugin';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import ToolbarPlugin from './RichTextEditor/ToolbarPlugin';
 import "./RichTextEditor/editor.css";
 

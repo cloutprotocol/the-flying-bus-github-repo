@@ -5,9 +5,12 @@ import {
   $getSelection, 
   $isRangeSelection,
   $createParagraphNode,
-  FORMAT_TEXT_COMMAND
+  FORMAT_TEXT_COMMAND,
+  COMMAND_PRIORITY_NORMAL,
+  UNDO_COMMAND,
+  REDO_COMMAND
 } from 'lexical';
-import { $wrapLeafNodesInElements } from '@lexical/selection';
+import { $wrapNodes } from '@lexical/selection';
 import { $findMatchingParent } from '@lexical/utils';
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -59,7 +62,7 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        $wrapLeafNodesInElements(selection, () => $createHeadingNode(headingSize));
+        $wrapNodes(selection, () => $createHeadingNode(headingSize));
       }
     });
   };
@@ -68,7 +71,7 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        $wrapLeafNodesInElements(selection, () => $createParagraphNode());
+        $wrapNodes(selection, () => $createParagraphNode());
       }
     });
   };
@@ -85,7 +88,7 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        $wrapLeafNodesInElements(selection, () => $createQuoteNode());
+        $wrapNodes(selection, () => $createQuoteNode());
       }
     });
   };
@@ -95,7 +98,7 @@ const ToolbarPlugin = () => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         if (selection.isCollapsed()) {
-          $wrapLeafNodesInElements(selection, () => $createCodeNode());
+          $wrapNodes(selection, () => $createCodeNode());
         } else {
           const anchorNode = selection.anchor.getNode();
           const focusNode = selection.focus.getNode();
@@ -111,7 +114,7 @@ const ToolbarPlugin = () => {
             codeNode.remove();
           } else {
             // Wrap in a code block
-            $wrapLeafNodesInElements(selection, () => $createCodeNode());
+            $wrapNodes(selection, () => $createCodeNode());
           }
         }
       }
@@ -187,7 +190,7 @@ const ToolbarPlugin = () => {
           <Toggle 
             size="sm" 
             onPressedChange={() => {
-              editor.dispatchCommand('undo', undefined);
+              editor.dispatchCommand(UNDO_COMMAND, undefined);
             }}
           >
             <Undo className="h-4 w-4" />
@@ -195,7 +198,7 @@ const ToolbarPlugin = () => {
           <Toggle 
             size="sm" 
             onPressedChange={() => {
-              editor.dispatchCommand('redo', undefined);
+              editor.dispatchCommand(REDO_COMMAND, undefined);
             }}
           >
             <Redo className="h-4 w-4" />
