@@ -70,7 +70,7 @@ const ArticlePage = () => {
         <ArticleHeader article={article} />
         
         <div className="w-full px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
             <ArticleContent 
               article={article} 
               articleContent={article.content || ''} 
