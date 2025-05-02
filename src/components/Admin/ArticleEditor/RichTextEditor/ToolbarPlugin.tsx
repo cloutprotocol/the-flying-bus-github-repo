@@ -76,7 +76,7 @@ const ToolbarPlugin = () => {
     });
   };
 
-  // Completely rewritten code block handling to avoid type issues
+  // Fixed code block handling to avoid type issues
   const formatCode = () => {
     editor.update(() => {
       const selection = $getSelection();
@@ -84,29 +84,24 @@ const ToolbarPlugin = () => {
         return;
       }
       
-      // Get the nodes in the selection
-      const nodes = selection.getNodes();
-      
-      // Check if any selected node is inside a code block
-      let isInCodeBlock = false;
-      for (const node of nodes) {
-        let parent = node.getParent();
-        while (parent) {
-          if ($isCodeNode(parent)) {
-            isInCodeBlock = true;
-            break;
+      // Check if current selection is in a code block
+      const isInCodeBlock = selection.getNodes().some(node => {
+        let currentNode = node;
+        while (currentNode) {
+          if ($isCodeNode(currentNode)) {
+            return true;
           }
-          parent = parent.getParent();
+          currentNode = currentNode.getParent();
         }
-        if (isInCodeBlock) break;
-      }
+        return false;
+      });
       
       if (isInCodeBlock) {
-        // Unwrap from code block - replace with paragraph
-        const paragraph = $createParagraphNode();
-        selection.insertNodes([paragraph]);
+        // Instead of trying to replace the CodeNode directly,
+        // we'll remove all formatting and create a new paragraph
+        selection.insertParagraph();
       } else {
-        // Wrap in code block
+        // Wrap in code block - this part works fine
         $wrapNodes(selection, () => $createCodeNode());
       }
     });
