@@ -12,6 +12,7 @@ import { useArticleData } from '@/hooks/useArticleData';
 import { isStoryboardArticle } from '@/utils/articles';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import '@/styles/article-content.css'; // Import article styling
 
 const ArticlePage = () => {
   const { articleId } = useParams<{ articleId: string }>();

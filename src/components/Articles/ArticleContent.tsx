@@ -4,6 +4,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import DebateVote from '@/components/Articles/DebateVote';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import VideoPlayer from '@/components/Articles/VideoPlayer';
+import '@/styles/article-content.css'; // Import the CSS for article content styling
 
 interface ArticleContentProps {
   article: ArticleProps;
