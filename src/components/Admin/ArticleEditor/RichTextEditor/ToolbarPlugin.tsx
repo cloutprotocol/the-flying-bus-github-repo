@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { 
@@ -7,30 +8,17 @@ import {
   FORMAT_TEXT_COMMAND,
   COMMAND_PRIORITY_NORMAL,
   UNDO_COMMAND,
-  REDO_COMMAND,
-  LexicalNode
+  REDO_COMMAND
 } from 'lexical';
 import { $wrapNodes } from '@lexical/selection';
-import { $findMatchingParent } from '@lexical/utils';
+import { $isCodeNode, $createCodeNode } from '@lexical/code';
 import {
   INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
-  $isListNode,
-  ListNode
+  INSERT_UNORDERED_LIST_COMMAND
 } from '@lexical/list';
 import {
   $createHeadingNode,
-  $isHeadingNode,
-  HeadingTagType
-} from '@lexical/rich-text';
-import {
-  $createCodeNode,
-  $isCodeNode
-} from '@lexical/code';
-import {
-  $createQuoteNode,
-  $isQuoteNode
+  $createQuoteNode
 } from '@lexical/rich-text';
 import { Toggle } from '@/components/ui/toggle';
 import { Separator } from '@/components/ui/separator';
@@ -53,7 +41,7 @@ import {
 const ToolbarPlugin = () => {
   const [editor] = useLexicalComposerContext();
   
-  const formatHeading = (headingSize: HeadingTagType) => {
+  const formatHeading = (headingSize: 'h1' | 'h2' | 'h3') => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -88,25 +76,38 @@ const ToolbarPlugin = () => {
     });
   };
 
+  // Completely rewritten code block handling to avoid type issues
   const formatCode = () => {
     editor.update(() => {
       const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        // Check if we're already in a code block
-        const anchorNode = selection.anchor.getNode();
-        const parentCodeNode = $findMatchingParent(
-          anchorNode,
-          node => $isCodeNode(node)
-        );
-        
-        if (parentCodeNode) {
-          // If already in code block, unwrap it by converting to paragraph
-          const paragraph = $createParagraphNode();
-          parentCodeNode.replace(paragraph, true);
-        } else {
-          // Otherwise, wrap in code block
-          $wrapNodes(selection, () => $createCodeNode());
+      if (!$isRangeSelection(selection)) {
+        return;
+      }
+      
+      // Get the nodes in the selection
+      const nodes = selection.getNodes();
+      
+      // Check if any selected node is inside a code block
+      let isInCodeBlock = false;
+      for (const node of nodes) {
+        let parent = node.getParent();
+        while (parent) {
+          if ($isCodeNode(parent)) {
+            isInCodeBlock = true;
+            break;
+          }
+          parent = parent.getParent();
         }
+        if (isInCodeBlock) break;
+      }
+      
+      if (isInCodeBlock) {
+        // Unwrap from code block - replace with paragraph
+        const paragraph = $createParagraphNode();
+        selection.insertNodes([paragraph]);
+      } else {
+        // Wrap in code block
+        $wrapNodes(selection, () => $createCodeNode());
       }
     });
   };

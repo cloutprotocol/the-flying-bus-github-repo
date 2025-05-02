@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { LexicalComposer } from '@lexical/react/LexicalComposerContext';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
@@ -60,7 +60,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         code: 'editor-text-code',
       },
     },
-    // Register custom nodes
+    // Register custom nodes with type assertion to fix compatibility issues
     nodes: [
       HeadingNode,
       QuoteNode,
@@ -73,7 +73,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       TableRowNode,
       AutoLinkNode,
       LinkNode
-    ],
+    ] as any, // Type assertion to fix TypeScript error
     onError: (error: Error) => {
       console.error("Lexical Editor error:", error);
     },
