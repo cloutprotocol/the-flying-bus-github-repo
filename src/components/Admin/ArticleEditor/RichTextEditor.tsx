@@ -1,25 +1,29 @@
 
-import React, { useEffect, useState } from 'react';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
-import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { TableNode, TableCellNode, TableRowNode } from '@lexical/table';
-import { ListNode, ListItemNode } from '@lexical/list';
-import { CodeNode, CodeHighlightNode } from '@lexical/code';
-import { AutoLinkNode, LinkNode } from '@lexical/link';
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { $generateHtmlFromNodes } from '@lexical/html';
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { Separator } from '@/components/ui/separator';
+import React, { useState } from 'react';
+import { 
+  Bold, 
+  Italic, 
+  Underline, 
+  AlignLeft, 
+  AlignCenter, 
+  AlignRight, 
+  List, 
+  ListOrdered, 
+  Link, 
+  Image, 
+  Video, 
+  Quote, 
+  Code, 
+  Heading1, 
+  Heading2, 
+  Heading3, 
+  Undo, 
+  Redo 
+} from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import ToolbarPlugin from './RichTextEditor/ToolbarPlugin';
-import "./RichTextEditor/editor.css";
+import { Separator } from '@/components/ui/separator';
 
 interface RichTextEditorProps {
   value: string;
@@ -27,112 +31,118 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-const RichTextEditor: React.FC<RichTextEditorProps> = ({
-  value,
-  onChange,
-  placeholder = 'Start writing...'
+// This is a simplified rich text editor UI without actual rich text functionality.
+// In a real implementation, you would integrate with a proper rich text library
+// like TipTap, Slate, or QuillJS.
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ 
+  value, 
+  onChange, 
+  placeholder = 'Start writing...' 
 }) => {
   const [view, setView] = useState<'write' | 'preview'>('write');
-  const [htmlContent, setHtmlContent] = useState('');
-
-  // Lexical Editor Configuration
-  const initialConfig = {
-    namespace: 'article-editor',
-    theme: {
-      root: 'editor-container',
-      paragraph: 'editor-paragraph',
-      heading: {
-        h1: 'editor-heading-h1',
-        h2: 'editor-heading-h2',
-        h3: 'editor-heading-h3',
-      },
-      list: {
-        ul: 'editor-list-ul',
-        ol: 'editor-list-ol',
-        listitem: 'editor-listitem',
-      },
-      quote: 'editor-quote',
-      link: 'editor-link',
-      text: {
-        bold: 'editor-text-bold',
-        italic: 'editor-text-italic',
-        underline: 'editor-text-underline',
-        code: 'editor-text-code',
-      },
-    },
-    // Register custom nodes with type assertion to fix compatibility issues
-    nodes: [
-      HeadingNode,
-      QuoteNode,
-      ListNode,
-      ListItemNode,
-      CodeNode,
-      CodeHighlightNode,
-      TableNode,
-      TableCellNode,
-      TableRowNode,
-      AutoLinkNode,
-      LinkNode
-    ] as any, // Type assertion to fix TypeScript error
-    onError: (error: Error) => {
-      console.error("Lexical Editor error:", error);
-    },
-    editable: true,
+  
+  // In a real implementation, these would actually format the text
+  const handleFormatClick = (format: string) => {
+    console.log(`Applied format: ${format}`);
   };
-
-  // Handle editor content changes
-  const handleEditorChange = (editorState: any) => {
-    // Save editor state as JSON string
-    editorState.read(() => {
-      const htmlString = $generateHtmlFromNodes(editorState);
-      setHtmlContent(htmlString);
-      onChange(htmlString);
-    });
-  };
-
-  // Parse initial HTML if provided
-  useEffect(() => {
-    if (view === 'preview') {
-      setHtmlContent(value);
-    }
-  }, [view, value]);
-
+  
   return (
     <Card className="border rounded-md overflow-hidden p-0">
-      <LexicalComposer initialConfig={initialConfig}>
-        <div className="editor-container">
-          <ToolbarPlugin />
+      <div className="bg-muted/40 border-b px-3 py-1.5">
+        <div className="flex flex-wrap gap-1 items-center">
+          <Toggle size="sm" onClick={() => handleFormatClick('bold')}>
+            <Bold className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('italic')}>
+            <Italic className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('underline')}>
+            <Underline className="h-4 w-4" />
+          </Toggle>
           
-          <Tabs value={view} onValueChange={(v) => setView(v as 'write' | 'preview')} className="p-1">
-            <TabsList className="ml-auto mr-2">
-              <TabsTrigger value="write">Write</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Separator orientation="vertical" className="mx-1 h-6" />
           
-          <div className="editor-inner">
-            {view === 'write' ? (
-              <>
-                <RichTextPlugin
-                  contentEditable={<ContentEditable className="editor-input" />}
-                  placeholder={<div className="editor-placeholder">{placeholder}</div>}
-                  ErrorBoundary={LexicalErrorBoundary}
-                />
-                <HistoryPlugin />
-                <AutoFocusPlugin />
-                <ListPlugin />
-                <LinkPlugin />
-                <OnChangePlugin onChange={handleEditorChange} />
-              </>
-            ) : (
-              <div 
-                className="article-content prose prose-sm max-w-none p-4"
-                dangerouslySetInnerHTML={{ __html: htmlContent || '<p>No content to preview</p>' }}
-              />
-            )}
+          <Toggle size="sm" onClick={() => handleFormatClick('alignLeft')}>
+            <AlignLeft className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('alignCenter')}>
+            <AlignCenter className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('alignRight')}>
+            <AlignRight className="h-4 w-4" />
+          </Toggle>
+          
+          <Separator orientation="vertical" className="mx-1 h-6" />
+          
+          <Toggle size="sm" onClick={() => handleFormatClick('bulletList')}>
+            <List className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('numberedList')}>
+            <ListOrdered className="h-4 w-4" />
+          </Toggle>
+          
+          <Separator orientation="vertical" className="mx-1 h-6" />
+          
+          <Toggle size="sm" onClick={() => handleFormatClick('h1')}>
+            <Heading1 className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('h2')}>
+            <Heading2 className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('h3')}>
+            <Heading3 className="h-4 w-4" />
+          </Toggle>
+          
+          <Separator orientation="vertical" className="mx-1 h-6" />
+          
+          <Toggle size="sm" onClick={() => handleFormatClick('link')}>
+            <Link className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('image')}>
+            <Image className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('video')}>
+            <Video className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('quote')}>
+            <Quote className="h-4 w-4" />
+          </Toggle>
+          <Toggle size="sm" onClick={() => handleFormatClick('code')}>
+            <Code className="h-4 w-4" />
+          </Toggle>
+          
+          <div className="ml-auto flex items-center gap-1">
+            <Toggle size="sm" onClick={() => handleFormatClick('undo')}>
+              <Undo className="h-4 w-4" />
+            </Toggle>
+            <Toggle size="sm" onClick={() => handleFormatClick('redo')}>
+              <Redo className="h-4 w-4" />
+            </Toggle>
           </div>
         </div>
-      </LexicalComposer>
+      </div>
+      
+      <Tabs value={view} onValueChange={(v) => setView(v as 'write' | 'preview')} className="p-1">
+        <TabsList className="ml-auto mr-2">
+          <TabsTrigger value="write">Write</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      <div className="min-h-[300px] p-4">
+        {view === 'write' ? (
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full h-full min-h-[300px] focus:outline-none resize-none bg-transparent"
+          />
+        ) : (
+          <div className="prose prose-sm max-w-none">
+            {value || <p className="text-muted-foreground">No content to preview</p>}
+          </div>
+        )}
+      </div>
     </Card>
   );
 };
