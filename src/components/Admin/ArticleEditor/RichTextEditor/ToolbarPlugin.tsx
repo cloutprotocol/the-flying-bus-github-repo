@@ -9,8 +9,7 @@ import {
   COMMAND_PRIORITY_NORMAL,
   UNDO_COMMAND,
   REDO_COMMAND,
-  LexicalNode,
-  ElementNode
+  LexicalNode
 } from 'lexical';
 import { $wrapNodes } from '@lexical/selection';
 import { $findMatchingParent } from '@lexical/utils';
@@ -98,21 +97,21 @@ const ToolbarPlugin = () => {
           $wrapNodes(selection, () => $createCodeNode());
         } else {
           const anchorNode = selection.anchor.getNode();
-          const focusNode = selection.focus.getNode();
           
-          // Instead of trying to check for specific node types with $isCodeNode,
-          // we'll check for a parent with a more generic approach
-          const parentCodeNode = $findMatchingParent(
+          // Find code node using node type instead of $isCodeNode
+          const parentNode = $findMatchingParent(
             anchorNode, 
             (node) => node.getType() === 'code'
-          ) as ElementNode | null;
+          );
           
-          if (parentCodeNode) {
-            // Already in a code block, unwrap
+          if (parentNode) {
+            // Already in a code block, create a paragraph after it
             const paragraph = $createParagraphNode();
-            parentCodeNode.insertAfter(paragraph);
+            parentNode.insertAfter(paragraph);
             paragraph.select();
-            parentCodeNode.remove();
+            
+            // Remove the code node
+            parentNode.remove();
           } else {
             // Wrap in a code block
             $wrapNodes(selection, () => $createCodeNode());

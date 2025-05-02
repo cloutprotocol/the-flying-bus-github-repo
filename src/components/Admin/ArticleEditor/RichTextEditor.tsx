@@ -60,7 +60,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         code: 'editor-text-code',
       },
     },
-    // Register custom nodes
+    // Register custom nodes - fixing type issues by removing `as const`
     nodes: [
       HeadingNode,
       QuoteNode,
@@ -73,7 +73,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       TableRowNode,
       AutoLinkNode,
       LinkNode
-    ] as const, // Mark as readonly to match expected type
+    ],
     onError: (error: Error) => {
       console.error("Lexical Editor error:", error);
     },
