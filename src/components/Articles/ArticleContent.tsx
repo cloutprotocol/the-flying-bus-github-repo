@@ -4,6 +4,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import DebateVote from '@/components/Articles/DebateVote';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import VideoPlayer from '@/components/Articles/VideoPlayer';
+import DOMPurify from 'dompurify';
 
 interface ArticleContentProps {
   article: ArticleProps;
@@ -22,6 +23,9 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
     (article.category.toLowerCase() === 'debate' || article.category.toLowerCase() === 'debates');
   
   const isSpiceItUpWithVideo = article.category === 'Spice It Up' && article.videoUrl;
+  
+  // Sanitize the HTML content
+  const sanitizedContent = DOMPurify.sanitize(articleContent);
   
   return (
     <div className="lg:col-span-8">
@@ -65,7 +69,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
           prose-figure:my-8 prose-figure:mx-auto
           prose-figcaption:text-center prose-figcaption:text-gray-600 prose-figcaption:mt-2 prose-figcaption:text-sm
           prose-img:rounded-md prose-img:mx-auto"
-        dangerouslySetInnerHTML={{ __html: articleContent || '<p>No content available.</p>' }}
+        dangerouslySetInnerHTML={{ __html: sanitizedContent || '<p>No content available.</p>' }}
       />
       
       {isDebate && debateSettings && (

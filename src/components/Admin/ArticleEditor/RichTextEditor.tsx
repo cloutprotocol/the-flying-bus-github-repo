@@ -1,5 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { 
   Bold, 
   Italic, 
@@ -16,14 +18,13 @@ import {
   Code, 
   Heading1, 
   Heading2, 
-  Heading3, 
-  Undo, 
-  Redo 
+  Heading3 
 } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import DOMPurify from 'dompurify';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface RichTextEditorProps {
   value: string;
@@ -31,116 +32,103 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-// This is a simplified rich text editor UI without actual rich text functionality.
-// In a real implementation, you would integrate with a proper rich text library
-// like TipTap, Slate, or QuillJS.
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ 
   value, 
   onChange, 
   placeholder = 'Start writing...' 
 }) => {
   const [view, setView] = useState<'write' | 'preview'>('write');
+  const [editorContent, setEditorContent] = useState(value);
   
-  // In a real implementation, these would actually format the text
-  const handleFormatClick = (format: string) => {
-    console.log(`Applied format: ${format}`);
+  // Synchronize the editor content with the external value
+  useEffect(() => {
+    if (value !== editorContent) {
+      setEditorContent(value);
+    }
+  }, [value]);
+
+  // Handle content changes and trigger the onChange callback
+  const handleContentChange = (content: string) => {
+    // Sanitize the HTML content to prevent XSS attacks
+    const sanitizedContent = DOMPurify.sanitize(content);
+    setEditorContent(sanitizedContent);
+    onChange(sanitizedContent);
+  };
+
+  // Define the Quill modules and formats
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        ['bold', 'italic', 'underline'],
+        [{ 'align': [] }],
+        [{ 'list': 'bullet' }, { 'list': 'ordered' }],
+        [{ 'header': [1, 2, 3, false] }],
+        ['link', 'image', 'video', 'blockquote', 'code-block'],
+      ],
+    },
+  }), []);
+
+  const formats = [
+    'bold', 'italic', 'underline',
+    'align',
+    'list', 'bullet',
+    'header',
+    'link', 'image', 'video', 'blockquote', 'code-block'
+  ];
+
+  // Format helper to display what tools are available
+  const formatIcons = () => {
+    return (
+      <div className="flex items-center text-muted-foreground text-xs space-x-1 px-2 py-1">
+        <Bold className="h-3 w-3" />
+        <Italic className="h-3 w-3" />
+        <Underline className="h-3 w-3" />
+        <AlignLeft className="h-3 w-3" />
+        <AlignCenter className="h-3 w-3" />
+        <AlignRight className="h-3 w-3" />
+        <List className="h-3 w-3" />
+        <ListOrdered className="h-3 w-3" />
+        <Link className="h-3 w-3" />
+        <Image className="h-3 w-3" />
+        <Video className="h-3 w-3" />
+        <Quote className="h-3 w-3" />
+        <Code className="h-3 w-3" />
+        <Heading1 className="h-3 w-3" />
+        <Heading2 className="h-3 w-3" />
+        <Heading3 className="h-3 w-3" />
+      </div>
+    );
   };
   
   return (
     <Card className="border rounded-md overflow-hidden p-0">
-      <div className="bg-muted/40 border-b px-3 py-1.5">
-        <div className="flex flex-wrap gap-1 items-center">
-          <Toggle size="sm" onClick={() => handleFormatClick('bold')}>
-            <Bold className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('italic')}>
-            <Italic className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('underline')}>
-            <Underline className="h-4 w-4" />
-          </Toggle>
-          
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          
-          <Toggle size="sm" onClick={() => handleFormatClick('alignLeft')}>
-            <AlignLeft className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('alignCenter')}>
-            <AlignCenter className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('alignRight')}>
-            <AlignRight className="h-4 w-4" />
-          </Toggle>
-          
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          
-          <Toggle size="sm" onClick={() => handleFormatClick('bulletList')}>
-            <List className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('numberedList')}>
-            <ListOrdered className="h-4 w-4" />
-          </Toggle>
-          
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          
-          <Toggle size="sm" onClick={() => handleFormatClick('h1')}>
-            <Heading1 className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('h2')}>
-            <Heading2 className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('h3')}>
-            <Heading3 className="h-4 w-4" />
-          </Toggle>
-          
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          
-          <Toggle size="sm" onClick={() => handleFormatClick('link')}>
-            <Link className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('image')}>
-            <Image className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('video')}>
-            <Video className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('quote')}>
-            <Quote className="h-4 w-4" />
-          </Toggle>
-          <Toggle size="sm" onClick={() => handleFormatClick('code')}>
-            <Code className="h-4 w-4" />
-          </Toggle>
-          
-          <div className="ml-auto flex items-center gap-1">
-            <Toggle size="sm" onClick={() => handleFormatClick('undo')}>
-              <Undo className="h-4 w-4" />
-            </Toggle>
-            <Toggle size="sm" onClick={() => handleFormatClick('redo')}>
-              <Redo className="h-4 w-4" />
-            </Toggle>
-          </div>
-        </div>
+      <div className="bg-muted/40 border-b px-3 py-2 flex items-center justify-between">
+        {formatIcons()}
+        
+        <Tabs value={view} onValueChange={(v) => setView(v as 'write' | 'preview')} className="ml-auto">
+          <TabsList>
+            <TabsTrigger value="write">Write</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
       
-      <Tabs value={view} onValueChange={(v) => setView(v as 'write' | 'preview')} className="p-1">
-        <TabsList className="ml-auto mr-2">
-          <TabsTrigger value="write">Write</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      <div className="min-h-[300px] p-4">
+      <div className="min-h-[300px]">
         {view === 'write' ? (
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+          <ReactQuill
+            theme="snow"
+            value={editorContent}
+            onChange={handleContentChange}
             placeholder={placeholder}
-            className="w-full h-full min-h-[300px] focus:outline-none resize-none bg-transparent"
+            modules={modules}
+            formats={formats}
+            className="h-full min-h-[300px] border-none"
           />
         ) : (
-          <div className="prose prose-sm max-w-none">
-            {value || <p className="text-muted-foreground">No content to preview</p>}
-          </div>
+          <div 
+            className="prose prose-sm max-w-none p-4 min-h-[300px]"
+            dangerouslySetInnerHTML={{ __html: editorContent || '<p>No content to preview</p>' }}
+          />
         )}
       </div>
     </Card>

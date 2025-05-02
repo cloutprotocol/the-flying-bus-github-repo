@@ -1,0 +1,63 @@
+
+/* Custom styling for React Quill editor */
+.quill {
+  @apply h-full;
+}
+
+.ql-toolbar.ql-snow {
+  @apply border-none bg-muted/20 p-2;
+}
+
+.ql-container.ql-snow {
+  @apply border-none;
+}
+
+.ql-editor {
+  @apply min-h-[300px] p-4 focus:outline-none;
+}
+
+.ql-editor.ql-blank::before {
+  @apply text-muted-foreground italic;
+}
+
+/* Styling for editor content */
+.ql-editor h1 {
+  @apply text-2xl font-semibold mb-4;
+}
+
+.ql-editor h2 {
+  @apply text-xl font-semibold mb-3;
+}
+
+.ql-editor h3 {
+  @apply text-lg font-medium mb-2;
+}
+
+.ql-editor p {
+  @apply mb-4;
+}
+
+.ql-editor blockquote {
+  @apply pl-4 border-l-4 border-gray-300 italic text-gray-700;
+}
+
+.ql-editor .ql-align-center {
+  @apply text-center;
+}
+
+.ql-editor .ql-align-right {
+  @apply text-right;
+}
+
+.ql-editor ol, 
+.ql-editor ul {
+  @apply pl-5 mb-4;
+}
+
+.ql-editor ol {
+  @apply list-decimal;
+}
+
+.ql-editor ul {
+  @apply list-disc;
+}
