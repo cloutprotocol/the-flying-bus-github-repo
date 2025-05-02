@@ -8,7 +8,8 @@ import {
   FORMAT_TEXT_COMMAND,
   COMMAND_PRIORITY_NORMAL,
   UNDO_COMMAND,
-  REDO_COMMAND
+  REDO_COMMAND,
+  LexicalNode
 } from 'lexical';
 import { $wrapNodes } from '@lexical/selection';
 import { $findMatchingParent } from '@lexical/utils';
@@ -26,7 +27,8 @@ import {
 } from '@lexical/rich-text';
 import {
   $createCodeNode,
-  $isCodeNode
+  $isCodeNode,
+  CodeNode
 } from '@lexical/code';
 import {
   $createQuoteNode,
@@ -39,13 +41,8 @@ import {
   Italic, 
   Underline, 
   AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
   List, 
   ListOrdered, 
-  Link, 
-  Image, 
-  Video, 
   Quote, 
   Code, 
   Heading1, 
@@ -102,16 +99,20 @@ const ToolbarPlugin = () => {
         } else {
           const anchorNode = selection.anchor.getNode();
           const focusNode = selection.focus.getNode();
-          const isAnchorNodeCode = $findMatchingParent(anchorNode, $isCodeNode);
-          const isFocusNodeCode = $findMatchingParent(focusNode, $isCodeNode);
           
-          if (isAnchorNodeCode && isFocusNodeCode) {
+          // Instead of trying to check for specific node types with $isCodeNode,
+          // we'll check for a parent with a more generic approach
+          const parentCodeNode = $findMatchingParent(
+            anchorNode, 
+            (node: LexicalNode) => node.getType() === 'code'
+          );
+          
+          if (parentCodeNode) {
             // Already in a code block, unwrap
-            const codeNode = isAnchorNodeCode;
             const paragraph = $createParagraphNode();
-            codeNode.insertAfter(paragraph);
-            codeNode.selectEnd();
-            codeNode.remove();
+            parentCodeNode.insertAfter(paragraph);
+            parentCodeNode.selectNext();
+            parentCodeNode.remove();
           } else {
             // Wrap in a code block
             $wrapNodes(selection, () => $createCodeNode());

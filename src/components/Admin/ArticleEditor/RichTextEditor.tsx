@@ -13,7 +13,7 @@ import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { $generateHtmlFromNodes } from '@lexical/html';
-import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -77,7 +77,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     onError: (error: Error) => {
       console.error("Lexical Editor error:", error);
     },
-    editorState: value && value.trim() !== '' ? JSON.parse(value) : undefined,
+    editable: true,
   };
 
   // Handle editor content changes
