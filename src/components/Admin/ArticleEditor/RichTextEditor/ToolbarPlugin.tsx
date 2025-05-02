@@ -93,29 +93,14 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        if (selection.isCollapsed()) {
-          $wrapNodes(selection, () => $createCodeNode());
-        } else {
-          const anchorNode = selection.anchor.getNode();
-          
-          // Find code node using node type instead of $isCodeNode
-          const parentNode = $findMatchingParent(
-            anchorNode, 
-            (node) => node.getType() === 'code'
-          );
-          
-          if (parentNode) {
-            // Already in a code block, create a paragraph after it
-            const paragraph = $createParagraphNode();
-            parentNode.insertAfter(paragraph);
-            paragraph.select();
-            
-            // Remove the code node
-            parentNode.remove();
-          } else {
-            // Wrap in a code block
-            $wrapNodes(selection, () => $createCodeNode());
-          }
+        // Simplified code block handling
+        const codeNode = $createCodeNode();
+        selection.insertNodes([codeNode]);
+        
+        // Set selection inside the code block
+        if (codeNode.getChildrenSize() === 0) {
+          const paragraph = $createParagraphNode();
+          codeNode.append(paragraph);
         }
       }
     });

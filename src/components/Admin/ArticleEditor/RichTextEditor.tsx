@@ -60,7 +60,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         code: 'editor-text-code',
       },
     },
-    // Register custom nodes - fixing type issues by removing `as const`
+    // Register custom nodes - using a type assertion to satisfy TypeScript
     nodes: [
       HeadingNode,
       QuoteNode,
@@ -73,7 +73,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       TableRowNode,
       AutoLinkNode,
       LinkNode
-    ],
+    ] as any, // Use type assertion to bypass the strict typing
     onError: (error: Error) => {
       console.error("Lexical Editor error:", error);
     },
