@@ -9,7 +9,8 @@ import {
   COMMAND_PRIORITY_NORMAL,
   UNDO_COMMAND,
   REDO_COMMAND,
-  LexicalNode
+  LexicalNode,
+  ElementNode
 } from 'lexical';
 import { $wrapNodes } from '@lexical/selection';
 import { $findMatchingParent } from '@lexical/utils';
@@ -27,8 +28,7 @@ import {
 } from '@lexical/rich-text';
 import {
   $createCodeNode,
-  $isCodeNode,
-  CodeNode
+  $isCodeNode
 } from '@lexical/code';
 import {
   $createQuoteNode,
@@ -104,14 +104,14 @@ const ToolbarPlugin = () => {
           // we'll check for a parent with a more generic approach
           const parentCodeNode = $findMatchingParent(
             anchorNode, 
-            (node: LexicalNode) => node.getType() === 'code'
-          );
+            (node) => node.getType() === 'code'
+          ) as ElementNode | null;
           
           if (parentCodeNode) {
             // Already in a code block, unwrap
             const paragraph = $createParagraphNode();
             parentCodeNode.insertAfter(paragraph);
-            parentCodeNode.selectNext();
+            paragraph.select();
             parentCodeNode.remove();
           } else {
             // Wrap in a code block

@@ -73,7 +73,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       TableRowNode,
       AutoLinkNode,
       LinkNode
-    ],
+    ] as const, // Mark as readonly to match expected type
     onError: (error: Error) => {
       console.error("Lexical Editor error:", error);
     },
