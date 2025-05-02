@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { z } from 'zod';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -23,8 +23,6 @@ interface ValidationContextType {
 const ValidationContext = createContext<ValidationContextType | undefined>(undefined);
 
 export function ValidationProvider({ children }: { children: React.ReactNode }) {
-  const { toast } = useToast();
-  
   const validateForm = <T extends z.ZodType<any, any>>(
     schema: T,
     data: any,
