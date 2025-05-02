@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { 
@@ -93,14 +92,20 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Simplified code block handling
-        const codeNode = $createCodeNode();
-        selection.insertNodes([codeNode]);
+        // Check if we're already in a code block
+        const anchorNode = selection.anchor.getNode();
+        const parentCodeNode = $findMatchingParent(
+          anchorNode,
+          node => $isCodeNode(node)
+        );
         
-        // Set selection inside the code block
-        if (codeNode.getChildrenSize() === 0) {
+        if (parentCodeNode) {
+          // If already in code block, unwrap it by converting to paragraph
           const paragraph = $createParagraphNode();
-          codeNode.append(paragraph);
+          parentCodeNode.replace(paragraph, true);
+        } else {
+          // Otherwise, wrap in code block
+          $wrapNodes(selection, () => $createCodeNode());
         }
       }
     });
