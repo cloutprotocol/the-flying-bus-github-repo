@@ -41,8 +41,8 @@ export const getArticlesForApproval = async (
     // Apply status filter if not 'all'
     if (status !== 'all') {
       if (status === 'pending') {
-        // Include both 'draft' and 'pending_review' status for pending tab
-        query = query.in('status', ['draft', 'pending_review']);
+        // Use 'draft' and 'pending' status for pending tab (fixed from 'pending_review')
+        query = query.in('status', ['draft', 'pending']);
       } else {
         query = query.eq('status', status);
       }
