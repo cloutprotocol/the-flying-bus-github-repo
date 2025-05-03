@@ -33,6 +33,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   const { toast } = useToast();
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [startTiming, endTiming] = usePerformanceMeasurement();
+  const [toastShown, setToastShown] = useState(false); // Track if we've shown a toast for the current status
   
   usePerformanceMonitoring('FormActions', {
     hasSubmit: !!onSubmit,
@@ -40,22 +41,28 @@ const FormActions: React.FC<FormActionsProps> = ({
   });
   
   useEffect(() => {
-    if (saveStatus === 'saved') {
+    // Only show toast notifications when the status changes, not on initial render
+    if (saveStatus === 'saved' && !toastShown) {
       endTiming({ status: 'success' });
       toast({
         title: "Draft saved",
         description: "Your draft has been saved successfully",
         variant: "default"
       });
-    } else if (saveStatus === 'error') {
+      setToastShown(true);
+    } else if (saveStatus === 'error' && !toastShown) {
       endTiming({ status: 'error' });
       toast({
         title: "Save failed",
         description: "There was an error saving your draft",
         variant: "destructive"
       });
+      setToastShown(true);
+    } else if (saveStatus === 'idle' || saveStatus === 'saving') {
+      // Reset toast shown status when we start a new save operation
+      setToastShown(false);
     }
-  }, [saveStatus, toast, endTiming]);
+  }, [saveStatus, toast, endTiming, toastShown]);
   
   const handleSaveDraft = () => {
     if (!isDirty && saveStatus !== 'error') {
@@ -88,6 +95,12 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
+    // Disable submit button if submission is already in progress
+    if (isSubmitting) {
+      console.log("Submission already in progress, ignoring click");
+      return;
+    }
+    
     startTiming('article-submission');
     if (isDirty || saveStatus === 'error') {
       console.log("Show submit dialog due to unsaved changes");
@@ -107,6 +120,7 @@ const FormActions: React.FC<FormActionsProps> = ({
             variant="ghost"
             onClick={onViewRevisions}
             className="mr-auto"
+            disabled={isSubmitting || isSaving}
           >
             <History className="mr-2 h-4 w-4" /> View Revisions
           </Button>

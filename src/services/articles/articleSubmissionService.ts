@@ -61,7 +61,10 @@ export const articleSubmissionService = {
         console.error("Failed to fetch article:", fetchError);
         logger.error(LogSource.ARTICLE, `Failed to fetch article ${articleId} for validation`, fetchError);
         endMeasure();
-        return { success: false, error: fetchError };
+        return { 
+          success: false, 
+          error: new ApiError('Could not find the article', ApiErrorType.NOTFOUND)
+        };
       }
 
       console.log("Article fetched for validation:", { 
@@ -130,12 +133,15 @@ export const articleSubmissionService = {
       console.error("Exception in submitForReview:", e);
       logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
       endMeasure();
-      return { success: false, error: e };
+      return { 
+        success: false, 
+        error: new ApiError('An unexpected error occurred during submission', ApiErrorType.UNKNOWN)
+      };
     }
   },
 
   /**
-   * Save article as draft with performance optimization
+   * Save article as draft with performance optimization and improved handling
    */
   saveDraft: async (
     articleId: string | undefined, 
@@ -144,12 +150,25 @@ export const articleSubmissionService = {
     const endMeasure = measureApiCall('save-draft');
     
     try {
+      // Sanitize and validate the data before saving
+      const sanitizedData = { 
+        ...formData,
+        title: formData.title?.trim() || 'Untitled Draft',
+      };
+
       console.log("saveDraft called with:", {
         articleId,
         hasFormData: !!formData,
-        title: formData?.title,
-        contentLength: formData?.content?.length || 0
+        title: sanitizedData.title,
+        contentLength: formData.content?.length || 0
       });
+      
+      // Check if we're saving empty content - warn but continue
+      if (!formData.content || formData.content.length === 0) {
+        logger.warn(LogSource.EDITOR, 'Saving draft with empty content', { 
+          articleId: articleId || 'new'
+        });
+      }
       
       logger.info(LogSource.EDITOR, 'Saving article draft via unified service', { 
         articleId: articleId || 'new', 
@@ -159,7 +178,7 @@ export const articleSubmissionService = {
         contentType: typeof formData.content
       });
       
-      const result = await saveDraft(articleId || '', formData);
+      const result = await saveDraft(articleId || '', sanitizedData);
       
       if (result.success) {
         console.log("Draft saved successfully:", result.articleId);
@@ -183,7 +202,11 @@ export const articleSubmissionService = {
       console.error("Error in unified draft save service:", error);
       logger.error(LogSource.EDITOR, 'Error in unified draft save service', { error });
       endMeasure();
-      return { success: false, error, articleId };
+      return { 
+        success: false, 
+        error: new ApiError('An unexpected error occurred while saving the draft', ApiErrorType.UNKNOWN), 
+        articleId 
+      };
     }
   }
 };

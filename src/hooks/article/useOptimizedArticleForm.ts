@@ -9,9 +9,10 @@ import { LogSource } from '@/utils/logger/types';
 import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { useNavigate } from 'react-router-dom';
 
-// Auto-save configuration
-const AUTO_SAVE_INTERVAL = 60000; // 1 minute
-const AUTO_SAVE_DEBOUNCE = 2000;  // 2 seconds debounce
+// Auto-save configuration - increased interval and added debounce
+const AUTO_SAVE_INTERVAL = 120000; // 2 minutes (increased from 60000)
+const AUTO_SAVE_DEBOUNCE = 5000;   // 5 seconds debounce (increased from 2000)
+const MAX_TOAST_NOTIFICATIONS = 2; // Limit toast notifications for auto-saves
 
 export const useOptimizedArticleForm = (
   form: UseFormReturn<any>,
@@ -34,6 +35,7 @@ export const useOptimizedArticleForm = (
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const latestFormDataRef = useRef<any>(null);
   const isDirtyRef = useRef<boolean>(false);
+  const autoSaveCountRef = useRef<number>(0); // Track number of auto-saves for toast limiting
 
   // Keep track of latest form data for debounced saves
   useEffect(() => {
@@ -52,18 +54,26 @@ export const useOptimizedArticleForm = (
       setIsSaving(true);
       setSaveStatus('saving');
       
-      addDebugStep('Auto-saving draft (debounced)', {
-        draftId,
-        articleType,
-        isUpdate: !!draftId
-      });
+      // Only log the first few auto-saves to prevent log flooding
+      if (autoSaveCountRef.current < 5) {
+        addDebugStep('Auto-saving draft (debounced)', {
+          draftId,
+          articleType,
+          isUpdate: !!draftId,
+          autoSaveCount: autoSaveCountRef.current
+        });
+      }
       
       const formData = latestFormDataRef.current;
       
-      logger.info(LogSource.EDITOR, 'Debounced save called with content', {
-        contentLength: formData.content?.length || 0,
-        draftId
-      });
+      // Limit logging of repeated auto-saves
+      if (autoSaveCountRef.current < 3) {
+        logger.info(LogSource.EDITOR, 'Debounced save called with content', {
+          contentLength: formData.content?.length || 0,
+          draftId,
+          autoSaveCount: autoSaveCountRef.current
+        });
+      }
       
       const result = await articleSubmissionService.saveDraft(
         draftId || '', 
@@ -76,6 +86,15 @@ export const useOptimizedArticleForm = (
         logger.error(LogSource.EDITOR, 'Debounced save failed', { 
           error: result.error 
         });
+        
+        // Only show toast for first few errors to prevent flooding
+        if (autoSaveCountRef.current < MAX_TOAST_NOTIFICATIONS) {
+          toast({
+            title: "Auto-save failed",
+            description: "Changes couldn't be saved automatically. Try saving manually.",
+            variant: "destructive"
+          });
+        }
         return;
       }
       
@@ -89,18 +108,42 @@ export const useOptimizedArticleForm = (
       
       setLastSaved(new Date());
       setSaveStatus('saved');
-      updateLastStep('success', { 
-        articleId: result.articleId, 
-        source: 'auto-save' 
-      });
+      
+      // Only update the last step if we're not overloading debug steps
+      if (autoSaveCountRef.current < 5) {
+        updateLastStep('success', { 
+          articleId: result.articleId, 
+          source: 'auto-save' 
+        });
+      }
+      
+      // Only show toast notification for first couple of auto-saves
+      if (autoSaveCountRef.current < MAX_TOAST_NOTIFICATIONS) {
+        toast({
+          title: "Draft auto-saved",
+          description: "Your changes have been saved automatically",
+        });
+      }
+      
+      // Increment auto-save counter
+      autoSaveCountRef.current++;
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Exception in auto-save', { error });
       setSaveStatus('error');
+      
+      // Only show error toast for first few errors
+      if (autoSaveCountRef.current < MAX_TOAST_NOTIFICATIONS) {
+        toast({
+          title: "Auto-save error",
+          description: "An unexpected error occurred during auto-save",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsSaving(false);
     }
-  }, [draftId, articleType, isSubmitting, addDebugStep, updateLastStep]);
+  }, [draftId, articleType, isSubmitting, addDebugStep, updateLastStep, toast]);
 
   // Set up auto-save with debouncing
   useEffect(() => {
@@ -120,7 +163,7 @@ export const useOptimizedArticleForm = (
     
     // Set up debounced auto-save
     if ((isDirty || contentChanged) && !isSubmitting && !isSaving) {
-      // Debounce frequent changes
+      // Debounce frequent changes - only start debounce timer if we're not submitting or saving
       debounceTimerRef.current = setTimeout(() => {
         // Only auto-save after content has been stable for a while
         autoSaveTimerRef.current = setTimeout(() => {
@@ -136,9 +179,17 @@ export const useOptimizedArticleForm = (
     };
   }, [form.formState.isDirty, content, isSubmitting, isSaving, debouncedSave]);
   
-  // Manual save draft function
+  // Manual save draft function - with protection against duplicate calls
+  const savingRef = useRef(false); // Prevent duplicate calls
   const handleSaveDraft = async (): Promise<void> => {
+    // Prevent duplicate save calls
+    if (savingRef.current) {
+      console.log("Save already in progress, skipping duplicate call");
+      return;
+    }
+    
     try {
+      savingRef.current = true;
       setIsSaving(true);
       setSaveStatus('saving');
       
@@ -204,19 +255,22 @@ export const useOptimizedArticleForm = (
       
     } finally {
       setIsSaving(false);
+      savingRef.current = false; // Reset the saving flag
     }
   };
   
-  // Submit article for review
+  // Submit article for review - with protection against duplicate submissions
+  const submittingRef = useRef(false); // Prevent duplicate submissions
   const handleSubmit = async (data: any) => {
+    // Prevent duplicate submissions
+    if (submittingRef.current || isSubmitting) {
+      console.log("Submission already in progress, skipping duplicate call");
+      return;
+    }
+    
     console.log("Submit button clicked", { data, content });
     try {
-      // Prevent double submission
-      if (isSubmitting) {
-        console.log("Already submitting, preventing double submission");
-        return;
-      }
-      
+      submittingRef.current = true;
       setIsSubmitting(true);
       addDebugStep('Article submission initiated', {
         isDraft: false,
@@ -235,6 +289,12 @@ export const useOptimizedArticleForm = (
         contentLength: content?.length || 0
       });
       
+      // Show submission in progress toast
+      const submittingToast = toast({
+        title: "Submitting article",
+        description: "Your article is being submitted for review...",
+      });
+      
       // Validate required fields
       if (!data.title) {
         console.log("Validation error: Missing title");
@@ -245,6 +305,7 @@ export const useOptimizedArticleForm = (
         });
         updateLastStep('error', { error: 'Missing title' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -257,6 +318,7 @@ export const useOptimizedArticleForm = (
         });
         updateLastStep('error', { error: 'Missing category' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -269,6 +331,7 @@ export const useOptimizedArticleForm = (
         });
         updateLastStep('error', { error: 'Missing content' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -301,6 +364,9 @@ export const useOptimizedArticleForm = (
         draftId
       });
       
+      // Dismiss the submitting toast to prevent toast flooding
+      submittingToast.dismiss();
+      
       const saveResult = await articleSubmissionService.saveDraft(
         draftId || articleId || '',
         formData
@@ -322,6 +388,7 @@ export const useOptimizedArticleForm = (
           variant: "destructive"
         });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -338,6 +405,7 @@ export const useOptimizedArticleForm = (
           variant: "destructive"
         });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
 
@@ -365,6 +433,7 @@ export const useOptimizedArticleForm = (
         
         updateLastStep('error', { error: submissionResult.error });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -403,6 +472,7 @@ export const useOptimizedArticleForm = (
       });
     } finally {
       setIsSubmitting(false);
+      submittingRef.current = false; // Reset the submitting flag
     }
   };
 
