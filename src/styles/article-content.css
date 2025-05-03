@@ -8,6 +8,10 @@
   @apply text-lg leading-relaxed mb-6;
 }
 
+.article-content h1 {
+  @apply text-3xl font-semibold mt-10 mb-6 text-gray-900;
+}
+
 .article-content h2 {
   @apply text-2xl font-semibold mt-10 mb-4 text-gray-900;
 }
@@ -66,4 +70,9 @@
 
 .article-content figcaption {
   @apply text-center text-gray-600 mt-2 text-sm;
+}
+
+/* Ensure proper spacing at the top of content */
+.article-content > *:first-child {
+  @apply mt-0;
 }
