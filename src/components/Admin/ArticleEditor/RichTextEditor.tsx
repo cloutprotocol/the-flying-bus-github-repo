@@ -31,10 +31,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Handle content changes and trigger the onChange callback
   const handleContentChange = (content: string) => {
-    // Sanitize the HTML content to prevent XSS attacks
-    const sanitizedContent = DOMPurify.sanitize(content);
-    setEditorContent(sanitizedContent);
-    onChange(sanitizedContent);
+    try {
+      // Sanitize the HTML content to prevent XSS attacks
+      const sanitizedContent = DOMPurify.sanitize(content);
+      setEditorContent(sanitizedContent);
+      
+      logger.info(LogSource.EDITOR, 'Editor content updated', {
+        contentLength: content?.length || 0,
+        sanitizedLength: sanitizedContent?.length || 0
+      });
+      
+      // Make sure to pass the sanitized content to the parent component
+      onChange(sanitizedContent);
+    } catch (error) {
+      logger.error(LogSource.EDITOR, 'Error updating editor content', error);
+    }
   };
 
   // Define the Quill modules and formats

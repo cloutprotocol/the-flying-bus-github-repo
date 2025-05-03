@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
@@ -7,6 +8,7 @@ import { useToast } from '../use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import { useNavigate } from 'react-router-dom';
 
 // Auto-save configuration
 const AUTO_SAVE_INTERVAL = 60000; // 1 minute
@@ -18,6 +20,7 @@ export const useOptimizedArticleForm = (
   articleType: string = 'standard',
   isNewArticle: boolean = true
 ) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,6 +61,11 @@ export const useOptimizedArticleForm = (
       
       const formData = latestFormDataRef.current;
       
+      logger.info(LogSource.EDITOR, 'Debounced save called with content', {
+        contentLength: formData.content?.length || 0,
+        draftId
+      });
+      
       const result = await articleSubmissionService.saveDraft(
         draftId || '', 
         formData
@@ -66,6 +74,9 @@ export const useOptimizedArticleForm = (
       if (!result.success) {
         updateLastStep('error', { error: result.error });
         setSaveStatus('error');
+        logger.error(LogSource.EDITOR, 'Debounced save failed', { 
+          error: result.error 
+        });
         return;
       }
       
@@ -137,6 +148,11 @@ export const useOptimizedArticleForm = (
         content
       };
       
+      logger.info(LogSource.EDITOR, 'Manual draft save called', {
+        contentLength: content?.length || 0,
+        draftId
+      });
+      
       addDebugStep('Manually saving draft', {
         draftId,
         articleType,
@@ -205,6 +221,12 @@ export const useOptimizedArticleForm = (
         isNewArticle
       });
       
+      logger.info(LogSource.EDITOR, 'Article submission started', {
+        draftId,
+        articleType,
+        contentLength: content?.length || 0
+      });
+      
       // Validate required fields
       if (!data.title) {
         toast({
@@ -257,6 +279,12 @@ export const useOptimizedArticleForm = (
       setIsSaving(true);
       setSaveStatus('saving');
       
+      logger.info(LogSource.EDITOR, 'Saving draft before submission', {
+        contentType: typeof content,
+        contentLength: content?.length || 0,
+        title: formData.title
+      });
+      
       const saveResult = await articleSubmissionService.saveDraft(
         draftId || articleId || '',
         formData
@@ -267,7 +295,8 @@ export const useOptimizedArticleForm = (
       if (!saveResult.success) {
         updateLastStep('error', { error: 'Failed to save draft' });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
-          saveResult
+          saveResult,
+          error: saveResult.error
         });
         
         toast({
@@ -294,6 +323,10 @@ export const useOptimizedArticleForm = (
 
       // Now submit for review using the unified service
       addDebugStep('Submitting article for review', { 
+        articleId: saveResult.articleId
+      });
+      
+      logger.info(LogSource.EDITOR, 'Calling submitForReview', {
         articleId: saveResult.articleId
       });
       
@@ -326,6 +359,11 @@ export const useOptimizedArticleForm = (
       addDebugStep('Article submission completed', { 
         articleId: saveResult.articleId
       }, 'success');
+      
+      // Navigate to articles list after successful submission
+      setTimeout(() => {
+        navigate('/admin/articles');
+      }, 1500);
       
       return saveResult.articleId;
     } catch (error) {

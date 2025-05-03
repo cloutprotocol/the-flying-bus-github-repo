@@ -27,6 +27,8 @@ export const articleSubmissionService = {
         return { success: false, error: new Error('Missing article ID') };
       }
 
+      logger.info(LogSource.ARTICLE, 'Starting article submission for review', { articleId });
+
       // Get current user session - CRITICAL for author_id validation
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
@@ -54,6 +56,14 @@ export const articleSubmissionService = {
         endMeasure();
         return { success: false, error: fetchError };
       }
+
+      logger.info(LogSource.ARTICLE, 'Article fetched for validation', {
+        articleId,
+        title: article.title,
+        contentLength: article.content?.length || 0,
+        hasContent: !!article.content,
+        categoryId: article.category_id
+      });
 
       // Validate author ownership
       if (article.author_id && article.author_id !== userId) {
@@ -112,10 +122,23 @@ export const articleSubmissionService = {
     try {
       logger.info(LogSource.EDITOR, 'Saving article draft via unified service', { 
         articleId: articleId || 'new', 
-        formDataKeys: Object.keys(formData)
+        formDataKeys: Object.keys(formData),
+        hasContent: !!formData.content,
+        contentLength: formData.content?.length || 0,
+        contentType: typeof formData.content
       });
       
       const result = await saveDraft(articleId || '', formData);
+      
+      if (result.success) {
+        logger.info(LogSource.EDITOR, 'Draft saved successfully', {
+          articleId: result.articleId
+        });
+      } else {
+        logger.error(LogSource.EDITOR, 'Draft save failed', {
+          error: result.error
+        });
+      }
       
       endMeasure();
       return { 

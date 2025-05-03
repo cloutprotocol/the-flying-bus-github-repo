@@ -61,7 +61,7 @@
 }
 
 .article-content img {
-  @apply mx-auto rounded-md my-6;
+  @apply mx-auto rounded-md my-6 max-w-full h-auto;
 }
 
 .article-content figure {
@@ -72,7 +72,52 @@
   @apply text-center text-gray-600 mt-2 text-sm;
 }
 
+/* Style the content in the preview mode of the editor */
+.preview .article-content h1,
+.ql-editor h1 {
+  @apply text-3xl font-semibold mb-6;
+}
+
+.preview .article-content h2,
+.ql-editor h2 {
+  @apply text-2xl font-semibold mb-4;
+}
+
+.preview .article-content h3,
+.ql-editor h3 {
+  @apply text-xl font-medium mb-3;
+}
+
 /* Ensure proper spacing at the top of content */
 .article-content > *:first-child {
   @apply mt-0;
+}
+
+/* Table styles */
+.article-content table {
+  @apply w-full border-collapse my-6;
+}
+
+.article-content th {
+  @apply bg-gray-100 p-2 text-left border border-gray-300;
+}
+
+.article-content td {
+  @apply p-2 border border-gray-300;
+}
+
+/* Additional formatting for ReactQuill editor content */
+.ql-editor .ql-align-center,
+.article-content .ql-align-center {
+  @apply text-center;
+}
+
+.ql-editor .ql-align-right,
+.article-content .ql-align-right {
+  @apply text-right;
+}
+
+.ql-editor .ql-align-justify,
+.article-content .ql-align-justify {
+  @apply text-justify;
 }

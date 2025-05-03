@@ -5,6 +5,8 @@ import DebateVote from '@/components/Articles/DebateVote';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import VideoPlayer from '@/components/Articles/VideoPlayer';
 import DOMPurify from 'dompurify';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface ArticleContentProps {
   article: ArticleProps;
@@ -24,8 +26,15 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
   
   const isSpiceItUpWithVideo = article.category === 'Spice It Up' && article.videoUrl;
   
-  // Sanitize the HTML content
-  const sanitizedContent = DOMPurify.sanitize(articleContent);
+  // Sanitize the HTML content and log its length
+  const sanitizedContent = DOMPurify.sanitize(articleContent || '');
+  
+  logger.info(LogSource.ARTICLE, 'Rendering article content', {
+    articleId: article.id,
+    originalLength: articleContent?.length || 0,
+    sanitizedLength: sanitizedContent.length,
+    hasHTML: sanitizedContent.includes('<') && sanitizedContent.includes('>')
+  });
   
   return (
     <div className="lg:col-span-8">
