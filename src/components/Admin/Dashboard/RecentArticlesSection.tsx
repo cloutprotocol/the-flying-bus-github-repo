@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { deleteArticle, updateArticleStatus } from '@/services/articleService';
+import { deleteArticle } from '@/services/articleService';
 import StatusDropdown from '@/components/Admin/Status/StatusDropdown';
 import ArticlePaginationControls from './ArticlePaginationControls';
 

@@ -1,4 +1,3 @@
-
 /**
  * Article Validation
  * Validation schemas for article-related operations
@@ -12,7 +11,8 @@ export const ArticleStatusEnum = z.enum([
   'draft', 
   'pending', 
   'published', 
-  'archived'
+  'archived',
+  'rejected'
 ]);
 
 // Article type enum

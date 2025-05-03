@@ -12,7 +12,7 @@ import { LogSource } from '@/utils/logger/types';
  */
 export const updateArticleStatus = async (
   articleId: string,
-  status: 'draft' | 'pending' | 'published' | 'rejected'
+  status: 'draft' | 'pending' | 'published' | 'rejected' | 'archived'
 ): Promise<{ success: boolean; error?: any }> => {
   try {
     console.log(`Updating article ${articleId} to status '${status}'`);

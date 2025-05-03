@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ApprovalQueueList, { ArticleReviewItem } from '@/components/Admin/ApprovalQueue/ApprovalQueueList';
@@ -63,7 +62,7 @@ const ApprovalQueue = () => {
     fetchArticles();
   }, [statusFilter, categoryFilter, searchTerm]);
 
-  const handleStatusChange = async (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => {
+  const handleStatusChange = async (articleId: string, newStatus: 'published' | 'rejected' | 'draft' | 'archived') => {
     setProcessingIds(prev => [...prev, articleId]);
     
     try {

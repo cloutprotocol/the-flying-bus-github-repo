@@ -111,7 +111,11 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
         });
         
         if (articleId) {
-          const { success, error } = await updateArticleStatus(articleId, newStatus);
+          // Cast the newStatus to the accepted type for updateArticleStatus
+          const { success, error } = await updateArticleStatus(
+            articleId, 
+            newStatus as 'draft' | 'pending' | 'published' | 'rejected' | 'archived'
+          );
           
           if (!success) {
             toast({

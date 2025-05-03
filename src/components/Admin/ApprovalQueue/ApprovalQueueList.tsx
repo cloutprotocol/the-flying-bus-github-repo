@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Table,
@@ -8,12 +7,11 @@ import {
   TableHeader,
   TableRow 
 } from '@/components/ui/table';
-import StatusBadge from '../Status/StatusBadge';
+import StatusBadge, { StatusType } from '../Status/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Check, XCircle, MessageSquare, Clock, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { StatusType } from '../Status/StatusBadge';
 
 // Updated the interface to use StatusType from StatusBadge
 export interface ArticleReviewItem {
@@ -28,7 +26,7 @@ export interface ArticleReviewItem {
 
 interface ApprovalQueueListProps {
   articles: ArticleReviewItem[];
-  onStatusChange: (articleId: string, newStatus: 'published' | 'rejected' | 'draft') => void;
+  onStatusChange: (articleId: string, newStatus: 'published' | 'rejected' | 'draft' | 'archived') => void;
   processingIds?: string[]; // Track articles being processed
 }
 
