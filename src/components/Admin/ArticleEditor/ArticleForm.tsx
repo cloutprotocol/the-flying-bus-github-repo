@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useZodForm } from '@/hooks/useZodForm';
 import { createArticleSchema } from '@/utils/validation/articleValidation';
@@ -61,9 +61,27 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useOptimizedArticleForm(form, articleId, articleType, isNewArticle);
 
+  // Log initial values for debugging
+  useEffect(() => {
+    console.log("ArticleForm initialized", { 
+      articleId,
+      draftId,
+      articleType,
+      isNewArticle,
+      hasContent: !!content,
+      contentLength: content?.length || 0
+    });
+  }, [articleId, draftId, articleType, isNewArticle, content]);
+
   // Form submission handler
   const onSubmit = async (data: any) => {
     try {
+      console.log("Form submitted with data:", { 
+        ...data, 
+        content, 
+        contentLength: content?.length || 0 
+      });
+      
       addDebugStep('Form validation passed', {
         formData: {
           title: data.title,
@@ -76,6 +94,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       await handleSubmit(data);
       
     } catch (error) {
+      console.error("Form submission error:", error);
       updateLastStep('error', { error: String(error) });
       logger.error(LogSource.EDITOR, 'Article submission failed', error);
       toast({
@@ -87,6 +106,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   };
 
   const effectiveArticleId = articleId || draftId;
+
+  // Debug any time submit button is clicked
+  const handleSubmitButtonClick = () => {
+    console.log("Submit button click handler", { 
+      formValues: form.getValues(),
+      content,
+      contentLength: content?.length || 0
+    });
+    form.handleSubmit(onSubmit)();
+  };
 
   return (
     <ArticleFormLayout 
@@ -105,7 +134,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       
       <FormActions 
         onSaveDraft={handleSaveDraft}
-        onSubmit={() => form.handleSubmit(onSubmit)()}
+        onSubmit={handleSubmitButtonClick}
         onViewRevisions={!isNewArticle && revisions.length > 0 ? () => setShowRevisions(true) : undefined}
         isSubmitting={isSubmitting}
         isDirty={form.formState.isDirty || content !== ''}

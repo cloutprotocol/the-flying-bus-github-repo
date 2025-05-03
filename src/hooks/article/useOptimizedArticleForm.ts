@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
@@ -7,7 +6,7 @@ import { useArticleDebug } from '../useArticleDebug';
 import { useToast } from '../use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { useNavigate } from 'react-router-dom';
 
 // Auto-save configuration
@@ -210,15 +209,24 @@ export const useOptimizedArticleForm = (
   
   // Submit article for review
   const handleSubmit = async (data: any) => {
+    console.log("Submit button clicked", { data, content });
     try {
       // Prevent double submission
-      if (isSubmitting) return;
+      if (isSubmitting) {
+        console.log("Already submitting, preventing double submission");
+        return;
+      }
       
       setIsSubmitting(true);
       addDebugStep('Article submission initiated', {
         isDraft: false,
         articleType,
-        isNewArticle
+        isNewArticle,
+        formData: {
+          title: data.title,
+          categoryId: data.categoryId, 
+          contentLength: content?.length || 0
+        }
       });
       
       logger.info(LogSource.EDITOR, 'Article submission started', {
@@ -229,32 +237,38 @@ export const useOptimizedArticleForm = (
       
       // Validate required fields
       if (!data.title) {
+        console.log("Validation error: Missing title");
         toast({
           title: "Validation Error",
           description: "Article title is required",
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing title' });
+        setIsSubmitting(false);
         return;
       }
       
       if (!data.categoryId) {
+        console.log("Validation error: Missing category");
         toast({
           title: "Validation Error",
           description: "Please select a category",
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing category' });
+        setIsSubmitting(false);
         return;
       }
       
       if (!content || content.trim() === '') {
+        console.log("Validation error: Missing content");
         toast({
           title: "Validation Error",
           description: "Article content is required",
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing content' });
+        setIsSubmitting(false);
         return;
       }
       
@@ -271,7 +285,8 @@ export const useOptimizedArticleForm = (
         formData: {
           title: formData.title,
           categoryId: formData.categoryId,
-          articleType: formData.articleType
+          articleType: formData.articleType,
+          contentLength: content?.length || 0
         }
       });
       
@@ -279,10 +294,11 @@ export const useOptimizedArticleForm = (
       setIsSaving(true);
       setSaveStatus('saving');
       
-      logger.info(LogSource.EDITOR, 'Saving draft before submission', {
+      console.log("Saving draft before submission:", {
         contentType: typeof content,
         contentLength: content?.length || 0,
-        title: formData.title
+        title: formData.title,
+        draftId
       });
       
       const saveResult = await articleSubmissionService.saveDraft(
@@ -293,6 +309,7 @@ export const useOptimizedArticleForm = (
       setIsSaving(false);
       
       if (!saveResult.success) {
+        console.error("Failed to save draft:", saveResult.error);
         updateLastStep('error', { error: 'Failed to save draft' });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
           saveResult,
@@ -304,6 +321,7 @@ export const useOptimizedArticleForm = (
           description: "There was a problem saving your article.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
       
@@ -311,6 +329,7 @@ export const useOptimizedArticleForm = (
       setSaveStatus('saved');
       
       if (!saveResult.articleId) {
+        console.error("No article ID returned from draft save");
         addDebugStep('Error: No article ID returned', null, 'error');
         logger.error(LogSource.EDITOR, 'No article ID returned from draft save');
         toast({
@@ -318,6 +337,7 @@ export const useOptimizedArticleForm = (
           description: "Could not determine article ID.",
           variant: "destructive"
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -326,6 +346,7 @@ export const useOptimizedArticleForm = (
         articleId: saveResult.articleId
       });
       
+      console.log("Calling submitForReview with articleId:", saveResult.articleId);
       logger.info(LogSource.EDITOR, 'Calling submitForReview', {
         articleId: saveResult.articleId
       });
@@ -333,6 +354,7 @@ export const useOptimizedArticleForm = (
       const submissionResult = await articleSubmissionService.submitForReview(saveResult.articleId);
       
       if (!submissionResult.success) {
+        console.error("Submission failed:", submissionResult.error);
         const errorMessage = submissionResult.error?.message || "There was a problem submitting your article for review.";
         
         toast({
@@ -342,8 +364,11 @@ export const useOptimizedArticleForm = (
         });
         
         updateLastStep('error', { error: submissionResult.error });
+        setIsSubmitting(false);
         return;
       }
+      
+      console.log("Article submitted successfully!");
       
       // Update draft ID if this was first submission
       if (!draftId && !articleId && saveResult.articleId) {
@@ -362,11 +387,13 @@ export const useOptimizedArticleForm = (
       
       // Navigate to articles list after successful submission
       setTimeout(() => {
+        console.log("Navigating to /admin/articles after submission");
         navigate('/admin/articles');
       }, 1500);
       
       return saveResult.articleId;
     } catch (error) {
+      console.error("Exception in article submission:", error);
       addDebugStep('Exception in article submission', { error }, 'error');
       logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({

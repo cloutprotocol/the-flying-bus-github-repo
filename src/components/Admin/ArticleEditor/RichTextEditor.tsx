@@ -20,12 +20,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   placeholder = 'Start writing...' 
 }) => {
   const [view, setView] = useState<'write' | 'preview'>('write');
-  const [editorContent, setEditorContent] = useState(value);
+  const [editorContent, setEditorContent] = useState(value || '');
   
   // Synchronize the editor content with the external value
   useEffect(() => {
     if (value !== editorContent) {
-      setEditorContent(value);
+      logger.info(LogSource.EDITOR, 'Updating editor content from prop', {
+        valueLength: value?.length || 0,
+        editorContentLength: editorContent?.length || 0
+      });
+      setEditorContent(value || '');
     }
   }, [value]);
 

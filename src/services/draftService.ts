@@ -21,14 +21,18 @@ const requiredArticleFieldsSchema = z.object({
 
 /**
  * Generate a slug from a title
+ * Now with added uniqueness via timestamp
  */
 const createSlug = (title: string): string => {
+  // Add a timestamp suffix to ensure uniqueness
+  const timestamp = new Date().getTime().toString().slice(-6);
+  
   return title
     .toLowerCase()
     .replace(/[^\w\s-]/g, '') // Remove special characters
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Remove consecutive hyphens
-    .trim();
+    .trim() + '-' + timestamp;
 };
 
 /**
@@ -39,7 +43,11 @@ export const saveDraft = async (
   draftData: any
 ): Promise<{ success: boolean; error: any; articleId: string }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Saving article draft', { articleId });
+    logger.info(LogSource.DATABASE, 'Saving article draft', { 
+      articleId,
+      contentLength: draftData.content?.length || 0,
+      title: draftData.title
+    });
     
     // Get current user session - CRITICAL for author_id
     const { data: { session } } = await supabase.auth.getSession();
@@ -61,7 +69,9 @@ export const saveDraft = async (
     if (!articleId || articleId.trim() === '') {
       logger.info(LogSource.DATABASE, 'Creating new article draft', { 
         title: draftData.title || 'Untitled',
-        userId
+        userId,
+        hasContent: !!draftData.content,
+        contentLength: draftData.content?.length || 0
       });
 
       // Build article data with all required fields
@@ -79,9 +89,16 @@ export const saveDraft = async (
 
       // Validate required fields
       try {
-        requiredArticleFieldsSchema.parse(articleDataToInsert);
+        requiredArticleFieldsSchema.parse({
+          ...articleDataToInsert,
+          slug: slug,
+          category_id: draftData.categoryId || '',
+        });
       } catch (validationError) {
-        logger.error(LogSource.DATABASE, 'Draft validation error', { validationError });
+        logger.error(LogSource.DATABASE, 'Draft validation error', { 
+          validationError,
+          draftData: { title: draftData.title, categoryId: draftData.categoryId }
+        });
         return { 
           success: false, 
           error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError),
@@ -98,13 +115,19 @@ export const saveDraft = async (
       if (error) {
         logger.error(LogSource.DATABASE, 'Error creating new draft', { 
           error, 
-          draftData,
-          articleDataToInsert
+          title: draftData.title,
+          slug: slug,
+          errorCode: error.code,
+          errorMessage: error.message
         });
         return { success: false, error, articleId: '' };
       }
       
-      logger.info(LogSource.DATABASE, 'New draft created successfully', { articleId: data.id });
+      logger.info(LogSource.DATABASE, 'New draft created successfully', { 
+        articleId: data.id,
+        title: data.title,
+        slug: data.slug 
+      });
       
       // If this is a video article, save video details
       if (draftData.articleType === 'video' && draftData.videoUrl) {
@@ -144,7 +167,11 @@ export const saveDraft = async (
 
         // Validate required fields
         try {
-          requiredArticleFieldsSchema.parse(articleDataToInsert);
+          requiredArticleFieldsSchema.parse({
+            ...articleDataToInsert,
+            slug: slug,
+            category_id: draftData.categoryId || '',
+          });
         } catch (validationError) {
           logger.error(LogSource.DATABASE, 'Draft validation error', { validationError });
           return { 
@@ -163,13 +190,16 @@ export const saveDraft = async (
         if (error) {
           logger.error(LogSource.DATABASE, 'Error creating new draft', { 
             error, 
-            draftData,
-            articleDataToInsert
+            title: draftData.title,
+            slug: slug
           });
           return { success: false, error, articleId: '' };
         }
         
-        logger.info(LogSource.DATABASE, 'New draft created successfully', { articleId: data.id });
+        logger.info(LogSource.DATABASE, 'New draft created successfully', { 
+          articleId: data.id,
+          title: data.title 
+        });
         
         // If this is a video article, save video details
         if (draftData.articleType === 'video' && draftData.videoUrl) {
@@ -184,7 +214,10 @@ export const saveDraft = async (
         return { success: true, error: null, articleId: data.id };
       }
       
-      logger.error(LogSource.DATABASE, 'Error fetching article for draft save', { error: fetchError, articleId });
+      logger.error(LogSource.DATABASE, 'Error fetching article for draft save', { 
+        error: fetchError, 
+        articleId 
+      });
       return { success: false, error: fetchError, articleId };
     }
     
@@ -212,7 +245,12 @@ export const saveDraft = async (
       .eq('id', articleId);
     
     if (updateError) {
-      logger.error(LogSource.DATABASE, 'Error updating draft', { error: updateError, articleId });
+      logger.error(LogSource.DATABASE, 'Error updating draft', { 
+        error: updateError, 
+        articleId,
+        errorCode: updateError.code,
+        errorMessage: updateError.message
+      });
       return { success: false, error: updateError, articleId };
     }
     
@@ -225,7 +263,11 @@ export const saveDraft = async (
       await saveDebateDetails(articleId, draftData.debateSettings);
     }
     
-    logger.info(LogSource.DATABASE, 'Draft saved successfully', { articleId });
+    logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
+      articleId,
+      title: draftData.title,
+      contentUpdated: !!draftData.content
+    });
     return { success: true, error: null, articleId };
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception saving draft', { error: e, articleId });

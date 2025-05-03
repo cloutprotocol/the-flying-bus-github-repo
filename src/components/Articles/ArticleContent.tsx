@@ -47,7 +47,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
       )}
       
       {article.imageUrl && (
-        <div className={`mb-2 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-2' : ''}`}>
+        <div className={`mb-6 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-6' : ''}`}>
           <AspectRatio ratio={16/9} className="bg-gray-100">
             <img 
               src={article.imageUrl} 

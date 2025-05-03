@@ -22,6 +22,8 @@ export const articleSubmissionService = {
     const endMeasure = measureApiCall('submit-for-review');
     
     try {
+      console.log("submitForReview called with articleId:", articleId);
+      
       if (!articleId) {
         logger.error(LogSource.ARTICLE, 'Cannot submit article: Missing article ID');
         return { success: false, error: new Error('Missing article ID') };
@@ -32,6 +34,8 @@ export const articleSubmissionService = {
       // Get current user session - CRITICAL for author_id validation
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
+      
+      console.log("User session check:", { userId, hasSession: !!session });
       
       if (!userId) {
         logger.error(LogSource.ARTICLE, 'User authentication required to submit article');
@@ -44,6 +48,8 @@ export const articleSubmissionService = {
 
       // First, fetch the article to validate required fields
       const fetchEnd = measureApiCall('fetch-article-for-validation');
+      console.log("Fetching article for validation:", articleId);
+      
       const { data: article, error: fetchError } = await supabase
         .from('articles')
         .select('title, content, category_id, author_id')
@@ -52,11 +58,19 @@ export const articleSubmissionService = {
       fetchEnd();
 
       if (fetchError) {
+        console.error("Failed to fetch article:", fetchError);
         logger.error(LogSource.ARTICLE, `Failed to fetch article ${articleId} for validation`, fetchError);
         endMeasure();
         return { success: false, error: fetchError };
       }
 
+      console.log("Article fetched for validation:", { 
+        title: article.title,
+        hasContent: !!article.content,
+        contentLength: article.content?.length || 0,
+        categoryId: article.category_id
+      });
+      
       logger.info(LogSource.ARTICLE, 'Article fetched for validation', {
         articleId,
         title: article.title,
@@ -67,6 +81,11 @@ export const articleSubmissionService = {
 
       // Validate author ownership
       if (article.author_id && article.author_id !== userId) {
+        console.error("Authorization error: User doesn't own this article", {
+          requestingUser: userId,
+          articleOwner: article.author_id
+        });
+        
         logger.error(LogSource.ARTICLE, `User ${userId} attempted to submit article ${articleId} owned by ${article.author_id}`);
         endMeasure();
         return { 
@@ -79,6 +98,7 @@ export const articleSubmissionService = {
       try {
         validateArticleFields(article);
       } catch (validationError) {
+        console.error("Article validation error:", validationError);
         logger.error(LogSource.ARTICLE, 'Article validation error when submitting for review', { 
           validationError,
           articleId 
@@ -90,20 +110,24 @@ export const articleSubmissionService = {
         };
       }
 
+      console.log("Updating article status to 'pending'", { articleId });
       logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`);
       const updateEnd = measureApiCall('update-article-status');
       const result = await updateArticleStatus(articleId, 'pending');
       updateEnd();
       
       if (!result.success) {
+        console.error("Failed to update article status:", result.error);
         logger.error(LogSource.ARTICLE, `Failed to submit article ${articleId} for review`, result.error);
       } else {
+        console.log("Successfully submitted article for review");
         logger.info(LogSource.ARTICLE, `Successfully submitted article ${articleId} for review`);
       }
       
       endMeasure();
       return result;
     } catch (e) {
+      console.error("Exception in submitForReview:", e);
       logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
       endMeasure();
       return { success: false, error: e };
@@ -120,6 +144,13 @@ export const articleSubmissionService = {
     const endMeasure = measureApiCall('save-draft');
     
     try {
+      console.log("saveDraft called with:", {
+        articleId,
+        hasFormData: !!formData,
+        title: formData?.title,
+        contentLength: formData?.content?.length || 0
+      });
+      
       logger.info(LogSource.EDITOR, 'Saving article draft via unified service', { 
         articleId: articleId || 'new', 
         formDataKeys: Object.keys(formData),
@@ -131,10 +162,12 @@ export const articleSubmissionService = {
       const result = await saveDraft(articleId || '', formData);
       
       if (result.success) {
+        console.log("Draft saved successfully:", result.articleId);
         logger.info(LogSource.EDITOR, 'Draft saved successfully', {
           articleId: result.articleId
         });
       } else {
+        console.error("Draft save failed:", result.error);
         logger.error(LogSource.EDITOR, 'Draft save failed', {
           error: result.error
         });
@@ -147,6 +180,7 @@ export const articleSubmissionService = {
         articleId: result.articleId 
       };
     } catch (error) {
+      console.error("Error in unified draft save service:", error);
       logger.error(LogSource.EDITOR, 'Error in unified draft save service', { error });
       endMeasure();
       return { success: false, error, articleId };

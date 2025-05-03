@@ -72,10 +72,12 @@ const FormActions: React.FC<FormActionsProps> = ({
     }
     
     startTiming('draft-save');
+    console.log("Save Draft button clicked, calling onSaveDraft");
     onSaveDraft();
   };
   
   const handleSubmitClick = () => {
+    console.log("Submit button clicked");
     if (!onSubmit) {
       logger.info(LogSource.EDITOR, 'Submit functionality not available');
       toast({
@@ -88,8 +90,10 @@ const FormActions: React.FC<FormActionsProps> = ({
     
     startTiming('article-submission');
     if (isDirty || saveStatus === 'error') {
+      console.log("Show submit dialog due to unsaved changes");
       setShowSubmitDialog(true);
     } else {
+      console.log("Calling onSubmit directly");
       onSubmit();
     }
   };
@@ -148,6 +152,7 @@ const FormActions: React.FC<FormActionsProps> = ({
           open={showSubmitDialog}
           onOpenChange={setShowSubmitDialog}
           onConfirm={() => {
+            console.log("Dialog confirmed, calling onSubmit");
             setShowSubmitDialog(false);
             onSubmit();
           }}
