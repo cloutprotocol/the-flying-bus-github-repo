@@ -18,7 +18,7 @@ export const articleSubmissionService = {
    */
   submitForReview: async (
     articleId: string
-  ): Promise<{ success: boolean; error?: any }> => {
+  ): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
     const endMeasure = measureApiCall('submit-for-review');
     
     try {
@@ -52,7 +52,7 @@ export const articleSubmissionService = {
       
       const { data: article, error: fetchError } = await supabase
         .from('articles')
-        .select('title, content, category_id, author_id')
+        .select('title, content, category_id, author_id, slug')
         .eq('id', articleId)
         .single();
       fetchEnd();
@@ -71,7 +71,8 @@ export const articleSubmissionService = {
         title: article.title,
         hasContent: !!article.content,
         contentLength: article.content?.length || 0,
-        categoryId: article.category_id
+        categoryId: article.category_id,
+        hasSlug: !!article.slug
       });
       
       logger.info(LogSource.ARTICLE, 'Article fetched for validation', {
@@ -79,7 +80,8 @@ export const articleSubmissionService = {
         title: article.title,
         contentLength: article.content?.length || 0,
         hasContent: !!article.content,
-        categoryId: article.category_id
+        categoryId: article.category_id,
+        hasSlug: !!article.slug
       });
 
       // Validate author ownership
@@ -95,6 +97,30 @@ export const articleSubmissionService = {
           success: false, 
           error: new ApiError('You do not have permission to submit this article', ApiErrorType.AUTH)
         };
+      }
+
+      // Generate slug if missing - this helps prevent database constraints
+      if (!article.slug) {
+        console.log("Article missing slug, generating one from title");
+        const slug = article.title
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .replace(/\s+/g, '-');
+          
+        // Try to update the article with the slug
+        const { error: slugError } = await supabase
+          .from('articles')
+          .update({ slug })
+          .eq('id', articleId);
+          
+        if (slugError) {
+          console.error("Failed to update article with slug:", slugError);
+          // Continue with submission but log the error
+          logger.warn(LogSource.ARTICLE, 'Failed to update article with slug', { 
+            articleId, 
+            error: slugError 
+          });
+        }
       }
 
       // Validate required fields
@@ -128,7 +154,11 @@ export const articleSubmissionService = {
       }
       
       endMeasure();
-      return result;
+      return { 
+        success: result.success, 
+        error: result.error, 
+        submissionId: articleId // Return the ID for tracking purposes
+      };
     } catch (e) {
       console.error("Exception in submitForReview:", e);
       logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
@@ -150,32 +180,47 @@ export const articleSubmissionService = {
     const endMeasure = measureApiCall('save-draft');
     
     try {
+      // Handle HTML content - ensure we don't strip important markup
+      // This prevents over-sanitization of rich text content
+      const content = formData.content || '';
+      
       // Sanitize and validate the data before saving
       const sanitizedData = { 
         ...formData,
         title: formData.title?.trim() || 'Untitled Draft',
+        content // Preserve the HTML content
       };
 
       console.log("saveDraft called with:", {
         articleId,
         hasFormData: !!formData,
         title: sanitizedData.title,
-        contentLength: formData.content?.length || 0
+        contentLength: content.length || 0,
+        contentStartsWith: content.substring(0, 30) + '...',
+        hasHTML: content.includes('<') && content.includes('>')
       });
       
       // Check if we're saving empty content - warn but continue
-      if (!formData.content || formData.content.length === 0) {
+      if (!content || content.length === 0) {
         logger.warn(LogSource.EDITOR, 'Saving draft with empty content', { 
           articleId: articleId || 'new'
         });
       }
       
+      // Generate a slug if we have a title but no slug
+      if (sanitizedData.title && !sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
+        sanitizedData.slug = sanitizedData.title
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .replace(/\s+/g, '-');
+      }
+      
       logger.info(LogSource.EDITOR, 'Saving article draft via unified service', { 
         articleId: articleId || 'new', 
         formDataKeys: Object.keys(formData),
-        hasContent: !!formData.content,
-        contentLength: formData.content?.length || 0,
-        contentType: typeof formData.content
+        hasContent: !!content,
+        contentLength: content.length || 0,
+        contentType: typeof content
       });
       
       const result = await saveDraft(articleId || '', sanitizedData);

@@ -9,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface ArticleSubmitDialogProps {
   open: boolean;
@@ -23,8 +25,30 @@ const ArticleSubmitDialog = ({
   onConfirm,
   isDirty 
 }: ArticleSubmitDialogProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleConfirm = () => {
+    setIsSubmitting(true);
+    console.log("Submit dialog - Confirm button clicked");
+    onConfirm();
+    // We don't reset isSubmitting because the dialog will be closed by onConfirm
+  };
+  
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog 
+      open={open} 
+      onOpenChange={(newOpen) => {
+        // Prevent closing the dialog while submitting
+        if (isSubmitting && !newOpen) {
+          return;
+        }
+        onOpenChange(newOpen);
+        if (!newOpen) {
+          // Reset state when dialog is closed
+          setIsSubmitting(false);
+        }
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Submit Article for Review</AlertDialogTitle>
@@ -35,8 +59,20 @@ const ArticleSubmitDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Submit</AlertDialogAction>
+          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleConfirm} 
+            disabled={isSubmitting}
+            className="min-w-[100px]"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+              </>
+            ) : (
+              "Submit"
+            )}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

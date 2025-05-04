@@ -6,8 +6,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 3000 // Changed from 1000000 to 3000 milliseconds (3 seconds)
+const TOAST_LIMIT = 3 // Increased from 1 to 3
+const TOAST_REMOVE_DELAY = 5000 // Increased from 3000 to 5000 milliseconds (5 seconds)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -140,15 +140,38 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+// Add an activeToasts Set to track currently displaying toasts with the same title
+const activeToasts = new Set<string>();
+
 function toast({ ...props }: Toast) {
   const id = genId()
+  
+  // Generate a unique key for this toast based on title and variant
+  const toastKey = `${props.title?.toString() || ''}-${props.variant || 'default'}`;
+  
+  // Check if we already have a similar toast showing
+  if (activeToasts.has(toastKey)) {
+    console.log(`Toast with key ${toastKey} already active, not showing duplicate`);
+    return {
+      id,
+      dismiss: () => {}, // No-op
+      update: () => {}, // No-op
+    };
+  }
+  
+  // Mark this toast as active
+  activeToasts.add(toastKey);
 
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+    
+  const dismiss = () => {
+    activeToasts.delete(toastKey); // Remove from active toasts
+    dispatch({ type: "DISMISS_TOAST", toastId: id })
+  }
 
   dispatch({
     type: "ADD_TOAST",
@@ -157,13 +180,21 @@ function toast({ ...props }: Toast) {
       id,
       open: true,
       onOpenChange: (open) => {
-        if (!open) dismiss()
+        if (!open) {
+          activeToasts.delete(toastKey); // Remove from active toasts when closed
+          dismiss();
+        }
       },
     },
   })
+  
+  // Automatically remove from active toasts after timeout
+  setTimeout(() => {
+    activeToasts.delete(toastKey);
+  }, TOAST_REMOVE_DELAY + 1000); // Add a small buffer
 
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }

@@ -107,6 +107,10 @@ const FormActions: React.FC<FormActionsProps> = ({
       setShowSubmitDialog(true);
     } else {
       console.log("Calling onSubmit directly");
+      toast({
+        title: "Preparing submission",
+        description: "Your article is being processed for submission...",
+      });
       onSubmit();
     }
   };
@@ -131,6 +135,7 @@ const FormActions: React.FC<FormActionsProps> = ({
           variant="outline"
           onClick={handleSaveDraft}
           disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error')}
+          className="min-w-[120px]"
         >
           {isSaving ? (
             <>
@@ -148,6 +153,7 @@ const FormActions: React.FC<FormActionsProps> = ({
           type="button"
           onClick={handleSubmitClick}
           disabled={isSubmitting || isSaving || !onSubmit}
+          className="min-w-[180px]"
         >
           {isSubmitting ? (
             <>
@@ -168,6 +174,10 @@ const FormActions: React.FC<FormActionsProps> = ({
           onConfirm={() => {
             console.log("Dialog confirmed, calling onSubmit");
             setShowSubmitDialog(false);
+            toast({
+              title: "Preparing submission",
+              description: "Your article is being processed for submission...",
+            });
             onSubmit();
           }}
           isDirty={isDirty}

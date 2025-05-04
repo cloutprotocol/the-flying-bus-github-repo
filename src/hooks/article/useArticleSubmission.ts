@@ -1,13 +1,15 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { updateArticleStatus, submitArticleForReview } from '@/services/articles/articleReviewService';
+import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { handleApiError } from '@/utils/errors';
 
 export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false); // Prevent duplicate submissions
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -15,12 +17,20 @@ export function useArticleSubmission() {
     savedArticleId: string, 
     isDraft: boolean = false
   ) => {
+    // Prevent duplicate submissions
+    if (submittingRef.current) {
+      console.log("Submission already in progress, ignoring duplicate call");
+      return false;
+    }
+    
     try {
+      submittingRef.current = true;
+      
       if (!savedArticleId) {
         logger.error(LogSource.EDITOR, 'Article submission failed - missing ID');
         toast({
-          title: "Error",
-          description: "Could not determine article ID.",
+          title: "Submission Error",
+          description: "Could not determine article ID for submission.",
           variant: "destructive"
         });
         return false;
@@ -33,34 +43,44 @@ export function useArticleSubmission() {
       });
 
       if (!isDraft) {
-        const statusResult = await submitArticleForReview(savedArticleId);
+        // Show an in-progress toast that we'll dismiss on completion
+        const pendingToast = toast({
+          title: "Submitting Article",
+          description: "Your article is being submitted for review...",
+        });
+        
+        // Use the unified submission service
+        const statusResult = await articleSubmissionService.submitForReview(savedArticleId);
+        
+        // Dismiss the pending toast
+        pendingToast.dismiss();
         
         if (!statusResult.success) {
-          const errorMessage = statusResult.error?.message || "There was a problem submitting your article for review.";
+          const error = statusResult.error;
+          
+          // Use our error handling utility for consistent error display
+          handleApiError(error, true);
           
           logger.error(LogSource.EDITOR, 'Article submission failed', { 
             articleId: savedArticleId, 
-            error: statusResult.error 
-          });
-          
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive"
+            error: error 
           });
           return false;
         }
         
         logger.info(LogSource.EDITOR, 'Article submitted successfully', { 
-          articleId: savedArticleId
+          articleId: savedArticleId,
+          submissionId: statusResult.submissionId
         });
         
         toast({
-          title: "Success",
+          title: "Success!",
           description: "Your article has been submitted for review.",
+          variant: "default",
         });
         
         // Navigate to articles list after successful submission
+        // Use a timeout to ensure toast is visible before navigation
         setTimeout(() => {
           navigate('/admin/articles');
         }, 1500);
@@ -73,7 +93,8 @@ export function useArticleSubmission() {
         
         toast({
           title: "Draft saved",
-          description: "Your draft has been saved.",
+          description: "Your draft has been saved successfully.",
+          variant: "default",
         });
         return true;
       }
@@ -81,10 +102,13 @@ export function useArticleSubmission() {
       logger.error(LogSource.EDITOR, 'Exception in article submission', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred during submission.",
+        description: "An unexpected error occurred during submission. Please try again.",
         variant: "destructive"
       });
       return false;
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
