@@ -11,6 +11,7 @@ export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false); // Prevent duplicate submissions
   const navigationAttemptedRef = useRef(false); // Track if navigation was attempted
+  const navigationTimersRef = useRef<number[]>([]); // Track navigation timers for cleanup
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -24,7 +25,12 @@ export function useArticleSubmission() {
       return false;
     }
     
+    // Cleanup any existing navigation timers
+    navigationTimersRef.current.forEach(clearTimeout);
+    navigationTimersRef.current = [];
+    
     try {
+      setIsSubmitting(true);
       submittingRef.current = true;
       navigationAttemptedRef.current = false;
       
@@ -77,24 +83,33 @@ export function useArticleSubmission() {
         
         toast({
           title: "Success!",
-          description: "Your article has been submitted for review. Redirecting...",
+          description: "Your article has been submitted for review.",
           variant: "default",
-          duration: 3000, // Longer duration so user sees it
+          duration: 4000, // Longer duration so user sees it
         });
         
-        // First navigation attempt - primary
-        setTimeout(() => {
+        // Delay navigation to ensure UI updates are visible
+        // Use multiple navigation attempts with increasing delays
+        const timer1 = setTimeout(() => {
           console.log("Navigation attempt 1: Redirecting to article list");
           navigationAttemptedRef.current = true;
           navigate('/admin/articles');
-          
-          // Second navigation attempt - fallback with force flag
-          setTimeout(() => {
-            // If we're still on the page, try again with force flag
-            console.log("Navigation attempt 2: Fallback navigation");
-            navigate('/admin/articles', { replace: true });
-          }, 300);
-        }, 1000);
+        }, 3000);
+        navigationTimersRef.current.push(timer1);
+        
+        // Second navigation attempt as fallback
+        const timer2 = setTimeout(() => {
+          console.log("Navigation attempt 2: Fallback with replace flag");
+          navigate('/admin/articles', { replace: true });
+        }, 4000);
+        navigationTimersRef.current.push(timer2);
+        
+        // Final fallback with force flag
+        const timer3 = setTimeout(() => {
+          console.log("Navigation attempt 3: Last resort with window.location");
+          window.location.href = '/admin/articles';
+        }, 5000);
+        navigationTimersRef.current.push(timer3);
         
         return true;
       } else {
@@ -118,8 +133,11 @@ export function useArticleSubmission() {
       });
       return false;
     } finally {
-      submittingRef.current = false;
-      setIsSubmitting(false);
+      // Delay resetting submission state to ensure all UI updates complete
+      setTimeout(() => {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      }, 1000);
     }
   };
 
