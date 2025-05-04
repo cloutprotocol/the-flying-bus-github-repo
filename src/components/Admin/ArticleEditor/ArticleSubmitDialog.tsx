@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/utils/logger/logger";
 import { LogSource } from "@/utils/logger/types";
@@ -30,11 +30,18 @@ const ArticleSubmitDialog = ({
 }: ArticleSubmitDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const dialogStateRef = useRef({ isOpen: false });
   const { toast } = useToast();
+  
+  // Track dialog open state in ref to avoid race conditions
+  useEffect(() => {
+    dialogStateRef.current.isOpen = open;
+  }, [open]);
   
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
+      logger.info(LogSource.EDITOR, 'Article submit dialog opened');
       setIsSubmitting(false);
       setIsRedirecting(false);
     }
@@ -42,31 +49,38 @@ const ArticleSubmitDialog = ({
   
   // Listen for redirect state to close dialog before navigation
   useEffect(() => {
-    if (isRedirecting && open) {
+    if (isRedirecting && dialogStateRef.current.isOpen) {
       // Close dialog before navigation happens
-      console.log("Dialog is in redirecting state, closing dialog");
+      logger.info(LogSource.EDITOR, 'Dialog is in redirecting state, closing dialog');
       onOpenChange(false);
     }
-  }, [isRedirecting, onOpenChange, open]);
+  }, [isRedirecting, onOpenChange]);
   
   const handleConfirm = async () => {
     try {
+      if (isSubmitting) {
+        console.log("Already submitting, ignoring duplicate confirm");
+        return;
+      }
+      
       setIsSubmitting(true);
       logger.info(LogSource.EDITOR, 'Submit dialog - Confirm button clicked');
       
       toast({
         title: "Processing submission",
         description: "Your article is being prepared for review...",
+        duration: 5000, // Longer toast to ensure visibility
       });
       
       // Call the onConfirm callback
       onConfirm();
       
       // Set redirecting state which will trigger dialog close in useEffect
+      // Small delay to allow the UI to update
       setTimeout(() => {
-        console.log("Setting redirecting state to true");
+        logger.info(LogSource.EDITOR, 'Setting redirecting state to true');
         setIsRedirecting(true);
-      }, 500);
+      }, 300);
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Error in submit dialog confirmation', error);
@@ -85,8 +99,10 @@ const ArticleSubmitDialog = ({
       onOpenChange={(newOpen) => {
         // Prevent closing the dialog while submitting or redirecting
         if ((isSubmitting || isRedirecting) && !newOpen) {
+          logger.info(LogSource.EDITOR, 'Preventing dialog close during submission');
           return;
         }
+        logger.info(LogSource.EDITOR, `Dialog state changing to: ${newOpen}`);
         onOpenChange(newOpen);
       }}
     >
@@ -102,7 +118,11 @@ const ArticleSubmitDialog = ({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isSubmitting || isRedirecting}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={handleConfirm} 
+            onClick={(e) => {
+              // Prevent default to avoid automatic closing
+              e.preventDefault(); 
+              handleConfirm();
+            }} 
             disabled={isSubmitting || isRedirecting}
             className="min-w-[100px]"
           >
