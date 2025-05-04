@@ -92,7 +92,8 @@ export function useArticleSubmission() {
         
         // Delay navigation to ensure UI updates are visible
         // Use multiple navigation attempts with increasing delays
-        const timer1 = setTimeout(() => {
+        // Fix: Convert setTimeout return value to number using window.setTimeout
+        const timer1 = window.setTimeout(() => {
           console.log("Navigation attempt 1: Redirecting to article list");
           navigationAttemptedRef.current = true;
           navigate('/admin/articles');
@@ -100,14 +101,14 @@ export function useArticleSubmission() {
         navigationTimersRef.current.push(timer1);
         
         // Second navigation attempt as fallback
-        const timer2 = setTimeout(() => {
+        const timer2 = window.setTimeout(() => {
           console.log("Navigation attempt 2: Fallback with replace flag");
           navigate('/admin/articles', { replace: true });
         }, 4000);
         navigationTimersRef.current.push(timer2);
         
         // Final fallback with force flag
-        const timer3 = setTimeout(() => {
+        const timer3 = window.setTimeout(() => {
           console.log("Navigation attempt 3: Last resort with window.location");
           window.location.href = '/admin/articles';
         }, 5000);

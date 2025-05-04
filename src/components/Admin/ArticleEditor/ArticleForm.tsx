@@ -107,14 +107,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   const effectiveArticleId = articleId || draftId;
 
-  // Debug any time submit button is clicked
-  const handleSubmitButtonClick = () => {
+  // Fix: Update handleSubmitButtonClick to return a Promise
+  const handleSubmitButtonClick = async (): Promise<void> => {
     console.log("Submit button click handler", { 
       formValues: form.getValues(),
       content,
       contentLength: content?.length || 0
     });
-    form.handleSubmit(onSubmit)();
+    return form.handleSubmit(onSubmit)();
   };
 
   return (
