@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2 } from 'lucide-react';
@@ -52,13 +51,9 @@ const FormActions: React.FC<FormActionsProps> = ({
   // Separate effect to handle dialog closing ONLY after submission completes
   useEffect(() => {
     if (!isSubmitting && showSubmitDialog) {
-      // Add a small delay before closing the dialog to avoid UI flash
-      const timer = setTimeout(() => {
-        logger.info(LogSource.EDITOR, 'Submission completed, closing dialog with delay');
-        setShowSubmitDialog(false);
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      // Keep the dialog open during submission, only close it after a delay when submission is complete
+      // We've removed the automatic closing here to prevent premature dialog closing
+      logger.info(LogSource.EDITOR, 'Submission state changed, dialog remains open');
     }
   }, [isSubmitting, showSubmitDialog]);
   
@@ -128,25 +123,16 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
-    setIsProcessingSubmit(true);
-    startTiming('article-submission');
-    if (isDirty || saveStatus === 'error') {
-      console.log("Show submit dialog due to unsaved changes");
-      setShowSubmitDialog(true);
-    } else {
-      console.log("Calling onSubmit directly");
-      toast({
-        title: "Preparing submission",
-        description: "Your article is being processed for submission...",
-      });
-      onSubmit();
-    }
+    console.log("Setting showSubmitDialog to true");
+    logger.info(LogSource.EDITOR, 'Opening submit dialog', { isDirty });
+    setShowSubmitDialog(true);
   };
   
   const handleDialogOpenChange = (isOpen: boolean) => {
     // Only allow changing if we're not actively submitting
     if (!isProcessingSubmit && !isSubmitting) {
       console.log("Dialog open state changed to:", isOpen);
+      logger.info(LogSource.EDITOR, 'Dialog open state manually changed', { isOpen });
       setShowSubmitDialog(isOpen);
     } else {
       console.log("Cannot change dialog state during submission");
@@ -154,11 +140,19 @@ const FormActions: React.FC<FormActionsProps> = ({
   };
   
   const handleDialogConfirm = () => {
-    console.log("Dialog confirmed, calling onSubmit");
+    console.log("Dialog confirmed, starting submission process");
+    logger.info(LogSource.EDITOR, 'Dialog confirmed, starting submission');
+    
+    // Mark that we're processing a submission to prevent state conflicts
+    setIsProcessingSubmit(true);
+    startTiming('article-submission');
+    
     if (onSubmit) {
       onSubmit();
     }
-    // Dialog will be closed by the effect when submission completes
+    
+    // We'll let the dialog component handle its own closing
+    // The dialog will close itself after redirect happens
   };
   
   return (

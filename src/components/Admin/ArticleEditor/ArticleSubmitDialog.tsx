@@ -36,12 +36,17 @@ const ArticleSubmitDialog = ({
   // Track dialog open state in ref to avoid race conditions
   useEffect(() => {
     dialogStateRef.current.isOpen = open;
+    if (open) {
+      logger.info(LogSource.EDITOR, 'Article submit dialog opened');
+    } else {
+      logger.info(LogSource.EDITOR, 'Article submit dialog closed');
+    }
   }, [open]);
   
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
-      logger.info(LogSource.EDITOR, 'Article submit dialog opened');
+      logger.info(LogSource.EDITOR, 'Article submit dialog opened - resetting state');
       setIsSubmitting(false);
       setIsRedirecting(false);
     }
@@ -80,7 +85,7 @@ const ArticleSubmitDialog = ({
       setTimeout(() => {
         logger.info(LogSource.EDITOR, 'Setting redirecting state to true');
         setIsRedirecting(true);
-      }, 300);
+      }, 2000); // Increased from 300ms to 2000ms to ensure dialog stays visible longer
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Error in submit dialog confirmation', error);
@@ -97,11 +102,16 @@ const ArticleSubmitDialog = ({
     <AlertDialog 
       open={open} 
       onOpenChange={(newOpen) => {
+        // Log the open state change attempt
+        console.log(`Dialog state change attempt: ${open} -> ${newOpen}`);
+        
         // Prevent closing the dialog while submitting or redirecting
         if ((isSubmitting || isRedirecting) && !newOpen) {
           logger.info(LogSource.EDITOR, 'Preventing dialog close during submission');
+          console.log("Preventing dialog close during submission or redirect");
           return;
         }
+        
         logger.info(LogSource.EDITOR, `Dialog state changing to: ${newOpen}`);
         onOpenChange(newOpen);
       }}
@@ -121,6 +131,7 @@ const ArticleSubmitDialog = ({
             onClick={(e) => {
               // Prevent default to avoid automatic closing
               e.preventDefault(); 
+              e.stopPropagation();
               handleConfirm();
             }} 
             disabled={isSubmitting || isRedirecting}

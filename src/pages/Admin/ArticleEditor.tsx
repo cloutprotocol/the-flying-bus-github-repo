@@ -52,6 +52,12 @@ const ArticleEditor = () => {
     };
   }, [articleId, isNewArticle]);
 
+  const handleNavigation = (path: string, options?: any) => {
+    logger.info(LogSource.EDITOR, `Navigation requested to ${path}`, { options });
+    console.log(`Navigating to ${path}`, options);
+    navigate(path, options);
+  };
+
   return (
     <AdminPortalLayout>
       <div className="space-y-6">
@@ -70,7 +76,7 @@ const ArticleEditor = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => navigate(-1)}
+              onClick={() => handleNavigation(-1)}
             >
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
@@ -79,7 +85,7 @@ const ArticleEditor = () => {
               size="sm" 
               onClick={() => {
                 console.log("Navigating to articles list from header");
-                navigate('/admin/articles', { replace: true })
+                handleNavigation('/admin/articles', { replace: true });
               }}
             >
               <List className="h-4 w-4 mr-1" /> All Articles
