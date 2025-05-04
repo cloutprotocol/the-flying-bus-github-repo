@@ -136,12 +136,6 @@ const ArticleSubmitDialog = ({
             e.preventDefault();
           }
         }}
-        onInteractOutside={(e) => {
-          // Prevent any outside interaction from closing dialog during submission
-          if (isSubmitting || isRedirecting || confirmClickedRef.current) {
-            e.preventDefault();
-          }
-        }}
       >
         <AlertDialogHeader>
           <AlertDialogTitle>Submit Article for Review</AlertDialogTitle>
