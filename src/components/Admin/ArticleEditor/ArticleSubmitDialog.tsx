@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +29,25 @@ const ArticleSubmitDialog = ({
   isDirty 
 }: ArticleSubmitDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { toast } = useToast();
   
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setIsSubmitting(false);
+      setIsRedirecting(false);
     }
   }, [open]);
+  
+  // Listen for redirect state to close dialog before navigation
+  useEffect(() => {
+    if (isRedirecting && open) {
+      // Close dialog before navigation happens
+      console.log("Dialog is in redirecting state, closing dialog");
+      onOpenChange(false);
+    }
+  }, [isRedirecting, onOpenChange, open]);
   
   const handleConfirm = async () => {
     try {
@@ -50,8 +62,12 @@ const ArticleSubmitDialog = ({
       // Call the onConfirm callback
       onConfirm();
       
-      // Keep dialog open until onConfirm completes or redirects
-      // The dialog will be closed by the parent component when submission completes
+      // Set redirecting state which will trigger dialog close in useEffect
+      setTimeout(() => {
+        console.log("Setting redirecting state to true");
+        setIsRedirecting(true);
+      }, 500);
+      
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Error in submit dialog confirmation', error);
       setIsSubmitting(false);
@@ -67,8 +83,8 @@ const ArticleSubmitDialog = ({
     <AlertDialog 
       open={open} 
       onOpenChange={(newOpen) => {
-        // Prevent closing the dialog while submitting
-        if (isSubmitting && !newOpen) {
+        // Prevent closing the dialog while submitting or redirecting
+        if ((isSubmitting || isRedirecting) && !newOpen) {
           return;
         }
         onOpenChange(newOpen);
@@ -84,15 +100,19 @@ const ArticleSubmitDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isSubmitting || isRedirecting}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm} 
-            disabled={isSubmitting}
+            disabled={isSubmitting || isRedirecting}
             className="min-w-[100px]"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+              </>
+            ) : isRedirecting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecting...
               </>
             ) : (
               "Submit"

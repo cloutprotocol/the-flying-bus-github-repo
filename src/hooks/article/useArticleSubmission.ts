@@ -10,6 +10,7 @@ import { handleApiError } from '@/utils/errors';
 export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false); // Prevent duplicate submissions
+  const navigationAttemptedRef = useRef(false); // Track if navigation was attempted
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -25,6 +26,7 @@ export function useArticleSubmission() {
     
     try {
       submittingRef.current = true;
+      navigationAttemptedRef.current = false;
       
       if (!savedArticleId) {
         logger.error(LogSource.EDITOR, 'Article submission failed - missing ID');
@@ -75,15 +77,24 @@ export function useArticleSubmission() {
         
         toast({
           title: "Success!",
-          description: "Your article has been submitted for review.",
+          description: "Your article has been submitted for review. Redirecting...",
           variant: "default",
+          duration: 3000, // Longer duration so user sees it
         });
         
-        // Navigate to articles list after successful submission
-        // Use a timeout to ensure toast is visible before navigation
+        // First navigation attempt - primary
         setTimeout(() => {
+          console.log("Navigation attempt 1: Redirecting to article list");
+          navigationAttemptedRef.current = true;
           navigate('/admin/articles');
-        }, 1500);
+          
+          // Second navigation attempt - fallback with force flag
+          setTimeout(() => {
+            // If we're still on the page, try again with force flag
+            console.log("Navigation attempt 2: Fallback navigation");
+            navigate('/admin/articles', { replace: true });
+          }, 300);
+        }, 1000);
         
         return true;
       } else {

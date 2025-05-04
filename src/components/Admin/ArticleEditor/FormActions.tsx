@@ -44,9 +44,16 @@ const FormActions: React.FC<FormActionsProps> = ({
   // Reset processing state when isSubmitting becomes false
   useEffect(() => {
     if (!isSubmitting && isProcessingSubmit) {
+      logger.info(LogSource.EDITOR, 'Submission completed, resetting processing state');
       setIsProcessingSubmit(false);
+      
+      // Also ensure dialog is closed when submission completes
+      if (showSubmitDialog) {
+        console.log("Submission completed, closing dialog");
+        setShowSubmitDialog(false);
+      }
     }
-  }, [isSubmitting, isProcessingSubmit]);
+  }, [isSubmitting, isProcessingSubmit, showSubmitDialog]);
   
   useEffect(() => {
     // Only show toast notifications when the status changes, not on initial render
@@ -181,14 +188,17 @@ const FormActions: React.FC<FormActionsProps> = ({
           open={showSubmitDialog}
           onOpenChange={(isOpen) => {
             // Only allow changing if we're not actively submitting
-            if (!isProcessingSubmit) {
+            if (!isProcessingSubmit && !isSubmitting) {
+              console.log("Dialog open state changed to:", isOpen);
               setShowSubmitDialog(isOpen);
+            } else {
+              console.log("Cannot change dialog state during submission");
             }
           }}
           onConfirm={() => {
             console.log("Dialog confirmed, calling onSubmit");
-            // Don't close dialog yet - will be closed after submission completes
             onSubmit();
+            // Dialog will be closed by the effect when submission completes
           }}
           isDirty={isDirty}
         />

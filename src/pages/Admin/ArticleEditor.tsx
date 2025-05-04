@@ -35,11 +35,22 @@ const ArticleEditor = () => {
     logger.info(LogSource.EDITOR, 'Article editor opened', { 
       isNewArticle, 
       articleType,
-      articleId: articleId || undefined 
+      articleId: articleId || undefined,
+      currentPath: location.pathname
     });
     
     checkAuth();
   }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId]);
+
+  // Log when component unmounts to detect navigation issues
+  useEffect(() => {
+    return () => {
+      logger.info(LogSource.EDITOR, 'Article editor unmounting', {
+        isNewArticle,
+        articleId: articleId || undefined
+      });
+    };
+  }, [articleId, isNewArticle]);
 
   return (
     <AdminPortalLayout>
@@ -66,7 +77,10 @@ const ArticleEditor = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => navigate('/admin/articles')}
+              onClick={() => {
+                console.log("Navigating to articles list from header");
+                navigate('/admin/articles', { replace: true })
+              }}
             >
               <List className="h-4 w-4 mr-1" /> All Articles
             </Button>
