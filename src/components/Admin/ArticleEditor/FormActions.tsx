@@ -34,11 +34,19 @@ const FormActions: React.FC<FormActionsProps> = ({
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [startTiming, endTiming] = usePerformanceMeasurement();
   const [toastShown, setToastShown] = useState(false); // Track if we've shown a toast for the current status
+  const [isProcessingSubmit, setIsProcessingSubmit] = useState(false);
   
   usePerformanceMonitoring('FormActions', {
     hasSubmit: !!onSubmit,
     hasRevisions
   });
+  
+  // Reset processing state when isSubmitting becomes false
+  useEffect(() => {
+    if (!isSubmitting && isProcessingSubmit) {
+      setIsProcessingSubmit(false);
+    }
+  }, [isSubmitting, isProcessingSubmit]);
   
   useEffect(() => {
     // Only show toast notifications when the status changes, not on initial render
@@ -96,11 +104,12 @@ const FormActions: React.FC<FormActionsProps> = ({
     }
     
     // Disable submit button if submission is already in progress
-    if (isSubmitting) {
+    if (isSubmitting || isProcessingSubmit) {
       console.log("Submission already in progress, ignoring click");
       return;
     }
     
+    setIsProcessingSubmit(true);
     startTiming('article-submission');
     if (isDirty || saveStatus === 'error') {
       console.log("Show submit dialog due to unsaved changes");
@@ -124,7 +133,7 @@ const FormActions: React.FC<FormActionsProps> = ({
             variant="ghost"
             onClick={onViewRevisions}
             className="mr-auto"
-            disabled={isSubmitting || isSaving}
+            disabled={isSubmitting || isSaving || isProcessingSubmit}
           >
             <History className="mr-2 h-4 w-4" /> View Revisions
           </Button>
@@ -134,7 +143,7 @@ const FormActions: React.FC<FormActionsProps> = ({
           type="button"
           variant="outline"
           onClick={handleSaveDraft}
-          disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error')}
+          disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error') || isProcessingSubmit}
           className="min-w-[120px]"
         >
           {isSaving ? (
@@ -152,10 +161,10 @@ const FormActions: React.FC<FormActionsProps> = ({
         <Button 
           type="button"
           onClick={handleSubmitClick}
-          disabled={isSubmitting || isSaving || !onSubmit}
+          disabled={isSubmitting || isSaving || !onSubmit || isProcessingSubmit}
           className="min-w-[180px]"
         >
-          {isSubmitting ? (
+          {isSubmitting || isProcessingSubmit ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
             </>
@@ -170,14 +179,15 @@ const FormActions: React.FC<FormActionsProps> = ({
       {onSubmit && (
         <ArticleSubmitDialog
           open={showSubmitDialog}
-          onOpenChange={setShowSubmitDialog}
+          onOpenChange={(isOpen) => {
+            // Only allow changing if we're not actively submitting
+            if (!isProcessingSubmit) {
+              setShowSubmitDialog(isOpen);
+            }
+          }}
           onConfirm={() => {
             console.log("Dialog confirmed, calling onSubmit");
-            setShowSubmitDialog(false);
-            toast({
-              title: "Preparing submission",
-              description: "Your article is being processed for submission...",
-            });
+            // Don't close dialog yet - will be closed after submission completes
             onSubmit();
           }}
           isDirty={isDirty}

@@ -32,7 +32,17 @@ export const articleSubmissionService = {
       logger.info(LogSource.ARTICLE, 'Starting article submission for review', { articleId });
 
       // Get current user session - CRITICAL for author_id validation
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        logger.error(LogSource.ARTICLE, 'Failed to get user session', sessionError);
+        return { 
+          success: false, 
+          error: new ApiError('Authentication error', ApiErrorType.AUTH, 401, sessionError)
+        };
+      }
+      
       const userId = session?.user?.id;
       
       console.log("User session check:", { userId, hasSession: !!session });
@@ -72,7 +82,8 @@ export const articleSubmissionService = {
         hasContent: !!article.content,
         contentLength: article.content?.length || 0,
         categoryId: article.category_id,
-        hasSlug: !!article.slug
+        hasSlug: !!article.slug,
+        contentPreview: article.content?.substring(0, 100) + '...'
       });
       
       logger.info(LogSource.ARTICLE, 'Article fetched for validation', {
@@ -84,7 +95,7 @@ export const articleSubmissionService = {
         hasSlug: !!article.slug
       });
 
-      // Validate author ownership
+      // Validate author ownership - if author_id is set, ensure it belongs to current user
       if (article.author_id && article.author_id !== userId) {
         console.error("Authorization error: User doesn't own this article", {
           requestingUser: userId,
@@ -97,6 +108,23 @@ export const articleSubmissionService = {
           success: false, 
           error: new ApiError('You do not have permission to submit this article', ApiErrorType.AUTH)
         };
+      }
+
+      // Update author_id if missing
+      if (!article.author_id) {
+        console.log("Article missing author_id, setting to current user:", userId);
+        const { error: authorUpdateError } = await supabase
+          .from('articles')
+          .update({ author_id: userId })
+          .eq('id', articleId);
+          
+        if (authorUpdateError) {
+          console.error("Failed to update article with author_id:", authorUpdateError);
+          logger.warn(LogSource.ARTICLE, 'Failed to update article with author_id', { 
+            articleId, 
+            error: authorUpdateError 
+          });
+        }
       }
 
       // Generate slug if missing - this helps prevent database constraints
@@ -125,7 +153,9 @@ export const articleSubmissionService = {
 
       // Validate required fields
       try {
+        console.log("Validating article fields");
         validateArticleFields(article);
+        console.log("Article validation successful");
       } catch (validationError) {
         console.error("Article validation error:", validationError);
         logger.error(LogSource.ARTICLE, 'Article validation error when submitting for review', { 
@@ -181,7 +211,6 @@ export const articleSubmissionService = {
     
     try {
       // Handle HTML content - ensure we don't strip important markup
-      // This prevents over-sanitization of rich text content
       const content = formData.content || '';
       
       // Sanitize and validate the data before saving
@@ -222,6 +251,15 @@ export const articleSubmissionService = {
         contentLength: content.length || 0,
         contentType: typeof content
       });
+      
+      // Get current user session for author_id
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (userId && !sanitizedData.author_id) {
+        console.log("Adding missing author_id to draft:", userId);
+        sanitizedData.author_id = userId;
+      }
       
       const result = await saveDraft(articleId || '', sanitizedData);
       

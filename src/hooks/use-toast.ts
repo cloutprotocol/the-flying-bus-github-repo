@@ -140,6 +140,9 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+// Priority toasts that should always be shown regardless of duplicates
+const PRIORITY_TOASTS = ['error', 'destructive', 'loading'];
+
 // Add an activeToasts Set to track currently displaying toasts with the same title
 const activeToasts = new Set<string>();
 
@@ -149,8 +152,9 @@ function toast({ ...props }: Toast) {
   // Generate a unique key for this toast based on title and variant
   const toastKey = `${props.title?.toString() || ''}-${props.variant || 'default'}`;
   
-  // Check if we already have a similar toast showing
-  if (activeToasts.has(toastKey)) {
+  // Check if we already have a similar toast showing - except for priority toasts
+  const isPriorityToast = props.variant && PRIORITY_TOASTS.includes(props.variant);
+  if (!isPriorityToast && activeToasts.has(toastKey)) {
     console.log(`Toast with key ${toastKey} already active, not showing duplicate`);
     return {
       id,

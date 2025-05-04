@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './article/useDraftManagement';
 import { useArticleSubmission } from './article/useArticleSubmission';
@@ -8,6 +8,7 @@ import { useArticleDebug } from './useArticleDebug';
 import { useToast } from './use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { useNavigate } from 'react-router-dom';
 
 const AUTO_SAVE_INTERVAL = 60000;
 
@@ -17,16 +18,38 @@ export const useArticleForm = (
   articleType: string = 'standard',
   isNewArticle: boolean = true
 ) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
   const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
   const { addDebugStep, updateLastStep } = useArticleDebug();
+  
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  
+  // Prevent duplicate submissions
+  const submittingRef = useRef(false);
+  
+  useEffect(() => {
+    // Set up the mounted ref
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
+    // Prevent duplicate submissions
+    if (submittingRef.current) {
+      console.log("Submission already in progress, ignoring duplicate call");
+      return;
+    }
+    
     try {
+      submittingRef.current = true;
       setIsSubmitting(true);
+      
       addDebugStep('Article submission initiated', {
         isDraft,
         articleType,
@@ -42,6 +65,7 @@ export const useArticleForm = (
         });
         updateLastStep('error', { error: 'Missing title' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -53,6 +77,7 @@ export const useArticleForm = (
         });
         updateLastStep('error', { error: 'Missing category' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -64,6 +89,7 @@ export const useArticleForm = (
         });
         updateLastStep('error', { error: 'Missing content' });
         setIsSubmitting(false);
+        submittingRef.current = false;
         return;
       }
       
@@ -84,10 +110,14 @@ export const useArticleForm = (
         }
       });
       
+      console.log("Saving draft with content:", {
+        contentLength: content.length,
+        contentPreview: content.substring(0, 100) + '...'
+      });
+      
       const saveResult = await saveDraftToServer(formData, true);
       
       if (!saveResult.success) {
-        // Fix: The error property doesn't exist on the return type, so we use a more generic error message
         updateLastStep('error', { error: 'Failed to save draft' });
         logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
           saveResult,
@@ -99,7 +129,11 @@ export const useArticleForm = (
           description: "There was a problem saving your article.",
           variant: "destructive"
         });
-        setIsSubmitting(false);
+        
+        if (isMountedRef.current) {
+          setIsSubmitting(false);
+        }
+        submittingRef.current = false;
         return;
       }
       
@@ -113,10 +147,30 @@ export const useArticleForm = (
           description: "Could not determine article ID.",
           variant: "destructive"
         });
-        setIsSubmitting(false);
+        
+        if (isMountedRef.current) {
+          setIsSubmitting(false);
+        }
+        submittingRef.current = false;
         return;
       }
 
+      if (isDraft) {
+        // For drafts, just confirm success
+        toast({
+          title: "Draft Saved",
+          description: "Your draft has been saved successfully",
+          variant: "default"
+        });
+        
+        if (isMountedRef.current) {
+          setIsSubmitting(false);
+        }
+        submittingRef.current = false;
+        return;
+      }
+
+      // For submissions, continue with the submission process
       addDebugStep('Changing article status', { 
         articleId: saveResult.articleId,
         targetStatus: isDraft ? 'draft' : 'pending'
@@ -130,8 +184,27 @@ export const useArticleForm = (
           isDraft,
           articleId: saveResult.articleId
         }, 'success');
+        
+        toast({
+          title: "Success!",
+          description: "Your article has been submitted for review.",
+          variant: "default",
+        });
+        
+        // Navigate to articles list after successful submission
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            navigate('/admin/articles');
+          }
+        }, 1500);
       } else {
         updateLastStep('error', { error: 'Submission failed' });
+        
+        toast({
+          title: "Submission Failed",
+          description: "There was a problem submitting your article for review.",
+          variant: "destructive"
+        });
       }
       
     } catch (error) {
@@ -143,7 +216,10 @@ export const useArticleForm = (
         variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
+      submittingRef.current = false;
     }
   };
 
@@ -162,7 +238,9 @@ export const useArticleForm = (
           ...formData,
           content
         }, true).finally(() => {
-          setIsAutoSaving(false);
+          if (isMountedRef.current) {
+            setIsAutoSaving(false);
+          }
         });
       }, AUTO_SAVE_INTERVAL);
       

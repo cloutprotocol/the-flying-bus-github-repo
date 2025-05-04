@@ -1,4 +1,3 @@
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +9,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/utils/logger/logger";
+import { LogSource } from "@/utils/logger/types";
 
 interface ArticleSubmitDialogProps {
   open: boolean;
@@ -26,12 +28,39 @@ const ArticleSubmitDialog = ({
   isDirty 
 }: ArticleSubmitDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
-  const handleConfirm = () => {
-    setIsSubmitting(true);
-    console.log("Submit dialog - Confirm button clicked");
-    onConfirm();
-    // We don't reset isSubmitting because the dialog will be closed by onConfirm
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setIsSubmitting(false);
+    }
+  }, [open]);
+  
+  const handleConfirm = async () => {
+    try {
+      setIsSubmitting(true);
+      logger.info(LogSource.EDITOR, 'Submit dialog - Confirm button clicked');
+      
+      toast({
+        title: "Processing submission",
+        description: "Your article is being prepared for review...",
+      });
+      
+      // Call the onConfirm callback
+      onConfirm();
+      
+      // Keep dialog open until onConfirm completes or redirects
+      // The dialog will be closed by the parent component when submission completes
+    } catch (error) {
+      logger.error(LogSource.EDITOR, 'Error in submit dialog confirmation', error);
+      setIsSubmitting(false);
+      toast({
+        title: "Submission Error",
+        description: "An error occurred while processing your submission.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -43,10 +72,6 @@ const ArticleSubmitDialog = ({
           return;
         }
         onOpenChange(newOpen);
-        if (!newOpen) {
-          // Reset state when dialog is closed
-          setIsSubmitting(false);
-        }
       }}
     >
       <AlertDialogContent>
