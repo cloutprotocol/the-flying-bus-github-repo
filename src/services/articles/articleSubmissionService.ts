@@ -130,10 +130,14 @@ export const articleSubmissionService = {
       // Generate slug if missing - this helps prevent database constraints
       if (!article.slug) {
         console.log("Article missing slug, generating one from title");
+        // Add timestamp to ensure uniqueness
+        const timestamp = new Date().getTime().toString().slice(-6);
         const slug = article.title
           .toLowerCase()
           .replace(/[^\w\s]/g, '')
-          .replace(/\s+/g, '-');
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-') // Remove consecutive hyphens
+          .trim() + '-' + timestamp;
           
         // Try to update the article with the slug
         const { error: slugError } = await supabase
@@ -144,7 +148,7 @@ export const articleSubmissionService = {
         if (slugError) {
           console.error("Failed to update article with slug:", slugError);
           // Continue with submission but log the error
-          logger.warn(LogSource.ARTICLE, 'Failed to update article with slug', { 
+          logger.warn(LogSource.DATABASE, 'Failed to update article with slug', { 
             articleId, 
             error: slugError 
           });

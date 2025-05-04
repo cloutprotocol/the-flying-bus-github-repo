@@ -73,7 +73,9 @@ export function useArticleSubmission() {
             articleId: savedArticleId, 
             error: error 
           });
-          return false;
+          
+          // Re-throw the error so the dialog can handle it
+          throw error;
         }
         
         logger.info(LogSource.EDITOR, 'Article submitted successfully', { 
@@ -95,27 +97,21 @@ export function useArticleSubmission() {
           navigationAttemptedRef.current = true;
           navigate('/admin/articles');
         }, 3000);
-        navigationTimersRef.current.push(window.setTimeout(() => {}, 0) as unknown as number);
-        clearTimeout(timer1);
-        navigationTimersRef.current[navigationTimersRef.current.length - 1] = timer1 as unknown as number;
+        navigationTimersRef.current.push(timer1);
         
         // Second navigation attempt as fallback
         const timer2 = setTimeout(() => {
           console.log("Navigation attempt 2: Fallback with replace flag");
           navigate('/admin/articles', { replace: true });
         }, 4000);
-        navigationTimersRef.current.push(window.setTimeout(() => {}, 0) as unknown as number);
-        clearTimeout(timer2);
-        navigationTimersRef.current[navigationTimersRef.current.length - 1] = timer2 as unknown as number;
+        navigationTimersRef.current.push(timer2);
         
         // Final fallback with force flag
         const timer3 = setTimeout(() => {
           console.log("Navigation attempt 3: Last resort with window.location");
           window.location.href = '/admin/articles';
         }, 5000);
-        navigationTimersRef.current.push(window.setTimeout(() => {}, 0) as unknown as number);
-        clearTimeout(timer3);
-        navigationTimersRef.current[navigationTimersRef.current.length - 1] = timer3 as unknown as number;
+        navigationTimersRef.current.push(timer3);
         
         return true;
       } else {
@@ -137,7 +133,9 @@ export function useArticleSubmission() {
         description: "An unexpected error occurred during submission. Please try again.",
         variant: "destructive"
       });
-      return false;
+      
+      // Re-throw the error to allow the caller to handle it
+      throw error;
     } finally {
       // Delay resetting submission state to ensure all UI updates complete
       setTimeout(() => {

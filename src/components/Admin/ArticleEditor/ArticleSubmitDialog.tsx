@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/utils/logger/logger";
@@ -30,6 +30,7 @@ const ArticleSubmitDialog = ({
 }: ArticleSubmitDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const dialogStateRef = useRef({ isOpen: false });
   const confirmClickedRef = useRef(false);
   const { toast } = useToast();
@@ -43,6 +44,7 @@ const ArticleSubmitDialog = ({
       confirmClickedRef.current = false;
       setIsSubmitting(false);
       setIsRedirecting(false);
+      setHasError(false);
     } else {
       logger.info(LogSource.EDITOR, 'Article submit dialog closed');
     }
@@ -70,6 +72,8 @@ const ArticleSubmitDialog = ({
       // Mark that we've clicked confirm
       confirmClickedRef.current = true;
       setIsSubmitting(true);
+      setHasError(false);
+      
       logger.info(LogSource.EDITOR, 'Submit dialog - Confirm button clicked', {
         isSubmitting,
         isRedirecting
@@ -82,29 +86,59 @@ const ArticleSubmitDialog = ({
         duration: 5000,
       });
       
-      // Call the parent's confirm callback
-      onConfirm();
-      
-      // After a delay, set redirecting state
-      // Using a longer delay to ensure the dialog stays visible
-      setTimeout(() => {
-        logger.info(LogSource.EDITOR, 'Setting redirecting state to true after delay');
-        setIsRedirecting(true);
+      try {
+        // Call the parent's confirm callback with error handling
+        await onConfirm();
         
-        // Only close the dialog after submission completes
-        // We'll let the parent component handle navigation
-      }, 3000); // Increased from 2000ms to 3000ms
+        // After a delay, set redirecting state
+        setTimeout(() => {
+          if (dialogStateRef.current.isOpen) {
+            logger.info(LogSource.EDITOR, 'Setting redirecting state to true after delay');
+            setIsRedirecting(true);
+          }
+        }, 2000);
+      } catch (error) {
+        logger.error(LogSource.EDITOR, 'Error from onConfirm callback', { error });
+        setHasError(true);
+        confirmClickedRef.current = false;
+        setIsSubmitting(false);
+        
+        toast({
+          title: "Submission Error",
+          description: "There was a problem submitting your article. Please try again.",
+          variant: "destructive"
+        });
+      }
       
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Error in submit dialog confirmation', error);
       confirmClickedRef.current = false;
       setIsSubmitting(false);
+      setHasError(true);
+      
       toast({
         title: "Submission Error",
         description: "An error occurred while processing your submission.",
         variant: "destructive"
       });
     }
+  };
+  
+  const handleCancel = () => {
+    // Allow closing the dialog when there's an error
+    if (hasError) {
+      logger.info(LogSource.EDITOR, 'Closing dialog after error');
+      onOpenChange(false);
+      return;
+    }
+    
+    // Don't allow closing if submitting or redirecting
+    if (isSubmitting || isRedirecting || confirmClickedRef.current) {
+      logger.info(LogSource.EDITOR, 'Attempted to cancel during submission, preventing');
+      return;
+    }
+    
+    onOpenChange(false);
   };
   
   return (
@@ -114,12 +148,20 @@ const ArticleSubmitDialog = ({
         // Log the open state change attempt
         console.log(`Dialog state change attempt: ${open} -> ${newOpen}`);
         
+        // Allow closing if there's an error
+        if (hasError && !newOpen) {
+          logger.info(LogSource.EDITOR, 'Allowing dialog close after error');
+          onOpenChange(false);
+          return;
+        }
+        
         // Prevent closing the dialog when submitting or redirecting
         if ((isSubmitting || isRedirecting || confirmClickedRef.current) && !newOpen) {
           logger.info(LogSource.EDITOR, 'Preventing dialog close during submission', {
             isSubmitting,
             isRedirecting,
-            confirmClicked: confirmClickedRef.current
+            confirmClicked: confirmClickedRef.current,
+            hasError
           });
           console.log("Preventing dialog close during submission or redirect");
           return;
@@ -131,6 +173,11 @@ const ArticleSubmitDialog = ({
     >
       <AlertDialogContent
         onEscapeKeyDown={(e) => {
+          // Allow escape key if there's an error
+          if (hasError) {
+            return;
+          }
+          
           // Prevent escape key from closing dialog during submission
           if (isSubmitting || isRedirecting || confirmClickedRef.current) {
             e.preventDefault();
@@ -144,23 +191,27 @@ const ArticleSubmitDialog = ({
               ? "You have unsaved changes. The article will be saved before submission."
               : "Are you sure you want to submit this article for review?"}
           </AlertDialogDescription>
+          
+          {hasError && (
+            <div className="mt-4 p-3 border border-red-200 bg-red-50 rounded-md text-red-800 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Submission failed</p>
+                <p className="text-sm">There was an error submitting your article. Check that your article has a unique title and try again.</p>
+              </div>
+            </div>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel 
-            disabled={isSubmitting || isRedirecting || confirmClickedRef.current}
-            onClick={(e) => {
-              // Only handle cancel if we're not already submitting
-              if (isSubmitting || isRedirecting || confirmClickedRef.current) {
-                e.preventDefault();
-                return;
-              }
-            }}
+            onClick={handleCancel} 
+            disabled={isSubmitting && !hasError}
           >
-            Cancel
+            {hasError ? "Close" : "Cancel"}
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm} 
-            disabled={isSubmitting || isRedirecting}
+            disabled={isSubmitting || isRedirecting || hasError}
             className="min-w-[100px]"
           >
             {isSubmitting ? (

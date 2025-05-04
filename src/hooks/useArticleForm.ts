@@ -50,10 +50,13 @@ export const useArticleForm = (
       submittingRef.current = true;
       setIsSubmitting(true);
       
-      addDebugStep('Article submission initiated', {
-        isDraft,
-        articleType,
-        isNewArticle: isNewArticle
+      addDebugStep('Form validation passed', {
+        formData: {
+          title: data.title,
+          excerpt: data.excerpt?.substring(0, 20) + '...',
+          articleType: data.articleType,
+          categoryId: data.categoryId
+        }
       });
       
       // Validate required fields
@@ -176,35 +179,34 @@ export const useArticleForm = (
         targetStatus: isDraft ? 'draft' : 'pending'
       });
       
-      const submissionResult = await handleArticleSubmission(saveResult.articleId, isDraft);
-      
-      if (submissionResult) {
-        updateLastStep('success', { status: isDraft ? 'Draft saved' : 'Submitted for review' });
-        addDebugStep('Article submission completed', { 
-          isDraft,
-          articleId: saveResult.articleId
-        }, 'success');
+      try {
+        const submissionResult = await handleArticleSubmission(saveResult.articleId, isDraft);
         
-        toast({
-          title: "Success!",
-          description: "Your article has been submitted for review.",
-          variant: "default",
-        });
-        
-        // Navigate to articles list after successful submission
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            navigate('/admin/articles');
-          }
-        }, 1500);
-      } else {
+        if (submissionResult) {
+          updateLastStep('success', { status: isDraft ? 'Draft saved' : 'Submitted for review' });
+          addDebugStep('Article submission completed', { 
+            isDraft,
+            articleId: saveResult.articleId
+          }, 'success');
+          
+          toast({
+            title: "Success!",
+            description: "Your article has been submitted for review.",
+            variant: "default",
+          });
+          
+          // Navigate to articles list after successful submission
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              navigate('/admin/articles');
+            }
+          }, 1500);
+        }
+      } catch (error) {
         updateLastStep('error', { error: 'Submission failed' });
+        console.error("Article submission error:", error);
         
-        toast({
-          title: "Submission Failed",
-          description: "There was a problem submitting your article for review.",
-          variant: "destructive"
-        });
+        // Error toast already shown by handleArticleSubmission
       }
       
     } catch (error) {

@@ -11,7 +11,7 @@ import { LogSource } from '@/utils/logger/types';
 
 interface FormActionsProps {
   onSaveDraft: () => Promise<void>;
-  onSubmit?: () => void;
+  onSubmit?: () => Promise<void>; // Change to async function that returns a Promise
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
@@ -150,7 +150,7 @@ const FormActions: React.FC<FormActionsProps> = ({
     }
   };
   
-  const handleDialogConfirm = () => {
+  const handleDialogConfirm = async () => {
     console.log("Dialog confirmed, starting submission process");
     logger.info(LogSource.EDITOR, 'Dialog confirmed, starting submission');
     
@@ -160,14 +160,19 @@ const FormActions: React.FC<FormActionsProps> = ({
     
     startTiming('article-submission');
     
-    // Allow the dialog to stay open (don't close it here)
-    // The dialog will manage its own state during submission
-    
-    if (onSubmit) {
-      // Wrap in setTimeout to break call stack and prevent race conditions
-      setTimeout(() => {
-        onSubmit();
-      }, 0);
+    try {
+      // Allow the dialog to stay open (don't close it here)
+      // The dialog will manage its own state during submission
+      
+      if (onSubmit) {
+        // Execute the submission - now properly awaiting the Promise
+        await onSubmit();
+      }
+    } catch (error) {
+      logger.error(LogSource.EDITOR, 'Error during submission from dialog', error);
+      console.error("Submission failed:", error);
+      
+      // The ArticleSubmitDialog will handle the error display
     }
   };
   

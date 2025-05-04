@@ -56,7 +56,7 @@ const ArticleEditor = () => {
     // Convert number to string if path is a number (e.g. -1 for navigate(-1))
     if (typeof path === 'number') {
       logger.info(LogSource.EDITOR, `Navigation requested: going back ${path} steps`);
-      navigate(path);
+      navigate(path as any);
     } else {
       const pathValue = String(path);
       logger.info(LogSource.EDITOR, `Navigation requested to ${pathValue}`, { options });
