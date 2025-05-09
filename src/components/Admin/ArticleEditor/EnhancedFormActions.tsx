@@ -140,9 +140,9 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
       <ArticleSubmitDialog
         open={showSubmitDialog}
         onOpenChange={setShowSubmitDialog}
-        onConfirm={() => {
+        onConfirm={async () => {  // Fix: Make this function async and return the Promise
           setShowSubmitDialog(false);
-          handleSubmit();
+          return handleSubmit();  // Return the Promise from handleSubmit
         }}
         isDirty={isDirty}
       />
