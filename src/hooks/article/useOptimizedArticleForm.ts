@@ -295,46 +295,6 @@ export const useOptimizedArticleForm = (
         description: "Your article is being submitted for review...",
       });
       
-      // Validate required fields
-      if (!data.title) {
-        console.log("Validation error: Missing title");
-        toast({
-          title: "Validation Error",
-          description: "Article title is required",
-          variant: "destructive"
-        });
-        updateLastStep('error', { error: 'Missing title' });
-        setIsSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
-      
-      if (!data.categoryId) {
-        console.log("Validation error: Missing category");
-        toast({
-          title: "Validation Error",
-          description: "Please select a category",
-          variant: "destructive"
-        });
-        updateLastStep('error', { error: 'Missing category' });
-        setIsSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
-      
-      if (!content || content.trim() === '') {
-        console.log("Validation error: Missing content");
-        toast({
-          title: "Validation Error",
-          description: "Article content is required",
-          variant: "destructive"
-        });
-        updateLastStep('error', { error: 'Missing content' });
-        setIsSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
-      
       // First save as draft to ensure all content is saved
       const formData = {
         ...data,

@@ -73,6 +73,36 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     });
   }, [articleId, draftId, articleType, isNewArticle, content]);
 
+  // Form validation function
+  const validateFormBeforeSubmit = () => {
+    let isValid = true;
+    const errors: string[] = [];
+
+    // Validate title
+    const title = form.getValues('title');
+    if (!title || title.trim() === '') {
+      form.setError('title', { type: 'required', message: 'Title is required' });
+      errors.push("Article title is required");
+      isValid = false;
+    }
+    
+    // Validate category
+    const categoryId = form.getValues('categoryId');
+    if (!categoryId) {
+      form.setError('categoryId', { type: 'required', message: 'Category is required' });
+      errors.push("Please select a category");
+      isValid = false;
+    }
+    
+    // Validate content
+    if (!content || content.trim() === '') {
+      errors.push("Article content is required");
+      isValid = false;
+    }
+
+    return { isValid, errors };
+  };
+
   // Form submission handler
   const onSubmit = async (data: any) => {
     try {
@@ -107,13 +137,15 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   const effectiveArticleId = articleId || draftId;
 
-  // Fix: Update handleSubmitButtonClick to return a Promise
+  // Fix: handleSubmitButtonClick now returns a Promise and validates first
   const handleSubmitButtonClick = async (): Promise<void> => {
     console.log("Submit button click handler", { 
       formValues: form.getValues(),
       content,
       contentLength: content?.length || 0
     });
+    
+    // Form will be validated in FormActions component
     return form.handleSubmit(onSubmit)();
   };
 
@@ -141,6 +173,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         isSaving={isSaving}
         saveStatus={saveStatus}
         hasRevisions={!isNewArticle && revisions.length > 0}
+        form={form}
+        content={content}
+        validateForm={validateFormBeforeSubmit}
       />
 
       <RevisionsDialog 

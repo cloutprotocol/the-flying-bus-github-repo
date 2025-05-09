@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect, useRef } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2, AlertCircle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/utils/logger/logger";
 import { LogSource } from "@/utils/logger/types";
@@ -18,7 +18,7 @@ import { LogSource } from "@/utils/logger/types";
 interface ArticleSubmitDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   isDirty: boolean;
 }
 

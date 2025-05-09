@@ -1,23 +1,26 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, Send, History, Loader2 } from 'lucide-react';
+import { Save, Send, History, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import ArticleSubmitDialog from './ArticleSubmitDialog';
 import { usePerformanceMonitoring, usePerformanceMeasurement } from '@/hooks/usePerformanceMonitoring';
 import { logger } from '@/utils/logger';
 import { LogSource } from '@/utils/logger/types';
+import { UseFormReturn } from 'react-hook-form';
 
 interface FormActionsProps {
   onSaveDraft: () => Promise<void>;
-  onSubmit?: () => Promise<void>; // Change to async function that returns a Promise
+  onSubmit?: () => Promise<void>;
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
   isSaving?: boolean;
   saveStatus?: DraftSaveStatus;
   hasRevisions?: boolean;
+  form?: UseFormReturn<any>;
+  content?: string;
+  validateForm?: () => { isValid: boolean; errors: string[] };
 }
 
 const FormActions: React.FC<FormActionsProps> = ({ 
@@ -28,7 +31,10 @@ const FormActions: React.FC<FormActionsProps> = ({
   isDirty = false,
   isSaving = false,
   saveStatus = 'idle',
-  hasRevisions = false
+  hasRevisions = false,
+  form,
+  content = '',
+  validateForm
 }) => {
   const { toast } = useToast();
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -111,6 +117,63 @@ const FormActions: React.FC<FormActionsProps> = ({
     onSaveDraft();
   };
   
+  // New function to validate the form before showing the dialog
+  const performFormValidation = (): boolean => {
+    // If custom validation function is provided, use it
+    if (validateForm) {
+      const { isValid, errors } = validateForm();
+      if (!isValid && errors.length > 0) {
+        // Display the first error
+        toast({
+          title: "Validation Error",
+          description: errors[0],
+          variant: "destructive"
+        });
+        return false;
+      }
+      return isValid;
+    }
+    
+    // Otherwise, perform basic validation using form and content
+    if (form) {
+      // Check title
+      const title = form.getValues('title');
+      if (!title || title.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "Article title is required",
+          variant: "destructive"
+        });
+        form.setError('title', { type: 'required', message: 'Title is required' });
+        return false;
+      }
+      
+      // Check category
+      const categoryId = form.getValues('categoryId');
+      if (!categoryId) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a category",
+          variant: "destructive"
+        });
+        form.setError('categoryId', { type: 'required', message: 'Category is required' });
+        return false;
+      }
+    }
+    
+    // Check content
+    if (!content || content.trim() === '') {
+      toast({
+        title: "Validation Error",
+        description: "Article content is required",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    return true;
+  };
+  
   const handleSubmitClick = (e: React.MouseEvent) => {
     // Prevent any default behavior or event bubbling
     e.preventDefault();
@@ -134,8 +197,15 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
-    console.log("Setting showSubmitDialog to true");
-    logger.info(LogSource.EDITOR, 'Opening submit dialog', { isDirty });
+    // Validate the form first
+    if (!performFormValidation()) {
+      logger.info(LogSource.EDITOR, 'Form validation failed');
+      return;
+    }
+    
+    // If validation passed, open the submit dialog
+    console.log("Form validation passed, setting showSubmitDialog to true");
+    logger.info(LogSource.EDITOR, 'Form validation passed, opening submit dialog', { isDirty });
     setShowSubmitDialog(true);
   };
   
