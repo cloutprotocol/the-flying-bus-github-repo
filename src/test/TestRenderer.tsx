@@ -1,5 +1,6 @@
+
 import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
@@ -105,4 +106,4 @@ function customRender(
 export * from '@testing-library/react';
 
 // Override render method
-export { customRender as render };
+export { customRender as render, screen };
