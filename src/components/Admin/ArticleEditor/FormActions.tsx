@@ -11,7 +11,7 @@ import { LogSource } from '@/utils/logger/types';
 
 interface FormActionsProps {
   onSaveDraft: () => Promise<void>;
-  onSubmit?: () => Promise<void>; // Change to async function that returns a Promise
+  onSubmit?: () => Promise<void>;
   onViewRevisions?: () => void;
   isSubmitting?: boolean;
   isDirty?: boolean;
@@ -35,6 +35,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   const [startTiming, endTiming] = usePerformanceMeasurement();
   const [toastShown, setToastShown] = useState(false); // Track if we've shown a toast for the current status
   const [isProcessingSubmit, setIsProcessingSubmit] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   
   // Use refs to track state and prevent race conditions
   const isSubmittingRef = useRef(isSubmitting);
@@ -111,7 +112,62 @@ const FormActions: React.FC<FormActionsProps> = ({
     onSaveDraft();
   };
   
-  const handleSubmitClick = (e: React.MouseEvent) => {
+  const validateFormBeforeSubmit = async (): Promise<boolean> => {
+    if (!onSubmit) {
+      return false;
+    }
+    
+    // Check if there are any field validation errors
+    try {
+      const errors: string[] = [];
+      
+      // Check content using DOM access (more reliable than state in some cases)
+      const editorContent = document.querySelector('.ql-editor')?.innerHTML || '';
+      if (!editorContent || editorContent === '<p><br></p>') {
+        errors.push('Article content is required');
+      }
+      
+      // Check for title input
+      const titleInput = document.querySelector('input[name="title"]') as HTMLInputElement;
+      if (!titleInput || !titleInput.value) {
+        errors.push('Title is required');
+      }
+      
+      // Check for category selection
+      const categorySelect = document.querySelector('select[name="categoryId"]') as HTMLSelectElement;
+      if (!categorySelect || !categorySelect.value) {
+        errors.push('Category is required');
+      }
+      
+      // If there are errors, show them and return false
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        errors.forEach(error => {
+          toast({
+            title: "Validation Error",
+            description: error,
+            variant: "destructive"
+          });
+        });
+        return false;
+      }
+      
+      // If validation passes, clear any previous errors and return true
+      setValidationErrors([]);
+      return true;
+    } catch (error) {
+      console.error('Validation error:', error);
+      logger.error(LogSource.EDITOR, 'Error during form validation', error);
+      toast({
+        title: "Validation Error",
+        description: "Could not validate the form. Please check all required fields.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+  
+  const handleSubmitClick = async (e: React.MouseEvent) => {
     // Prevent any default behavior or event bubbling
     e.preventDefault();
     e.stopPropagation();
@@ -134,7 +190,16 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
-    console.log("Setting showSubmitDialog to true");
+    // Perform validation before showing the dialog
+    const isValid = await validateFormBeforeSubmit();
+    if (!isValid) {
+      logger.info(LogSource.EDITOR, 'Form validation failed', {
+        errors: validationErrors 
+      });
+      return;
+    }
+    
+    console.log("Validation passed, setting showSubmitDialog to true");
     logger.info(LogSource.EDITOR, 'Opening submit dialog', { isDirty });
     setShowSubmitDialog(true);
   };
@@ -228,7 +293,7 @@ const FormActions: React.FC<FormActionsProps> = ({
         </Button>
       </div>
       
-      {onSubmit && showSubmitDialog && (
+      {onSubmit && showSubmitDialog && validationErrors.length === 0 && (
         <ArticleSubmitDialog
           open={showSubmitDialog}
           onOpenChange={handleDialogOpenChange}
