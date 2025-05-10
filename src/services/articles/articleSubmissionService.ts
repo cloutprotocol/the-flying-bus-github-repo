@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -13,6 +12,43 @@ import { measureApiCall } from '@/services/monitoringService';
  * and saving drafts with consistent error handling and logging
  */
 export const articleSubmissionService = {
+  /**
+   * Generate a unique slug for an article
+   */
+  generateUniqueSlug: async (title: string, articleId?: string): Promise<string> => {
+    if (!title || title.trim() === '') {
+      return `draft-${Date.now()}`;
+    }
+    
+    // Create base slug from title
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+      
+    // Add timestamp to ensure uniqueness
+    const timestamp = new Date().getTime().toString().slice(-6);
+    const proposedSlug = `${baseSlug}-${timestamp}`;
+    
+    // If we have an article ID, check if this slug already exists
+    if (articleId) {
+      const { data: existingArticle, error } = await supabase
+        .from('articles')
+        .select('slug')
+        .eq('id', articleId)
+        .single();
+        
+      // If article already has a slug, we can keep it
+      if (!error && existingArticle && existingArticle.slug) {
+        return existingArticle.slug;
+      }
+    }
+    
+    return proposedSlug;
+  },
+  
   /**
    * Submit an article for review
    */
@@ -62,7 +98,7 @@ export const articleSubmissionService = {
       
       const { data: article, error: fetchError } = await supabase
         .from('articles')
-        .select('title, content, category_id, author_id, slug')
+        .select('title, content, category_id, author_id, slug, status')
         .eq('id', articleId)
         .single();
       fetchEnd();
@@ -83,6 +119,7 @@ export const articleSubmissionService = {
         contentLength: article.content?.length || 0,
         categoryId: article.category_id,
         hasSlug: !!article.slug,
+        status: article.status,
         contentPreview: article.content?.substring(0, 100) + '...'
       });
       
@@ -92,7 +129,8 @@ export const articleSubmissionService = {
         contentLength: article.content?.length || 0,
         hasContent: !!article.content,
         categoryId: article.category_id,
-        hasSlug: !!article.slug
+        hasSlug: !!article.slug,
+        status: article.status
       });
 
       // Validate author ownership - if author_id is set, ensure it belongs to current user
@@ -110,48 +148,60 @@ export const articleSubmissionService = {
         };
       }
 
-      // Update author_id if missing
+      // Only update author_id if missing - avoids unnecessary updates
+      let updateNeeded = false;
+      const updates: any = {};
+      
       if (!article.author_id) {
-        console.log("Article missing author_id, setting to current user:", userId);
-        const { error: authorUpdateError } = await supabase
-          .from('articles')
-          .update({ author_id: userId })
-          .eq('id', articleId);
-          
-        if (authorUpdateError) {
-          console.error("Failed to update article with author_id:", authorUpdateError);
-          logger.warn(LogSource.ARTICLE, 'Failed to update article with author_id', { 
-            articleId, 
-            error: authorUpdateError 
-          });
-        }
+        updateNeeded = true;
+        updates.author_id = userId;
+        console.log("Article missing author_id, will set to current user:", userId);
       }
 
-      // Generate slug if missing - this helps prevent database constraints
+      // Generate and update slug if missing
       if (!article.slug) {
-        console.log("Article missing slug, generating one from title");
-        // Add timestamp to ensure uniqueness
-        const timestamp = new Date().getTime().toString().slice(-6);
-        const slug = article.title
-          .toLowerCase()
-          .replace(/[^\w\s]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/-+/g, '-') // Remove consecutive hyphens
-          .trim() + '-' + timestamp;
+        try {
+          console.log("Article missing slug, generating one from title");
+          const uniqueSlug = await this.generateUniqueSlug(article.title, articleId);
+          updates.slug = uniqueSlug;
+          updateNeeded = true;
           
-        // Try to update the article with the slug
-        const { error: slugError } = await supabase
-          .from('articles')
-          .update({ slug })
-          .eq('id', articleId);
-          
-        if (slugError) {
-          console.error("Failed to update article with slug:", slugError);
-          // Continue with submission but log the error
-          logger.warn(LogSource.DATABASE, 'Failed to update article with slug', { 
+          console.log("Generated unique slug:", uniqueSlug);
+        } catch (slugError) {
+          console.error("Error generating slug:", slugError);
+          logger.warn(LogSource.DATABASE, 'Error generating slug', { 
             articleId, 
             error: slugError 
           });
+          // Continue with submission despite slug generation error
+        }
+      }
+      
+      // If we need to update author_id or slug, do it now
+      if (updateNeeded) {
+        console.log("Updating article with missing fields:", updates);
+        const { error: updateError } = await supabase
+          .from('articles')
+          .update(updates)
+          .eq('id', articleId);
+          
+        if (updateError) {
+          console.error("Failed to update article with fields:", updateError);
+          logger.warn(LogSource.DATABASE, 'Failed to update article fields', { 
+            articleId, 
+            updates,
+            error: updateError 
+          });
+          
+          // Only fail if this is a duplicate slug error
+          if (updateError.message?.includes('articles_slug_key')) {
+            endMeasure();
+            return { 
+              success: false, 
+              error: new ApiError('Duplicate article slug. Please try again.', ApiErrorType.VALIDATION)
+            };
+          }
+          // For other errors, continue with submission
         }
       }
 
@@ -170,6 +220,16 @@ export const articleSubmissionService = {
         return { 
           success: false, 
           error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError)
+        };
+      }
+
+      // Don't update status if it's already pending - avoid duplicate operations
+      if (article.status === 'pending') {
+        console.log("Article already has 'pending' status, skipping status update");
+        endMeasure();
+        return { 
+          success: true,
+          submissionId: articleId
         };
       }
 
@@ -240,12 +300,16 @@ export const articleSubmissionService = {
         });
       }
       
-      // Generate a slug if we have a title but no slug
-      if (sanitizedData.title && !sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
-        sanitizedData.slug = sanitizedData.title
-          .toLowerCase()
-          .replace(/[^\w\s]/g, '')
-          .replace(/\s+/g, '-');
+      // Generate a slug if needed
+      if (!sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
+        try {
+          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title, articleId);
+        } catch (slugError) {
+          logger.warn(LogSource.EDITOR, 'Error generating slug', {
+            articleId,
+            error: slugError
+          });
+        }
       }
       
       logger.info(LogSource.EDITOR, 'Saving article draft via unified service', { 

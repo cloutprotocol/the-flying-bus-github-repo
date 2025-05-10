@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, Send, History, Loader2, AlertCircle } from 'lucide-react';
+import { Save, SendHorizonal, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import ArticleSubmitDialog from './ArticleSubmitDialog';
@@ -42,6 +42,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   const [startTiming, endTiming] = usePerformanceMeasurement();
   const [toastShown, setToastShown] = useState(false); // Track if we've shown a toast for the current status
   const [isProcessingSubmit, setIsProcessingSubmit] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   // Use refs to track state and prevent race conditions
   const isSubmittingRef = useRef(isSubmitting);
@@ -56,7 +57,12 @@ const FormActions: React.FC<FormActionsProps> = ({
   // Update refs when props change
   useEffect(() => {
     isSubmittingRef.current = isSubmitting;
-  }, [isSubmitting]);
+    
+    // Reset error state when submission completes
+    if (!isSubmitting && submissionError) {
+      setSubmissionError(null);
+    }
+  }, [isSubmitting, submissionError]);
   
   // Track dialog state in ref
   useEffect(() => {
@@ -210,6 +216,9 @@ const FormActions: React.FC<FormActionsProps> = ({
       return;
     }
     
+    // Reset the error state when attempting a new submission
+    setSubmissionError(null);
+    
     // Validate the form first
     if (!performFormValidation()) {
       logger.info(LogSource.EDITOR, 'Form validation failed');
@@ -241,6 +250,9 @@ const FormActions: React.FC<FormActionsProps> = ({
     setIsProcessingSubmit(true);
     isProcessingSubmitRef.current = true;
     
+    // Reset error state
+    setSubmissionError(null);
+    
     startTiming('article-submission');
     
     try {
@@ -254,6 +266,9 @@ const FormActions: React.FC<FormActionsProps> = ({
     } catch (error) {
       logger.error(LogSource.EDITOR, 'Error during submission from dialog', error);
       console.error("Submission failed:", error);
+      
+      // Set error message for the dialog to display
+      setSubmissionError(error instanceof Error ? error.message : "Submission failed");
       
       // The ArticleSubmitDialog will handle the error display
     }
@@ -305,7 +320,7 @@ const FormActions: React.FC<FormActionsProps> = ({
             </>
           ) : (
             <>
-              <Send className="mr-2 h-4 w-4" /> Submit for Review
+              <SendHorizonal className="mr-2 h-4 w-4" /> Submit for Review
             </>
           )}
         </Button>

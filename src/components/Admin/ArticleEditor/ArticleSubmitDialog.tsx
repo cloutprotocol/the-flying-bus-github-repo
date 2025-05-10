@@ -31,6 +31,7 @@ const ArticleSubmitDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const dialogStateRef = useRef({ isOpen: false });
   const confirmClickedRef = useRef(false);
   const { toast } = useToast();
@@ -45,6 +46,7 @@ const ArticleSubmitDialog = ({
       setIsSubmitting(false);
       setIsRedirecting(false);
       setHasError(false);
+      setErrorMessage("");
     } else {
       logger.info(LogSource.EDITOR, 'Article submit dialog closed');
     }
@@ -57,6 +59,18 @@ const ArticleSubmitDialog = ({
       onOpenChange(false);
     }
   }, [isRedirecting, onOpenChange]);
+  
+  const handleDialogCleanup = () => {
+    // Reset dialog state
+    setIsSubmitting(false);
+    confirmClickedRef.current = false;
+    
+    // Close the dialog
+    if (dialogStateRef.current.isOpen) {
+      logger.info(LogSource.EDITOR, 'Cleaning up dialog state');
+      onOpenChange(false);
+    }
+  };
   
   const handleConfirm = async (e: React.MouseEvent) => {
     try {
@@ -73,6 +87,7 @@ const ArticleSubmitDialog = ({
       confirmClickedRef.current = true;
       setIsSubmitting(true);
       setHasError(false);
+      setErrorMessage("");
       
       logger.info(LogSource.EDITOR, 'Submit dialog - Confirm button clicked', {
         isSubmitting,
@@ -95,17 +110,24 @@ const ArticleSubmitDialog = ({
           if (dialogStateRef.current.isOpen) {
             logger.info(LogSource.EDITOR, 'Setting redirecting state to true after delay');
             setIsRedirecting(true);
+            
+            // Ensure dialog closes after submission
+            setTimeout(() => {
+              handleDialogCleanup();
+            }, 1500);
           }
-        }, 2000);
+        }, 1000);
       } catch (error) {
-        logger.error(LogSource.EDITOR, 'Error from onConfirm callback', { error });
+        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        logger.error(LogSource.EDITOR, 'Error from onConfirm callback', { error, errorMsg });
         setHasError(true);
+        setErrorMessage(errorMsg);
         confirmClickedRef.current = false;
         setIsSubmitting(false);
         
         toast({
           title: "Submission Error",
-          description: "There was a problem submitting your article. Please try again.",
+          description: errorMsg || "There was a problem submitting your article. Please try again.",
           variant: "destructive"
         });
       }
@@ -197,31 +219,32 @@ const ArticleSubmitDialog = ({
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Submission failed</p>
-                <p className="text-sm">There was an error submitting your article. Check that your article has a unique title and try again.</p>
+                <p className="text-sm mt-1">{errorMessage || "There was an error submitting your article. Please try again."}</p>
               </div>
             </div>
           )}
         </AlertDialogHeader>
+        
         <AlertDialogFooter>
           <AlertDialogCancel 
-            onClick={handleCancel} 
+            onClick={handleCancel}
             disabled={isSubmitting && !hasError}
           >
-            {hasError ? "Close" : "Cancel"}
+            Cancel
           </AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={handleConfirm} 
-            disabled={isSubmitting || isRedirecting || hasError}
-            className="min-w-[100px]"
+          
+          <AlertDialogAction
+            onClick={handleConfirm}
+            className="bg-primary hover:bg-primary/90"
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Submitting...
               </>
-            ) : isRedirecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecting...
-              </>
+            ) : hasError ? (
+              "Try Again"
             ) : (
               "Submit"
             )}

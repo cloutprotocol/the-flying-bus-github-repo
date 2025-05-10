@@ -295,91 +295,100 @@ export const useOptimizedArticleForm = (
         description: "Your article is being submitted for review...",
       });
       
-      // First save as draft to ensure all content is saved
-      const formData = {
-        ...data,
-        content,
-        status: 'draft' // Always save as draft first
-      };
+      let articleIdToSubmit = draftId || articleId;
       
-      addDebugStep('Saving draft before submission', { 
-        articleId, 
-        draftId, 
-        formData: {
-          title: formData.title,
-          categoryId: formData.categoryId,
-          articleType: formData.articleType,
-          contentLength: content?.length || 0
-        }
-      });
-      
-      // Use the unified service to save the draft
-      setIsSaving(true);
-      setSaveStatus('saving');
-      
-      console.log("Saving draft before submission:", {
-        contentType: typeof content,
-        contentLength: content?.length || 0,
-        title: formData.title,
-        draftId
-      });
-      
-      // Dismiss the submitting toast to prevent toast flooding
-      submittingToast.dismiss();
-      
-      const saveResult = await articleSubmissionService.saveDraft(
-        draftId || articleId || '',
-        formData
-      );
-      
-      setIsSaving(false);
-      
-      if (!saveResult.success) {
-        console.error("Failed to save draft:", saveResult.error);
-        updateLastStep('error', { error: 'Failed to save draft' });
-        logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
-          saveResult,
-          error: saveResult.error
+      // Only save draft if we don't already have an article ID (brand new article)
+      // or if we have unsaved changes
+      if (!articleIdToSubmit || form.formState.isDirty) {
+        // First save as draft to ensure all content is saved
+        const formData = {
+          ...data,
+          content,
+          status: 'draft' // Always save as draft first
+        };
+        
+        addDebugStep('Saving draft before submission', { 
+          articleId, 
+          draftId, 
+          formData: {
+            title: formData.title,
+            categoryId: formData.categoryId,
+            articleType: formData.articleType,
+            contentLength: content?.length || 0
+          }
         });
         
-        toast({
-          title: "Error",
-          description: "There was a problem saving your article.",
-          variant: "destructive"
+        // Use the unified service to save the draft
+        setIsSaving(true);
+        setSaveStatus('saving');
+        
+        console.log("Saving draft before submission:", {
+          contentType: typeof content,
+          contentLength: content?.length || 0,
+          title: formData.title,
+          draftId
         });
-        setIsSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
-      
-      updateLastStep('success', { articleId: saveResult.articleId });
-      setSaveStatus('saved');
-      
-      if (!saveResult.articleId) {
-        console.error("No article ID returned from draft save");
-        addDebugStep('Error: No article ID returned', null, 'error');
-        logger.error(LogSource.EDITOR, 'No article ID returned from draft save');
-        toast({
-          title: "Error",
-          description: "Could not determine article ID.",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        submittingRef.current = false;
-        return;
+        
+        // Dismiss the submitting toast to prevent toast flooding
+        submittingToast.dismiss();
+        
+        const saveResult = await articleSubmissionService.saveDraft(
+          articleIdToSubmit || '',
+          formData
+        );
+        
+        setIsSaving(false);
+        
+        if (!saveResult.success) {
+          console.error("Failed to save draft:", saveResult.error);
+          updateLastStep('error', { error: 'Failed to save draft' });
+          logger.error(LogSource.EDITOR, 'Failed to save draft during submission', {
+            saveResult,
+            error: saveResult.error
+          });
+          
+          toast({
+            title: "Error",
+            description: "There was a problem saving your article.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          submittingRef.current = false;
+          return;
+        }
+        
+        updateLastStep('success', { articleId: saveResult.articleId });
+        setSaveStatus('saved');
+        
+        // Update articleIdToSubmit with the saved article ID
+        articleIdToSubmit = saveResult.articleId;
+        
+        if (!articleIdToSubmit) {
+          console.error("No article ID returned from draft save");
+          addDebugStep('Error: No article ID returned', null, 'error');
+          logger.error(LogSource.EDITOR, 'No article ID returned from draft save');
+          toast({
+            title: "Error",
+            description: "Could not determine article ID.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          submittingRef.current = false;
+          return;
+        }
       }
 
-      // Now submit for review using the unified service
+      // Now submit for review using the unified service without saving again
       addDebugStep('Submitting article for review', { 
-        articleId: saveResult.articleId
+        articleId: articleIdToSubmit
       });
       
-      console.log("Calling submitForReview with articleId:", saveResult.articleId);
+      console.log("Calling submitForReview with articleId:", articleIdToSubmit);
       logger.info(LogSource.EDITOR, 'Calling submitForReview', {
-        articleId: saveResult.articleId
+        articleId: articleIdToSubmit
       });
       
-      const submissionResult = await articleSubmissionService.submitForReview(saveResult.articleId);
+      const submissionResult = await articleSubmissionService.submitForReview(articleIdToSubmit);
       
       if (!submissionResult.success) {
         console.error("Submission failed:", submissionResult.error);
@@ -400,8 +409,8 @@ export const useOptimizedArticleForm = (
       console.log("Article submitted successfully!");
       
       // Update draft ID if this was first submission
-      if (!draftId && !articleId && saveResult.articleId) {
-        setDraftId(saveResult.articleId);
+      if (!draftId && !articleId && articleIdToSubmit) {
+        setDraftId(articleIdToSubmit);
       }
       
       toast({
@@ -411,7 +420,7 @@ export const useOptimizedArticleForm = (
       
       updateLastStep('success', { status: 'Submitted for review' });
       addDebugStep('Article submission completed', { 
-        articleId: saveResult.articleId
+        articleId: articleIdToSubmit
       }, 'success');
       
       // Navigate to articles list after successful submission
@@ -420,7 +429,7 @@ export const useOptimizedArticleForm = (
         navigate('/admin/articles');
       }, 1500);
       
-      return saveResult.articleId;
+      return articleIdToSubmit;
     } catch (error) {
       console.error("Exception in article submission:", error);
       addDebugStep('Exception in article submission', { error }, 'error');
