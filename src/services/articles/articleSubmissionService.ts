@@ -16,7 +16,8 @@ export const articleSubmissionService = {
   /**
    * Generate a unique slug for an article
    */
-  generateUniqueSlug: async (title: string, articleId?: string): Promise<string> => {
+  generateUniqueSlug: async (title: string | undefined, articleId?: string): Promise<string> => {
+    // If title is undefined or empty, use a timestamp-based fallback
     if (!title || title.trim() === '') {
       return `draft-${Date.now()}`;
     }
@@ -173,7 +174,8 @@ export const articleSubmissionService = {
       if (!article.slug) {
         try {
           console.log("Article missing slug, generating one from title");
-          const uniqueSlug = await this.generateUniqueSlug(article.title || 'untitled', articleId);
+          // Safe handling of potentially undefined title
+          const uniqueSlug = await this.generateUniqueSlug(article.title, articleId);
           updates.slug = uniqueSlug;
           updateNeeded = true;
           
@@ -314,7 +316,8 @@ export const articleSubmissionService = {
       // Generate a slug if needed
       if (!sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
         try {
-          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title || 'untitled', articleId || undefined);
+          // Safe handling of potentially undefined title
+          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title, articleId || undefined);
         } catch (slugError) {
           logger.warn(LogSource.EDITOR, 'Error generating slug', {
             articleId,
@@ -372,4 +375,3 @@ export const articleSubmissionService = {
     }
   }
 };
-
