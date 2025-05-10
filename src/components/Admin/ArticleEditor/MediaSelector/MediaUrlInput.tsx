@@ -23,12 +23,15 @@ const MediaUrlInput: React.FC<MediaUrlInputProps> = ({
       name={isVideo ? 'videoUrl' : 'imageUrl'}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Media URL</FormLabel>
+          <FormLabel>
+            Media URL <span className="text-destructive">*</span>
+          </FormLabel>
           <FormControl>
             <Input 
               placeholder="Enter media URL" 
               value={previewMedia}
               onChange={onChange}
+              required
             />
           </FormControl>
           <FormMessage />

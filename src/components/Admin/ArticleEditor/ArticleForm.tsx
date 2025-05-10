@@ -99,6 +99,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       errors.push("Article content is required");
       isValid = false;
     }
+    
+    // Validate image URL (new validation check)
+    const imageUrl = form.getValues('imageUrl');
+    if (!imageUrl || imageUrl.trim() === '') {
+      errors.push("A featured image is required");
+      form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
+      isValid = false;
+    }
 
     return { isValid, errors };
   };

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Save, Send, History, Loader2, AlertCircle } from 'lucide-react';
@@ -157,6 +158,18 @@ const FormActions: React.FC<FormActionsProps> = ({
           variant: "destructive"
         });
         form.setError('categoryId', { type: 'required', message: 'Category is required' });
+        return false;
+      }
+      
+      // Check image URL (new validation check)
+      const imageUrl = form.getValues('imageUrl');
+      if (!imageUrl || imageUrl.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "A featured image is required",
+          variant: "destructive"
+        });
+        form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
         return false;
       }
     }
