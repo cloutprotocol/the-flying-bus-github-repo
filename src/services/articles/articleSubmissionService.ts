@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -113,6 +114,16 @@ export const articleSubmissionService = {
         };
       }
 
+      // Ensure article exists and has the necessary fields
+      if (!article) {
+        logger.error(LogSource.ARTICLE, `Article ${articleId} not found`);
+        endMeasure();
+        return {
+          success: false,
+          error: new ApiError('Article not found', ApiErrorType.NOTFOUND)
+        };
+      }
+
       console.log("Article fetched for validation:", { 
         title: article.title,
         hasContent: !!article.content,
@@ -162,7 +173,7 @@ export const articleSubmissionService = {
       if (!article.slug) {
         try {
           console.log("Article missing slug, generating one from title");
-          const uniqueSlug = await this.generateUniqueSlug(article.title, articleId);
+          const uniqueSlug = await this.generateUniqueSlug(article.title || 'untitled', articleId);
           updates.slug = uniqueSlug;
           updateNeeded = true;
           
@@ -303,7 +314,7 @@ export const articleSubmissionService = {
       // Generate a slug if needed
       if (!sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
         try {
-          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title, articleId);
+          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title || 'untitled', articleId || undefined);
         } catch (slugError) {
           logger.warn(LogSource.EDITOR, 'Error generating slug', {
             articleId,
@@ -361,3 +372,4 @@ export const articleSubmissionService = {
     }
   }
 };
+
