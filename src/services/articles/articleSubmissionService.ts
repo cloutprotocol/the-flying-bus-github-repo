@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -174,7 +173,7 @@ export const articleSubmissionService = {
       if (!article.slug) {
         try {
           console.log("Article missing slug, generating one from title");
-          // Pass title as is - generateUniqueSlug handles undefined titles
+          // Use the updated function that properly handles undefined titles
           const uniqueSlug = await this.generateUniqueSlug(article.title, articleId);
           updates.slug = uniqueSlug;
           updateNeeded = true;
@@ -316,7 +315,7 @@ export const articleSubmissionService = {
       // Generate a slug if needed
       if (!sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
         try {
-          // Pass title as is - generateUniqueSlug handles undefined titles
+          // Use the updated function that properly handles undefined titles
           sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title, articleId);
         } catch (slugError) {
           logger.warn(LogSource.EDITOR, 'Error generating slug', {
