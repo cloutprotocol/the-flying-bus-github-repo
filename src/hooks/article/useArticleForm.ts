@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './useDraftManagement';
@@ -19,28 +18,22 @@ export const useArticleForm = (
 ) => {
   const { toast } = useToast();
   const [isAutoSaving, setIsAutoSaving] = useState(false);
-  // Add a new state for isSaving that will be exposed in the return value
   const [isSaving, setIsSaving] = useState(false);
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
   const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
   const { addDebugStep, updateLastStep } = useArticleDebug();
   
-  // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
-  
-  // Prevent duplicate submissions
   const submittingRef = useRef(false);
   
   useEffect(() => {
-    // Set up the mounted ref
     return () => {
       isMountedRef.current = false;
     };
   }, []);
 
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
-    // Prevent duplicate submissions
     if (submittingRef.current) {
       console.log("Submission already in progress, ignoring duplicate call");
       return;
@@ -59,7 +52,6 @@ export const useArticleForm = (
         }
       });
       
-      // Validate required fields
       if (!data.title) {
         toast({
           title: "Validation Error",
@@ -118,7 +110,6 @@ export const useArticleForm = (
         contentPreview: content.substring(0, 100) + '...'
       });
       
-      // Set isSaving to true before saving draft
       setIsSaving(true);
       const saveResult = await saveDraftToServer(formData, true);
       setIsSaving(false);
@@ -162,7 +153,6 @@ export const useArticleForm = (
       }
 
       if (isDraft) {
-        // For drafts, just confirm success
         toast({
           title: "Draft Saved",
           description: "Your draft has been saved successfully",
@@ -176,7 +166,6 @@ export const useArticleForm = (
         return;
       }
 
-      // For submissions, continue with the submission process
       addDebugStep('Changing article status', { 
         articleId: saveResult.articleId,
         targetStatus: isDraft ? 'draft' : 'pending'
@@ -228,7 +217,6 @@ export const useArticleForm = (
         if (isAutoSaving) return;
         
         setIsAutoSaving(true);
-        // Also set isSaving to true for auto-save operations
         setIsSaving(true);
         
         const formData = form.getValues();
@@ -249,7 +237,6 @@ export const useArticleForm = (
   }, [form, content, saveDraftToServer, form.formState.isDirty, isSubmitting, isAutoSaving]);
 
   const handleSaveDraft = async () => {
-    // Set isSaving to true when manually saving draft
     setIsSaving(true);
     
     const formData = {
@@ -260,7 +247,6 @@ export const useArticleForm = (
     try {
       await handleSubmit(formData, true);
     } finally {
-      // Make sure isSaving is set back to false after saving is complete
       if (isMountedRef.current) {
         setIsSaving(false);
       }
@@ -274,7 +260,6 @@ export const useArticleForm = (
     saveStatus,
     lastSaved,
     isSubmitting,
-    // Add isSaving to the return object
     isSaving,
     handleSubmit,
     handleSaveDraft
