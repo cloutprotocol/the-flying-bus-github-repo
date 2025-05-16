@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useZodForm } from '@/hooks/useZodForm';
@@ -7,7 +6,7 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
 import useArticleRevisions from '@/hooks/useArticleRevisions';
-import { useOptimizedArticleForm } from '@/hooks/article/useOptimizedArticleForm';
+import { useArticleForm } from '@/hooks/useArticleForm';
 import FormActions from './FormActions';
 import ArticleFormLayout from './Layout/ArticleFormLayout';
 import ArticleFormContent from './Layout/ArticleFormContent';
@@ -59,7 +58,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     handleSubmit,
     handleSaveDraft,
     draftId
-  } = useOptimizedArticleForm(form, articleId, articleType, isNewArticle);
+  } = useArticleForm(form, articleId, articleType, isNewArticle);
 
   // Log initial values for debugging
   useEffect(() => {

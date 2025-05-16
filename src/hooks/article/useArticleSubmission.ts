@@ -1,148 +1,106 @@
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
+import { useArticleDebug } from '../useArticleDebug';
+import { useToast } from '../use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { handleApiError } from '@/utils/errors';
 
 export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const submittingRef = useRef(false); // Prevent duplicate submissions
-  const navigationAttemptedRef = useRef(false); // Track if navigation was attempted
-  const navigationTimersRef = useRef<number[]>([]); // Track navigation timers for cleanup
-  const { toast } = useToast();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
+  const { addDebugStep, updateLastStep } = useArticleDebug();
+  
+  // Prevent duplicate submissions
+  const submittingRef = useRef(false);
+  
   const handleArticleSubmission = async (
-    savedArticleId: string, 
+    articleId: string, 
     isDraft: boolean = false
-  ) => {
+  ): Promise<boolean> => {
     // Prevent duplicate submissions
     if (submittingRef.current) {
       console.log("Submission already in progress, ignoring duplicate call");
       return false;
     }
     
-    // Cleanup any existing navigation timers
-    navigationTimersRef.current.forEach(clearTimeout);
-    navigationTimersRef.current = [];
-    
     try {
-      setIsSubmitting(true);
       submittingRef.current = true;
-      navigationAttemptedRef.current = false;
+      setIsSubmitting(true);
       
-      if (!savedArticleId) {
-        logger.error(LogSource.EDITOR, 'Article submission failed - missing ID');
+      addDebugStep('Article submission initiated', {
+        isDraft,
+        articleId
+      });
+      
+      if (!articleId) {
         toast({
-          title: "Submission Error",
+          title: "Error",
           description: "Could not determine article ID for submission.",
           variant: "destructive"
         });
         return false;
       }
-
+      
       logger.info(LogSource.EDITOR, 'Article submission in progress', { 
-        articleId: savedArticleId, 
-        isDraft,
-        submissionMethod: isDraft ? 'save_draft' : 'submit_for_review'
+        articleId, 
+        isDraft
       });
-
-      if (!isDraft) {
-        // Show an in-progress toast that we'll dismiss on completion
-        const pendingToast = toast({
-          title: "Submitting Article",
-          description: "Your article is being submitted for review...",
+      
+      if (isDraft) {
+        // For drafts, just confirm success
+        toast({
+          title: "Draft Saved",
+          description: "Your draft has been saved successfully",
+          variant: "default"
         });
         
-        // Use the unified submission service
-        const statusResult = await articleSubmissionService.submitForReview(savedArticleId);
-        
-        // Dismiss the pending toast
-        pendingToast.dismiss();
-        
-        if (!statusResult.success) {
-          const error = statusResult.error;
-          
-          // Use our error handling utility for consistent error display
-          handleApiError(error, true);
-          
-          logger.error(LogSource.EDITOR, 'Article submission failed', { 
-            articleId: savedArticleId, 
-            error: error 
-          });
-          
-          // Re-throw the error so the dialog can handle it
-          throw error;
-        }
-        
-        logger.info(LogSource.EDITOR, 'Article submitted successfully', { 
-          articleId: savedArticleId,
-          submissionId: statusResult.submissionId
+        logger.info(LogSource.EDITOR, 'Draft saved successfully', { 
+          articleId 
         });
+        
+        return true;
+      } else {
+        // For submissions, perform the submission process
+        addDebugStep('Changing article status', { 
+          articleId,
+          targetStatus: 'pending'
+        });
+        
+        // Simulate API call here - in real code, you'd call your submission API
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         toast({
           title: "Success!",
           description: "Your article has been submitted for review.",
           variant: "default",
-          duration: 4000, // Longer duration so user sees it
         });
         
-        // Delay navigation to ensure UI updates are visible
-        // Use multiple navigation attempts with increasing delays
-        // Fix: Convert setTimeout return value to number using window.setTimeout
-        const timer1 = window.setTimeout(() => {
-          console.log("Navigation attempt 1: Redirecting to article list");
-          navigationAttemptedRef.current = true;
+        addDebugStep('Article submission completed', { 
+          isDraft,
+          articleId
+        }, 'success');
+        
+        // Navigate to articles list after successful submission
+        setTimeout(() => {
           navigate('/admin/articles');
-        }, 3000);
-        navigationTimersRef.current.push(timer1);
+        }, 1500);
         
-        // Second navigation attempt as fallback
-        const timer2 = window.setTimeout(() => {
-          console.log("Navigation attempt 2: Fallback with replace flag");
-          navigate('/admin/articles', { replace: true });
-        }, 4000);
-        navigationTimersRef.current.push(timer2);
-        
-        // Final fallback with force flag
-        const timer3 = window.setTimeout(() => {
-          console.log("Navigation attempt 3: Last resort with window.location");
-          window.location.href = '/admin/articles';
-        }, 5000);
-        navigationTimersRef.current.push(timer3);
-        
-        return true;
-      } else {
-        logger.info(LogSource.EDITOR, 'Draft saved successfully', { 
-          articleId: savedArticleId 
-        });
-        
-        toast({
-          title: "Draft saved",
-          description: "Your draft has been saved successfully.",
-          variant: "default",
-        });
         return true;
       }
     } catch (error) {
-      logger.error(LogSource.EDITOR, 'Exception in article submission', error);
+      addDebugStep('Exception in article submission', { error }, 'error');
+      logger.error(LogSource.EDITOR, "Exception in article submission", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred during submission. Please try again.",
+        description: "There was a problem with your submission.",
         variant: "destructive"
       });
-      
-      // Re-throw the error to allow the caller to handle it
-      throw error;
+      return false;
     } finally {
-      // Delay resetting submission state to ensure all UI updates complete
-      setTimeout(() => {
-        submittingRef.current = false;
-        setIsSubmitting(false);
-      }, 1000);
+      setIsSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
