@@ -90,14 +90,16 @@ export const useOptimizedArticleForm = (
     setDraftId
   });
 
-  // Handle manual draft save
-  const saveManualDraft = async () => {
+  // Handle manual draft save - convert return type from Promise<boolean> to Promise<void>
+  const saveManualDraft = async (): Promise<void> => {
     const formData = {
       ...form.getValues(),
       content
     };
     
-    return handleSaveDraft(formData);
+    // Call the original function but ignore the return value to match the expected Promise<void> type
+    await handleSaveDraft(formData);
+    return;
   };
 
   // Handle article submission
