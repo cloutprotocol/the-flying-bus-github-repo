@@ -173,7 +173,8 @@ export const articleSubmissionService = {
       if (!article.slug) {
         try {
           console.log("Article missing slug, generating one from title");
-          const uniqueSlug = await this.generateUniqueSlug(article.title, articleId);
+          // Use non-null assertion here as generateUniqueSlug already handles undefined
+          const uniqueSlug = await this.generateUniqueSlug(article.title!, articleId);
           updates.slug = uniqueSlug;
           updateNeeded = true;
           
@@ -314,7 +315,8 @@ export const articleSubmissionService = {
       // Generate a slug if needed
       if (!sanitizedData.slug && sanitizedData.title !== 'Untitled Draft') {
         try {
-          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title, articleId);
+          // Use non-null assertion here as generateUniqueSlug already handles undefined
+          sanitizedData.slug = await this.generateUniqueSlug(sanitizedData.title!, articleId);
         } catch (slugError) {
           logger.warn(LogSource.EDITOR, 'Error generating slug', {
             articleId,
