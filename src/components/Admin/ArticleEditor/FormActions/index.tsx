@@ -85,7 +85,7 @@ const FormActions: React.FC<FormActionsProps> = ({
     }
   }, [saveStatus, toast, endTiming, toastShown]);
   
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!isDirty && saveStatus !== 'error') {
       logger.info(LogSource.EDITOR, 'No changes to save', {
         isDirty,
@@ -96,12 +96,12 @@ const FormActions: React.FC<FormActionsProps> = ({
         description: "Make some changes before saving a draft",
         variant: "default"
       });
-      return;
+      return Promise.resolve(); // Return a resolved promise
     }
     
     startTiming('draft-save');
     console.log("Save Draft button clicked, calling onSaveDraft");
-    onSaveDraft();
+    return onSaveDraft(); // Return the Promise from onSaveDraft
   };
   
   const handleSubmitClick = (e: React.MouseEvent) => {
