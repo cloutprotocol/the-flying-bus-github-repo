@@ -1,4 +1,3 @@
-
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { SupabaseClient } from '@supabase/supabase-js';
 
@@ -59,7 +58,6 @@ export function buildArticleQuery(
       content,
       cover_image,
       category_id,
-      reading_level,
       published_at,
       created_at,
       author_id,
@@ -74,10 +72,11 @@ export function buildArticleQuery(
     query = query.eq('category_id', filters.categoryId);
   }
 
-  // Apply reading level filter
-  if (filters.readingLevel) {
-    query = query.eq('reading_level', filters.readingLevel);
-  }
+  // Reading level filter is commented out since the column doesn't exist
+  // We'll keep the interface intact but not apply the filter
+  // if (filters.readingLevel) {
+  //   query = query.eq('reading_level', filters.readingLevel);
+  // }
 
   // Apply search filter
   if (filters.searchQuery) {

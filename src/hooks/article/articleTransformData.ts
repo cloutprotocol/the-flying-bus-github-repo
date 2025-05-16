@@ -30,7 +30,7 @@ export function transformArticleData(articles: any[]): ArticleData[] {
         categorySlug: categorySlug,
         categoryColor: categoryColor,
         categoryId: categoryId,
-        readingLevel: article.reading_level || 'All Ages',
+        readingLevel: 'All Ages', // Default reading level since the column doesn't exist in DB
         readTime: readTime || 3,
         author: article.author_name || 'Unknown Author',
         date: formatDate(article.published_at || article.created_at),

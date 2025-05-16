@@ -29,7 +29,7 @@ export const transformArticleData = (data: any[]): ArticleData[] => {
       categorySlug, // Include the categorySlug in the returned object
       categoryColor,
       categoryId: article.category_id,
-      readingLevel: 'Intermediate', // Placeholder until we have reading levels
+      readingLevel: 'Intermediate', // Default reading level since column doesn't exist
       readTime: readTime || 3,
       author: authorName,
       date: new Date(article.published_at || article.created_at).toLocaleDateString(),
