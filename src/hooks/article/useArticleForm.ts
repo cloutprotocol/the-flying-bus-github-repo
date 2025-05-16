@@ -19,6 +19,8 @@ export const useArticleForm = (
 ) => {
   const { toast } = useToast();
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  // Add a new state for isSaving that will be exposed in the return value
+  const [isSaving, setIsSaving] = useState(false);
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
   const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
@@ -116,7 +118,10 @@ export const useArticleForm = (
         contentPreview: content.substring(0, 100) + '...'
       });
       
+      // Set isSaving to true before saving draft
+      setIsSaving(true);
       const saveResult = await saveDraftToServer(formData, true);
+      setIsSaving(false);
       
       if (!saveResult.success) {
         updateLastStep('error', { error: 'Failed to save draft' });
@@ -223,6 +228,9 @@ export const useArticleForm = (
         if (isAutoSaving) return;
         
         setIsAutoSaving(true);
+        // Also set isSaving to true for auto-save operations
+        setIsSaving(true);
+        
         const formData = form.getValues();
         
         saveDraftToServer({
@@ -231,6 +239,7 @@ export const useArticleForm = (
         }, true).finally(() => {
           if (isMountedRef.current) {
             setIsAutoSaving(false);
+            setIsSaving(false);
           }
         });
       }, AUTO_SAVE_INTERVAL);
@@ -240,12 +249,22 @@ export const useArticleForm = (
   }, [form, content, saveDraftToServer, form.formState.isDirty, isSubmitting, isAutoSaving]);
 
   const handleSaveDraft = async () => {
+    // Set isSaving to true when manually saving draft
+    setIsSaving(true);
+    
     const formData = {
       ...form.getValues(),
       content
     };
     
-    await handleSubmit(formData, true);
+    try {
+      await handleSubmit(formData, true);
+    } finally {
+      // Make sure isSaving is set back to false after saving is complete
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
   };
 
   return {
@@ -255,6 +274,8 @@ export const useArticleForm = (
     saveStatus,
     lastSaved,
     isSubmitting,
+    // Add isSaving to the return object
+    isSaving,
     handleSubmit,
     handleSaveDraft
   };
