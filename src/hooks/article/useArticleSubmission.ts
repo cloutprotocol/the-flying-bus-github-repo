@@ -5,6 +5,7 @@ import { useArticleDebug } from '../useArticleDebug';
 import { useToast } from '../use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
 
 export function useArticleSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +22,7 @@ export function useArticleSubmission() {
   ): Promise<boolean> => {
     // Prevent duplicate submissions
     if (submittingRef.current) {
-      console.log("Submission already in progress, ignoring duplicate call");
+      logger.info(LogSource.EDITOR, "Submission already in progress, ignoring duplicate call");
       return false;
     }
     
@@ -62,14 +63,32 @@ export function useArticleSubmission() {
         
         return true;
       } else {
-        // For submissions, perform the submission process
+        // For submissions, perform the actual submission process
         addDebugStep('Changing article status', { 
           articleId,
           targetStatus: 'pending'
         });
         
-        // Simulate API call here - in real code, you'd call your submission API
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Call the actual submission service
+        const { success, error } = await articleSubmissionService.submitForReview(articleId);
+        
+        if (!success) {
+          const errorMessage = error?.message || "There was a problem submitting your article.";
+          
+          toast({
+            title: "Submission Failed",
+            description: errorMessage,
+            variant: "destructive"
+          });
+          
+          logger.error(LogSource.EDITOR, 'Article submission failed', {
+            articleId,
+            error
+          });
+          
+          updateLastStep('error', { error: errorMessage });
+          return false;
+        }
         
         toast({
           title: "Success!",
@@ -81,6 +100,10 @@ export function useArticleSubmission() {
           isDraft,
           articleId
         }, 'success');
+        
+        logger.info(LogSource.EDITOR, 'Article submitted successfully', {
+          articleId
+        });
         
         // Navigate to articles list after successful submission
         setTimeout(() => {

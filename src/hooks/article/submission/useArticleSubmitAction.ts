@@ -164,7 +164,7 @@ export function useArticleSubmitAction({
         }
       }
 
-      // Now submit for review using the unified service without saving again
+      // Now submit for review using the unified service
       addDebugStep('Submitting article for review', { 
         articleId: articleIdToSubmit
       });

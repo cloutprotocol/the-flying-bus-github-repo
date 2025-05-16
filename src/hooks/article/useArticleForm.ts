@@ -172,6 +172,7 @@ export const useArticleForm = (
       });
       
       try {
+        // Call the actual article submission service
         const submissionResult = await handleArticleSubmission(saveResult.articleId, isDraft);
         
         if (submissionResult) {
@@ -180,12 +181,6 @@ export const useArticleForm = (
             isDraft,
             articleId: saveResult.articleId
           }, 'success');
-          
-          toast({
-            title: "Success!",
-            description: "Your article has been submitted for review.",
-            variant: "default",
-          });
         }
       } catch (error) {
         updateLastStep('error', { error: 'Submission failed' });
