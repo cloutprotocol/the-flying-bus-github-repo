@@ -8,6 +8,12 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
 const CategoryPageContent = memo(({ categoryId }: { categoryId: string | undefined }) => {
+  useEffect(() => {
+    logger.info(LogSource.APP, 'CategoryPageContent mounted with categoryId', {
+      categoryId: categoryId || 'none'
+    });
+  }, [categoryId]);
+
   return (
     <div className="w-full">
       <CategoryPageContainer 

@@ -1,9 +1,11 @@
 
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InboxIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface ArticlesGridProps {
   articles: ArticleProps[];
@@ -42,11 +44,33 @@ const ArticlesGrid: React.FC<ArticlesGridProps> = ({
   isLoading = false,
   stableLoading = false
 }) => {
+  useEffect(() => {
+    logger.info(LogSource.APP, 'ArticlesGrid rendering', {
+      articlesCount: articles?.length || 0,
+      hasArticles: articles && articles.length > 0,
+      isLoading,
+      stableLoading,
+      hasActiveFilters
+    });
+    
+    if (articles && articles.length > 0) {
+      logger.info(LogSource.APP, 'First article details', {
+        id: articles[0]?.id,
+        title: articles[0]?.title,
+        category: articles[0]?.category
+      });
+    }
+  }, [articles, isLoading, stableLoading, hasActiveFilters]);
+
   if (stableLoading) {
     return <LoadingGrid />;
   }
 
-  if (!stableLoading && articles.length === 0) {
+  if (!stableLoading && (!articles || articles.length === 0)) {
+    logger.warn(LogSource.APP, 'No articles to display', {
+      hasActiveFilters,
+      isLoading
+    });
     return <EmptyState hasActiveFilters={hasActiveFilters} />;
   }
 

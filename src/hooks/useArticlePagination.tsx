@@ -60,7 +60,8 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
     
     logger.info(LogSource.ARTICLE, `Starting fetch for category: ${filters.categoryId}`, {
       requestId,
-      prevArticlesCount: articles.length
+      prevArticlesCount: articles.length,
+      filters: JSON.stringify(filters)
     });
     
     setStableLoading(true);
@@ -71,7 +72,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
 
     const fetchArticles = async () => {
       try {
-        logger.info(LogSource.ARTICLE, 'Fetching articles with filters', { 
+        logger.info(LogSource.ARTICLE, 'Building article query with filters', { 
           categoryId: filters.categoryId,
           page: filters.page,
           sortBy: filters.sortBy,
@@ -79,6 +80,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         });
         
         const query = buildArticleQuery(supabase, filters);
+        logger.info(LogSource.ARTICLE, 'Query built, fetching data...');
         const { data, error: fetchError, count } = await query;
 
         // Don't update state if component unmounted
@@ -88,8 +90,21 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         }
 
         if (fetchError) {
+          logger.error(LogSource.ARTICLE, 'Error fetching articles', { 
+            error: fetchError.message,
+            details: fetchError.details,
+            hint: fetchError.hint,
+            code: fetchError.code
+          });
           throw new Error(`Error fetching articles: ${fetchError.message}`);
         }
+
+        // Check if data was returned
+        logger.info(LogSource.ARTICLE, `Query returned ${data?.length || 0} articles, count: ${count}`, {
+          dataReturned: !!data,
+          articleCount: data?.length || 0,
+          totalCount: count
+        });
 
         // If this request was superseded by a newer one, don't update state
         if (activeRequestIdRef.current !== requestId) {
@@ -109,7 +124,20 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         // Final check that component is still mounted
         if (!isStale && isMountedRef.current) {
           if (count !== null) setTotalCount(count);
-          setArticles(transformArticleData(data || []));
+          
+          // Transform the data before setting state
+          logger.info(LogSource.ARTICLE, 'Transforming article data', {
+            rawDataLength: data?.length || 0
+          });
+          
+          const transformedArticles = transformArticleData(data || []);
+          
+          logger.info(LogSource.ARTICLE, 'Setting articles state', {
+            transformedCount: transformedArticles.length,
+            firstTitle: transformedArticles[0]?.title
+          });
+          
+          setArticles(transformedArticles);
           
           logger.info(LogSource.ARTICLE, 'Articles fetched successfully', { 
             count: data?.length || 0, 
@@ -154,6 +182,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
 
   // Update filters
   const updateFiltersHandler = (newFilters: Partial<ArticleFilterParams>) => {
+    logger.info(LogSource.ARTICLE, 'Updating filters', { newFilters, currentFilters: filters });
     setFilters(prevFilters => updateFilters(prevFilters, newFilters));
   };
 
@@ -176,6 +205,7 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
 
   // Clear all filters
   const clearFilters = () => {
+    logger.info(LogSource.ARTICLE, 'Clearing all filters', { currentFilters: filters });
     setFilters({
       ...filters,
       readingLevel: null,

@@ -42,7 +42,8 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     propCategory,
     categoryId,
     routeCategory: routeCategory?.slug,
-    pathCategory
+    pathCategory,
+    currentPath: location.pathname
   });
 
   const {
@@ -52,6 +53,14 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     isLoadingCategory,
     error: categoryError
   } = useCategoryData(categorySlug);
+
+  logger.info(LogSource.APP, 'Category data loaded', {
+    categoryDataExists: !!categoryData,
+    categoryId: categoryData?.id,
+    displayCategory,
+    hasError: !!categoryError,
+    isLoading: isLoadingCategory
+  });
 
   const {
     articles: paginatedArticles,
@@ -78,18 +87,29 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
 
   useEffect(() => {
     // Only set category if we have valid category data and it's different from before
-    if (categoryData?.id && !categorySetOnceRef.current) {
+    if (categoryData?.id && (!categorySetOnceRef.current || prevCategoryRef.current !== categoryData.id)) {
       categorySetOnceRef.current = true;
       prevCategoryRef.current = categoryData.id;
       
-      logger.info(LogSource.APP, `Setting initial category: ${displayCategory}`, {
+      logger.info(LogSource.APP, `Setting category: ${displayCategory}`, {
         categoryId: categoryData.id,
-        displayName: displayCategory
+        displayName: displayCategory,
+        isFirstSet: !prevCategoryRef.current
       });
       
       setCategory(categoryData.id);
     }
   }, [categoryData?.id, displayCategory, setCategory]);
+
+  useEffect(() => {
+    // Log when articles are received
+    logger.info(LogSource.APP, `Articles updated for category: ${displayCategory}`, {
+      articleCount: paginatedArticles?.length || 0,
+      isLoading: isLoadingArticles,
+      hasError: !!articlesError,
+      categoryId: categoryData?.id
+    });
+  }, [paginatedArticles, displayCategory, isLoadingArticles, articlesError, categoryData?.id]);
 
   if (categoryError) {
     return (
