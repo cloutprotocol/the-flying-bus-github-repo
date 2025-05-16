@@ -1,14 +1,17 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Save, SendHorizonal, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DraftSaveStatus } from '@/types/ArticleEditorTypes';
-import ArticleSubmitDialog from './ArticleSubmitDialog';
 import { usePerformanceMonitoring, usePerformanceMeasurement } from '@/hooks/usePerformanceMonitoring';
 import { logger } from '@/utils/logger';
 import { LogSource } from '@/utils/logger/types';
 import { UseFormReturn } from 'react-hook-form';
+import ArticleSubmitDialog from '../ArticleSubmitDialog';
+import DraftSaveButton from './DraftSaveButton';
+import SubmitButton from './SubmitButton';
+import RevisionButton from './RevisionButton';
+import useFormValidation from './useFormValidation';
+import useSubmitDialog from './useSubmitDialog';
 
 interface FormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -38,48 +41,25 @@ const FormActions: React.FC<FormActionsProps> = ({
   validateForm
 }) => {
   const { toast } = useToast();
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [startTiming, endTiming] = usePerformanceMeasurement();
   const [toastShown, setToastShown] = useState(false); // Track if we've shown a toast for the current status
-  const [isProcessingSubmit, setIsProcessingSubmit] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
-  // Use refs to track state and prevent race conditions
-  const isSubmittingRef = useRef(isSubmitting);
-  const isProcessingSubmitRef = useRef(false);
-  const showSubmitDialogRef = useRef(false);
+  const { performFormValidation } = useFormValidation(form, content, validateForm);
+  const { 
+    showSubmitDialog, 
+    isProcessingSubmit,
+    submissionError,
+    setSubmissionError,
+    handleDialogOpenChange,
+    isProcessingSubmitRef,
+    setIsProcessingSubmit,
+    openSubmitDialog
+  } = useSubmitDialog(isSubmitting);
   
   usePerformanceMonitoring('FormActions', {
     hasSubmit: !!onSubmit,
     hasRevisions
   });
-  
-  // Update refs when props change
-  useEffect(() => {
-    isSubmittingRef.current = isSubmitting;
-    
-    // Reset error state when submission completes
-    if (!isSubmitting && submissionError) {
-      setSubmissionError(null);
-    }
-  }, [isSubmitting, submissionError]);
-  
-  // Track dialog state in ref
-  useEffect(() => {
-    showSubmitDialogRef.current = showSubmitDialog;
-    if (showSubmitDialog) {
-      logger.info(LogSource.EDITOR, 'Submit dialog shown in FormActions');
-    }
-  }, [showSubmitDialog]);
-  
-  // Reset processing state when isSubmitting becomes false
-  useEffect(() => {
-    if (!isSubmitting && isProcessingSubmit) {
-      logger.info(LogSource.EDITOR, 'Submission completed, resetting processing state');
-      setIsProcessingSubmit(false);
-      isProcessingSubmitRef.current = false;
-    }
-  }, [isSubmitting, isProcessingSubmit]);
   
   useEffect(() => {
     // Only show toast notifications when the status changes, not on initial render
@@ -124,75 +104,6 @@ const FormActions: React.FC<FormActionsProps> = ({
     onSaveDraft();
   };
   
-  // New function to validate the form before showing the dialog
-  const performFormValidation = (): boolean => {
-    // If custom validation function is provided, use it
-    if (validateForm) {
-      const { isValid, errors } = validateForm();
-      if (!isValid && errors.length > 0) {
-        // Display the first error
-        toast({
-          title: "Validation Error",
-          description: errors[0],
-          variant: "destructive"
-        });
-        return false;
-      }
-      return isValid;
-    }
-    
-    // Otherwise, perform basic validation using form and content
-    if (form) {
-      // Check title
-      const title = form.getValues('title');
-      if (!title || title.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "Article title is required",
-          variant: "destructive"
-        });
-        form.setError('title', { type: 'required', message: 'Title is required' });
-        return false;
-      }
-      
-      // Check category
-      const categoryId = form.getValues('categoryId');
-      if (!categoryId) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a category",
-          variant: "destructive"
-        });
-        form.setError('categoryId', { type: 'required', message: 'Category is required' });
-        return false;
-      }
-      
-      // Check image URL (new validation check)
-      const imageUrl = form.getValues('imageUrl');
-      if (!imageUrl || imageUrl.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "A featured image is required",
-          variant: "destructive"
-        });
-        form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
-        return false;
-      }
-    }
-    
-    // Check content
-    if (!content || content.trim() === '') {
-      toast({
-        title: "Validation Error",
-        description: "Article content is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
-    return true;
-  };
-  
   const handleSubmitClick = (e: React.MouseEvent) => {
     // Prevent any default behavior or event bubbling
     e.preventDefault();
@@ -228,18 +139,7 @@ const FormActions: React.FC<FormActionsProps> = ({
     // If validation passed, open the submit dialog
     console.log("Form validation passed, setting showSubmitDialog to true");
     logger.info(LogSource.EDITOR, 'Form validation passed, opening submit dialog', { isDirty });
-    setShowSubmitDialog(true);
-  };
-  
-  const handleDialogOpenChange = (isOpen: boolean) => {
-    // Only allow changing if we're not actively submitting or processing
-    if (!isProcessingSubmitRef.current && !isSubmittingRef.current) {
-      console.log("Dialog open state changed to:", isOpen);
-      logger.info(LogSource.EDITOR, 'Dialog open state manually changed', { isOpen });
-      setShowSubmitDialog(isOpen);
-    } else {
-      console.log("Cannot change dialog state during submission");
-    }
+    openSubmitDialog();
   };
   
   const handleDialogConfirm = async () => {
@@ -278,52 +178,27 @@ const FormActions: React.FC<FormActionsProps> = ({
     <>
       <div className="flex justify-end gap-3">
         {hasRevisions && onViewRevisions && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onViewRevisions}
-            className="mr-auto"
+          <RevisionButton 
+            onViewRevisions={onViewRevisions}
             disabled={isSubmitting || isSaving || isProcessingSubmit}
-          >
-            <History className="mr-2 h-4 w-4" /> View Revisions
-          </Button>
+          />
         )}
         
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleSaveDraft}
-          disabled={isSubmitting || isSaving || (!isDirty && saveStatus !== 'error') || isProcessingSubmit}
-          className="min-w-[120px]"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" /> 
-              {saveStatus === 'saved' ? 'Saved' : 'Save Draft'}
-            </>
-          )}
-        </Button>
+        <DraftSaveButton 
+          onSaveDraft={handleSaveDraft}
+          isSaving={isSaving}
+          isDirty={isDirty}
+          isSubmitting={isSubmitting}
+          isProcessingSubmit={isProcessingSubmit}
+          saveStatus={saveStatus}
+        />
         
-        <Button 
-          type="button"
-          onClick={handleSubmitClick}
-          disabled={isSubmitting || isSaving || !onSubmit || isProcessingSubmit}
-          className="min-w-[180px]"
-        >
-          {isSubmitting || isProcessingSubmit ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
-            </>
-          ) : (
-            <>
-              <SendHorizonal className="mr-2 h-4 w-4" /> Submit for Review
-            </>
-          )}
-        </Button>
+        <SubmitButton 
+          onSubmitClick={handleSubmitClick}
+          isSubmitting={isSubmitting}
+          isProcessingSubmit={isProcessingSubmit}
+          disabled={isSaving || !onSubmit}
+        />
       </div>
       
       {onSubmit && showSubmitDialog && (
