@@ -12,7 +12,7 @@ import { generateUniqueSlug } from '../slug/slugGenerationService';
  */
 export const submitForReview = async (
   articleId: string
-): Promise<{ success: boolean; error?: any; submissionId?: string }> {
+): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
   try {
     // Basic validation for articleId
     if (!articleId) {
