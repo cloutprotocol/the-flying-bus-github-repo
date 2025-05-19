@@ -48,34 +48,8 @@ export const useOptimizedArticleForm = (
     return await articleSubmissionService.submitForReview(articleId);
   };
 
-  // Auto-save functionality
-  useArticleAutoSave({
-    form,
-    content,
-    draftId,
-    articleType,
-    isSubmitting,
-    isSaving,
-    setSaving: setIsSaving,
-    setSaveStatus,
-    setLastSaved,
-    saveDraft,
-    setDraftId
-  });
-
-  // Manual save functionality
-  const { handleSaveDraft } = useManualSave({
-    draftId,
-    articleType,
-    setSaving: setIsSaving,
-    setSaveStatus,
-    setLastSaved,
-    saveDraft,
-    setDraftId
-  });
-
-  // Article submission functionality
-  const { handleSubmit } = useArticleSubmitAction({
+  // Article submission functionality with submission tracking
+  const { handleSubmit, submissionCompletedRef } = useArticleSubmitAction({
     draftId,
     articleId,
     articleType,
@@ -87,6 +61,33 @@ export const useOptimizedArticleForm = (
     setSaveStatus,
     saveDraft,
     submitForReview,
+    setDraftId
+  });
+
+  // Auto-save functionality with submission awareness
+  useArticleAutoSave({
+    form,
+    content,
+    draftId,
+    articleType,
+    isSubmitting,
+    isSaving,
+    setSaving: setIsSaving,
+    setSaveStatus,
+    setLastSaved,
+    saveDraft,
+    setDraftId,
+    submissionCompletedRef
+  });
+
+  // Manual save functionality
+  const { handleSaveDraft } = useManualSave({
+    draftId,
+    articleType,
+    setSaving: setIsSaving,
+    setSaveStatus,
+    setLastSaved,
+    saveDraft,
     setDraftId
   });
 

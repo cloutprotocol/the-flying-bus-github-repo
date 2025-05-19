@@ -1,5 +1,5 @@
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
@@ -43,20 +43,29 @@ export function useArticleSubmitAction({
   const submittingRef = useRef(false);
   const isMountedRef = useRef(true);
   
+  // Disable auto-save during and after submission
+  const submissionCompletedRef = useRef(false);
+  
   // Setup mounted ref
-  const setupMountedRef = () => {
+  useEffect(() => {
     isMountedRef.current = true;
+    // Reset submission completed flag on mount
+    submissionCompletedRef.current = false;
+    
     return () => {
       isMountedRef.current = false;
     };
-  };
+  }, []);
 
   const handleSubmit = async (data: any) => {
     // Prevent duplicate submissions
     if (submittingRef.current || isSubmitting) {
-      console.log("Submission already in progress, skipping duplicate call");
+      logger.info(LogSource.EDITOR, "Submission already in progress, skipping duplicate call");
       return;
     }
+    
+    // Mark submission as started to prevent auto-saves from interfering
+    submissionCompletedRef.current = true;
     
     console.log("Submit button clicked", { data, content: data.content });
     try {
@@ -78,6 +87,43 @@ export function useArticleSubmitAction({
         articleType,
         contentLength: data.content?.length || 0
       });
+      
+      // Validate required fields before submission
+      if (!data.title || data.title.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "Article title is required",
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing title' });
+        setSubmitting(false);
+        submittingRef.current = false;
+        return;
+      }
+      
+      if (!data.categoryId) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a category",
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing category' });
+        setSubmitting(false);
+        submittingRef.current = false;
+        return;
+      }
+      
+      if (!data.content || data.content.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "Article content is required", 
+          variant: "destructive"
+        });
+        updateLastStep('error', { error: 'Missing content' });
+        setSubmitting(false);
+        submittingRef.current = false;
+        return;
+      }
       
       // Show submission in progress toast
       const submittingToast = toast({
@@ -171,10 +217,20 @@ export function useArticleSubmitAction({
       
       console.log("Calling submitForReview with articleId:", articleIdToSubmit);
       logger.info(LogSource.EDITOR, 'Calling submitForReview', {
-        articleId: articleIdToSubmit
+        articleId: articleIdToSubmit,
+        timestamp: new Date().toISOString()
       });
       
+      // Important: We now await the submission result properly
+      // This ensures the status update happens before we proceed
       const submissionResult = await submitForReview(articleIdToSubmit);
+      
+      // Log the result immediately after the operation completes
+      logger.info(LogSource.EDITOR, 'submitForReview completed', {
+        success: submissionResult.success,
+        error: submissionResult.error,
+        timestamp: new Date().toISOString()
+      });
       
       if (!submissionResult.success) {
         console.error("Submission failed:", submissionResult.error);
@@ -209,11 +265,21 @@ export function useArticleSubmitAction({
         articleId: articleIdToSubmit
       }, 'success');
       
+      // Increased navigation delay to ensure DB operations complete
+      // Important: Log this delay so we can track it
+      const navigationDelay = 3000; // Increased from 1500ms to 3000ms
+      logger.info(LogSource.EDITOR, `Scheduling navigation after ${navigationDelay}ms delay`, {
+        articleId: articleIdToSubmit,
+        timestamp: new Date().toISOString()
+      });
+      
       // Navigate to articles list after successful submission
       setTimeout(() => {
-        console.log("Navigating to /admin/articles after submission");
+        logger.info(LogSource.EDITOR, "Navigating to /admin/articles after submission", {
+          timestamp: new Date().toISOString()
+        });
         navigate('/admin/articles');
-      }, 1500);
+      }, navigationDelay);
       
       return articleIdToSubmit;
     } catch (error) {
@@ -233,8 +299,9 @@ export function useArticleSubmitAction({
     }
   };
 
+  // Return the submission completed ref to let components know if auto-save should run
   return {
     handleSubmit,
-    setupMountedRef
+    submissionCompletedRef
   };
 }

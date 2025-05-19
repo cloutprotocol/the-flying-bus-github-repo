@@ -15,16 +15,19 @@ export const submitForReview = async (
   articleId: string
 ): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
   const endMeasure = measureApiCall('submit-for-review');
+  const startTime = Date.now();
   
   try {
     console.log("submitForReview called with articleId:", articleId);
+    logger.info(LogSource.ARTICLE, 'submitForReview started', { 
+      articleId,
+      timestamp: new Date().toISOString()
+    });
     
     if (!articleId) {
       logger.error(LogSource.ARTICLE, 'Cannot submit article: Missing article ID');
       return { success: false, error: new Error('Missing article ID') };
     }
-
-    logger.info(LogSource.ARTICLE, 'Starting article submission for review', { articleId });
 
     // Get current user session - CRITICAL for author_id validation
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -54,6 +57,7 @@ export const submitForReview = async (
     // First, fetch the article to validate required fields
     const fetchEnd = measureApiCall('fetch-article-for-validation');
     console.log("Fetching article for validation:", articleId);
+    logger.info(LogSource.ARTICLE, 'Fetching article for validation', { articleId });
     
     const { data: article, error: fetchError } = await supabase
       .from('articles')
@@ -99,7 +103,8 @@ export const submitForReview = async (
       hasContent: !!article.content,
       categoryId: article.category_id,
       hasSlug: !!article.slug,
-      status: article.status
+      status: article.status,
+      elapsed: Date.now() - startTime
     });
 
     // Validate author ownership - if author_id is set, ensure it belongs to current user
@@ -125,6 +130,7 @@ export const submitForReview = async (
       updateNeeded = true;
       updates.author_id = userId;
       console.log("Article missing author_id, will set to current user:", userId);
+      logger.info(LogSource.ARTICLE, 'Setting missing author_id', { articleId, userId });
     }
 
     // Generate and update slug if missing
@@ -136,6 +142,7 @@ export const submitForReview = async (
         updateNeeded = true;
         
         console.log("Generated unique slug:", uniqueSlug);
+        logger.info(LogSource.ARTICLE, 'Generated slug for article', { articleId, slug: uniqueSlug });
       } catch (slugError) {
         console.error("Error generating slug:", slugError);
         logger.warn(LogSource.DATABASE, 'Error generating slug', { 
@@ -149,6 +156,8 @@ export const submitForReview = async (
     // If we need to update author_id or slug, do it now
     if (updateNeeded) {
       console.log("Updating article with missing fields:", updates);
+      logger.info(LogSource.ARTICLE, 'Updating article with missing fields', { articleId, updates });
+      
       const { error: updateError } = await supabase
         .from('articles')
         .update(updates)
@@ -177,8 +186,10 @@ export const submitForReview = async (
     // Validate required fields
     try {
       console.log("Validating article fields");
+      logger.info(LogSource.ARTICLE, 'Validating article fields', { articleId });
       validateArticleFields(article);
       console.log("Article validation successful");
+      logger.info(LogSource.ARTICLE, 'Article validation successful', { articleId });
     } catch (validationError) {
       console.error("Article validation error:", validationError);
       logger.error(LogSource.ARTICLE, 'Article validation error when submitting for review', { 
@@ -195,6 +206,7 @@ export const submitForReview = async (
     // Don't update status if it's already pending - avoid duplicate operations
     if (article.status === 'pending') {
       console.log("Article already has 'pending' status, skipping status update");
+      logger.info(LogSource.ARTICLE, 'Article already has pending status', { articleId });
       endMeasure();
       return { 
         success: true,
@@ -203,7 +215,10 @@ export const submitForReview = async (
     }
 
     console.log("Updating article status to 'pending'", { articleId });
-    logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`);
+    logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`, { 
+      elapsed: Date.now() - startTime 
+    });
+    
     const updateEnd = measureApiCall('update-article-status');
     const result = await updateArticleStatus(articleId, 'pending');
     updateEnd();
@@ -213,7 +228,10 @@ export const submitForReview = async (
       logger.error(LogSource.ARTICLE, `Failed to submit article ${articleId} for review`, result.error);
     } else {
       console.log("Successfully submitted article for review");
-      logger.info(LogSource.ARTICLE, `Successfully submitted article ${articleId} for review`);
+      logger.info(LogSource.ARTICLE, `Successfully submitted article ${articleId} for review`, {
+        elapsed: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      });
     }
     
     endMeasure();

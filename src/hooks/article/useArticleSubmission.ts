@@ -69,7 +69,11 @@ export function useArticleSubmission() {
           targetStatus: 'pending'
         });
         
-        // Call the actual submission service
+        logger.info(LogSource.EDITOR, 'Submitting article for review', {
+          articleId
+        });
+        
+        // Call the actual submission service with await to ensure it completes
         const { success, error } = await articleSubmissionService.submitForReview(articleId);
         
         if (!success) {
@@ -105,10 +109,20 @@ export function useArticleSubmission() {
           articleId
         });
         
-        // Navigate to articles list after successful submission
+        // IMPORTANT: Increase navigation timeout to ensure DB operations complete
+        // Wait longer before navigating away to ensure database operations finish
+        const navigationDelay = 3000; // Increased from 1500ms to 3000ms
+        logger.info(LogSource.EDITOR, `Scheduling navigation after ${navigationDelay}ms delay`, {
+          articleId
+        });
+        
+        // Return true immediately for UI feedback, but delay navigation
         setTimeout(() => {
+          logger.info(LogSource.EDITOR, 'Executing delayed navigation to articles list', {
+            articleId
+          });
           navigate('/admin/articles');
-        }, 1500);
+        }, navigationDelay);
         
         return true;
       }
