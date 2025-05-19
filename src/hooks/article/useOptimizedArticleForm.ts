@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { articleSubmissionService } from '@/services/articles/articleSubmissionService';
 import { useContentManagement } from './useContentManagement';
-import { useArticleDebug } from '../useArticleDebug';
 import { useArticleAutoSave } from './autoSave/useArticleAutoSave';
 import { useManualSave } from './manual/useManualSave';
 import { useArticleSubmitAction } from './submission/useArticleSubmitAction';
@@ -48,7 +47,7 @@ export const useOptimizedArticleForm = (
     return await articleSubmissionService.submitForReview(articleId);
   };
 
-  // Article submission functionality with submission tracking
+  // Article submission functionality with improved navigation
   const { handleSubmit, submissionCompletedRef } = useArticleSubmitAction({
     draftId,
     articleId,
@@ -64,7 +63,7 @@ export const useOptimizedArticleForm = (
     setDraftId
   });
 
-  // Auto-save functionality with submission awareness
+  // Auto-save with better submission awareness
   useArticleAutoSave({
     form,
     content,
@@ -91,14 +90,13 @@ export const useOptimizedArticleForm = (
     setDraftId
   });
 
-  // Handle manual draft save - convert return type from Promise<boolean> to Promise<void>
+  // Handle manual draft save
   const saveManualDraft = async (): Promise<void> => {
     const formData = {
       ...form.getValues(),
       content
     };
     
-    // Call the original function but ignore the return value to match the expected Promise<void> type
     await handleSaveDraft(formData);
     return;
   };

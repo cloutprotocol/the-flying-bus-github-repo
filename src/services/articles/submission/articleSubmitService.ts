@@ -6,244 +6,115 @@ import { ApiError, ApiErrorType } from '@/utils/errors/types';
 import { validateArticleFields } from '../validation/articleValidationService';
 import { updateArticleStatus } from '../status/articleStatusService';
 import { generateUniqueSlug } from '../slug/slugGenerationService'; 
-import { measureApiCall } from '@/services/monitoringService';
 
 /**
- * Submit an article for review
+ * Submit an article for review - Optimized version
  */
 export const submitForReview = async (
   articleId: string
-): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
-  const endMeasure = measureApiCall('submit-for-review');
-  const startTime = Date.now();
-  
+): Promise<{ success: boolean; error?: any; submissionId?: string }> {
   try {
-    console.log("submitForReview called with articleId:", articleId);
-    logger.info(LogSource.ARTICLE, 'submitForReview started', { 
-      articleId,
-      timestamp: new Date().toISOString()
-    });
-    
+    // Basic validation for articleId
     if (!articleId) {
-      logger.error(LogSource.ARTICLE, 'Cannot submit article: Missing article ID');
       return { success: false, error: new Error('Missing article ID') };
     }
 
-    // Get current user session - CRITICAL for author_id validation
+    // Get current user session for auth validation
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (sessionError) {
-      console.error("Session error:", sessionError);
-      logger.error(LogSource.ARTICLE, 'Failed to get user session', sessionError);
+    if (sessionError || !session?.user?.id) {
       return { 
         success: false, 
-        error: new ApiError('Authentication error', ApiErrorType.AUTH, 401, sessionError)
+        error: new ApiError('Authentication required', ApiErrorType.AUTH, 401, sessionError)
       };
     }
     
-    const userId = session?.user?.id;
-    
-    console.log("User session check:", { userId, hasSession: !!session });
-    
-    if (!userId) {
-      logger.error(LogSource.ARTICLE, 'User authentication required to submit article');
-      endMeasure();
-      return { 
-        success: false, 
-        error: new ApiError('User authentication required', ApiErrorType.AUTH)
-      };
-    }
+    const userId = session.user.id;
 
-    // First, fetch the article to validate required fields
-    const fetchEnd = measureApiCall('fetch-article-for-validation');
-    console.log("Fetching article for validation:", articleId);
-    logger.info(LogSource.ARTICLE, 'Fetching article for validation', { articleId });
-    
+    // Fetch the article with minimal fields needed for validation
     const { data: article, error: fetchError } = await supabase
       .from('articles')
       .select('title, content, category_id, author_id, slug, status')
       .eq('id', articleId)
       .single();
-    fetchEnd();
 
-    if (fetchError) {
-      console.error("Failed to fetch article:", fetchError);
-      logger.error(LogSource.ARTICLE, `Failed to fetch article ${articleId} for validation`, fetchError);
-      endMeasure();
+    if (fetchError || !article) {
       return { 
         success: false, 
         error: new ApiError('Could not find the article', ApiErrorType.NOTFOUND)
       };
     }
 
-    // Ensure article exists and has the necessary fields
-    if (!article) {
-      logger.error(LogSource.ARTICLE, `Article ${articleId} not found`);
-      endMeasure();
-      return {
-        success: false,
-        error: new ApiError('Article not found', ApiErrorType.NOTFOUND)
-      };
-    }
-
-    console.log("Article fetched for validation:", { 
-      title: article.title,
-      hasContent: !!article.content,
-      contentLength: article.content?.length || 0,
-      categoryId: article.category_id,
-      hasSlug: !!article.slug,
-      status: article.status,
-      contentPreview: article.content?.substring(0, 100) + '...'
-    });
-    
-    logger.info(LogSource.ARTICLE, 'Article fetched for validation', {
-      articleId,
-      title: article.title,
-      contentLength: article.content?.length || 0,
-      hasContent: !!article.content,
-      categoryId: article.category_id,
-      hasSlug: !!article.slug,
-      status: article.status,
-      elapsed: Date.now() - startTime
-    });
-
-    // Validate author ownership - if author_id is set, ensure it belongs to current user
+    // Validate author ownership
     if (article.author_id && article.author_id !== userId) {
-      console.error("Authorization error: User doesn't own this article", {
-        requestingUser: userId,
-        articleOwner: article.author_id
-      });
-      
-      logger.error(LogSource.ARTICLE, `User ${userId} attempted to submit article ${articleId} owned by ${article.author_id}`);
-      endMeasure();
       return { 
         success: false, 
         error: new ApiError('You do not have permission to submit this article', ApiErrorType.AUTH)
       };
     }
 
-    // Only update author_id if missing - avoids unnecessary updates
+    // Batch update for missing fields to reduce database calls
     let updateNeeded = false;
     const updates: any = {};
     
+    // Only update author_id if missing
     if (!article.author_id) {
       updateNeeded = true;
       updates.author_id = userId;
-      console.log("Article missing author_id, will set to current user:", userId);
-      logger.info(LogSource.ARTICLE, 'Setting missing author_id', { articleId, userId });
     }
 
-    // Generate and update slug if missing
+    // Generate slug only if missing
     if (!article.slug) {
       try {
-        console.log("Article missing slug, generating one from title");
         const uniqueSlug = await generateUniqueSlug(article.title, articleId);
         updates.slug = uniqueSlug;
         updateNeeded = true;
-        
-        console.log("Generated unique slug:", uniqueSlug);
-        logger.info(LogSource.ARTICLE, 'Generated slug for article', { articleId, slug: uniqueSlug });
       } catch (slugError) {
-        console.error("Error generating slug:", slugError);
-        logger.warn(LogSource.DATABASE, 'Error generating slug', { 
-          articleId, 
-          error: slugError 
-        });
-        // Continue with submission despite slug generation error
+        // Continue despite slug errors - not critical
+        logger.warn(LogSource.DATABASE, 'Error generating slug', { articleId, error: slugError });
       }
     }
     
-    // If we need to update author_id or slug, do it now
+    // Perform a single update if needed
     if (updateNeeded) {
-      console.log("Updating article with missing fields:", updates);
-      logger.info(LogSource.ARTICLE, 'Updating article with missing fields', { articleId, updates });
-      
       const { error: updateError } = await supabase
         .from('articles')
         .update(updates)
         .eq('id', articleId);
         
-      if (updateError) {
-        console.error("Failed to update article with fields:", updateError);
-        logger.warn(LogSource.DATABASE, 'Failed to update article fields', { 
-          articleId, 
-          updates,
-          error: updateError 
-        });
-        
-        // Only fail if this is a duplicate slug error
-        if (updateError.message?.includes('articles_slug_key')) {
-          endMeasure();
-          return { 
-            success: false, 
-            error: new ApiError('Duplicate article slug. Please try again.', ApiErrorType.VALIDATION)
-          };
-        }
-        // For other errors, continue with submission
+      if (updateError && updateError.message?.includes('articles_slug_key')) {
+        return { 
+          success: false, 
+          error: new ApiError('Duplicate article slug. Please try again.', ApiErrorType.VALIDATION)
+        };
       }
+      // Continue with minor update errors
     }
 
     // Validate required fields
     try {
-      console.log("Validating article fields");
-      logger.info(LogSource.ARTICLE, 'Validating article fields', { articleId });
       validateArticleFields(article);
-      console.log("Article validation successful");
-      logger.info(LogSource.ARTICLE, 'Article validation successful', { articleId });
     } catch (validationError) {
-      console.error("Article validation error:", validationError);
-      logger.error(LogSource.ARTICLE, 'Article validation error when submitting for review', { 
-        validationError,
-        articleId 
-      });
-      endMeasure();
       return { 
         success: false, 
         error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError)
       };
     }
 
-    // Don't update status if it's already pending - avoid duplicate operations
+    // Skip status update if already pending
     if (article.status === 'pending') {
-      console.log("Article already has 'pending' status, skipping status update");
-      logger.info(LogSource.ARTICLE, 'Article already has pending status', { articleId });
-      endMeasure();
-      return { 
-        success: true,
-        submissionId: articleId
-      };
+      return { success: true, submissionId: articleId };
     }
 
-    console.log("Updating article status to 'pending'", { articleId });
-    logger.info(LogSource.ARTICLE, `Submitting article ${articleId} for review`, { 
-      elapsed: Date.now() - startTime 
-    });
-    
-    const updateEnd = measureApiCall('update-article-status');
+    // Update status to pending
     const result = await updateArticleStatus(articleId, 'pending');
-    updateEnd();
     
-    if (!result.success) {
-      console.error("Failed to update article status:", result.error);
-      logger.error(LogSource.ARTICLE, `Failed to submit article ${articleId} for review`, result.error);
-    } else {
-      console.log("Successfully submitted article for review");
-      logger.info(LogSource.ARTICLE, `Successfully submitted article ${articleId} for review`, {
-        elapsed: Date.now() - startTime,
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    endMeasure();
     return { 
       success: result.success, 
       error: result.error, 
-      submissionId: articleId // Return the ID for tracking purposes
+      submissionId: articleId
     };
   } catch (e) {
-    console.error("Exception in submitForReview:", e);
-    logger.error(LogSource.ARTICLE, 'Exception submitting article for review', e);
-    endMeasure();
     return { 
       success: false, 
       error: new ApiError('An unexpected error occurred during submission', ApiErrorType.UNKNOWN)
