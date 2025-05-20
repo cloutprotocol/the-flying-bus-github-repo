@@ -37,12 +37,11 @@ export function useArticleSubmitAction({
 }: ArticleSubmitOptions) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { addDebugStep, updateLastStep } = useArticleDebug();
+  const { addDebugStep } = useArticleDebug();
   
   // Prevent duplicate submissions and track submission state
   const submittingRef = useRef(false);
   const isMountedRef = useRef(true);
-  const navigationScheduledRef = useRef(false);
   
   // Disable auto-save during and after submission
   const submissionCompletedRef = useRef(false);
@@ -51,7 +50,6 @@ export function useArticleSubmitAction({
   useEffect(() => {
     isMountedRef.current = true;
     submissionCompletedRef.current = false;
-    navigationScheduledRef.current = false;
     
     return () => {
       isMountedRef.current = false;
@@ -155,7 +153,7 @@ export function useArticleSubmitAction({
         }
       }
 
-      // Submit for review
+      // Submit for review using the optimized procedure
       const submissionResult = await submitForReview(articleIdToSubmit);
       
       if (!submissionResult.success) {
@@ -183,13 +181,8 @@ export function useArticleSubmitAction({
         description: "Your article has been submitted for review.",
       });
       
-      // Fix: Prevent multiple navigation attempts
-      if (!navigationScheduledRef.current) {
-        navigationScheduledRef.current = true;
-        
-        // Navigate immediately instead of using a long delay
-        navigate('/admin/articles');
-      }
+      // Navigate immediately without delay
+      navigate('/admin/articles');
       
       return articleIdToSubmit;
     } catch (error) {

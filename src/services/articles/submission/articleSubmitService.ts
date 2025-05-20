@@ -3,18 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from '@/utils/errors/types';
-import { validateArticleFields } from '../validation/articleValidationService';
-import { updateArticleStatus } from '../status/articleStatusService';
-import { generateUniqueSlug } from '../slug/slugGenerationService'; 
 
 /**
- * Submit an article for review - Optimized version
+ * Submit an article for review using an optimized stored procedure
+ * This version uses a single database transaction via a stored procedure
+ * to improve performance and reduce database calls
  */
 export const submitForReview = async (
   articleId: string
 ): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
   try {
-    // Basic validation for articleId
+    // Fast fail with basic validation
     if (!articleId) {
       return { success: false, error: new Error('Missing article ID') };
     }
@@ -31,90 +30,42 @@ export const submitForReview = async (
     
     const userId = session.user.id;
 
-    // Fetch the article with minimal fields needed for validation
-    const { data: article, error: fetchError } = await supabase
-      .from('articles')
-      .select('title, content, category_id, author_id, slug, status')
-      .eq('id', articleId)
+    // Call the optimized stored procedure to handle the entire submission process
+    // This runs as a single database transaction and handles all validation and updates
+    const { data, error } = await supabase
+      .rpc('submit_article_for_review', {
+        p_article_id: articleId,
+        p_user_id: userId
+      })
       .single();
 
-    if (fetchError || !article) {
+    if (error) {
       return { 
         success: false, 
-        error: new ApiError('Could not find the article', ApiErrorType.NOTFOUND)
+        error: new ApiError(
+          error.message || 'Error submitting article', 
+          ApiErrorType.DATABASE, 
+          error.code === '23505' ? 409 : undefined, 
+          error
+        )
+      };
+    }
+    
+    if (!data.success) {
+      return {
+        success: false,
+        error: new ApiError(data.error_message || 'Submission failed', ApiErrorType.VALIDATION)
       };
     }
 
-    // Validate author ownership
-    if (article.author_id && article.author_id !== userId) {
-      return { 
-        success: false, 
-        error: new ApiError('You do not have permission to submit this article', ApiErrorType.AUTH)
-      };
-    }
-
-    // Batch update for missing fields to reduce database calls
-    let updateNeeded = false;
-    const updates: any = {};
-    
-    // Only update author_id if missing
-    if (!article.author_id) {
-      updateNeeded = true;
-      updates.author_id = userId;
-    }
-
-    // Generate slug only if missing
-    if (!article.slug) {
-      try {
-        const uniqueSlug = await generateUniqueSlug(article.title, articleId);
-        updates.slug = uniqueSlug;
-        updateNeeded = true;
-      } catch (slugError) {
-        // Continue despite slug errors - not critical
-        logger.warn(LogSource.DATABASE, 'Error generating slug', { articleId, error: slugError });
-      }
-    }
-    
-    // Perform a single update if needed
-    if (updateNeeded) {
-      const { error: updateError } = await supabase
-        .from('articles')
-        .update(updates)
-        .eq('id', articleId);
-        
-      if (updateError && updateError.message?.includes('articles_slug_key')) {
-        return { 
-          success: false, 
-          error: new ApiError('Duplicate article slug. Please try again.', ApiErrorType.VALIDATION)
-        };
-      }
-      // Continue with minor update errors
-    }
-
-    // Validate required fields
-    try {
-      validateArticleFields(article);
-    } catch (validationError) {
-      return { 
-        success: false, 
-        error: new ApiError('Missing required fields', ApiErrorType.VALIDATION, undefined, validationError)
-      };
-    }
-
-    // Skip status update if already pending
-    if (article.status === 'pending') {
-      return { success: true, submissionId: articleId };
-    }
-
-    // Update status to pending
-    const result = await updateArticleStatus(articleId, 'pending');
-    
     return { 
-      success: result.success, 
-      error: result.error, 
-      submissionId: articleId
+      success: true, 
+      submissionId: data.article_id 
     };
   } catch (e) {
+    // Minimal error logging for performance
+    logger.error(LogSource.DATABASE, 'Unexpected error in article submission', { error: e });
+    
     return { 
       success: false, 
       error: new ApiError('An unexpected error occurred during submission', ApiErrorType.UNKNOWN)

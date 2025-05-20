@@ -37,6 +37,8 @@ export const useArticleAutoSave = ({
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
   const saveInProgressRef = useRef(false);
+  const lastContentRef = useRef<string>(content);
+  const lastFormStateRef = useRef<any>(form.getValues());
   
   // Cancel auto-save timeouts when unmounting
   useEffect(() => {
@@ -48,7 +50,7 @@ export const useArticleAutoSave = ({
     };
   }, []);
   
-  // Auto save effect with improved submission handling
+  // Optimized auto save effect with improved submission handling and change detection
   useEffect(() => {
     // Skip auto-save if any of these conditions are true
     if (isSubmitting || isSaving || saveInProgressRef.current) {
@@ -60,10 +62,18 @@ export const useArticleAutoSave = ({
       return;
     }
     
+    const formValues = form.getValues();
     const isDirty = form.formState.isDirty;
-    const contentChanged = content !== '';
     
-    if (isDirty || contentChanged) {
+    // Detect meaningful changes to avoid unnecessary saves
+    const contentChanged = content !== lastContentRef.current;
+    const formChanged = JSON.stringify(formValues) !== JSON.stringify(lastFormStateRef.current);
+    
+    if (isDirty || contentChanged || formChanged) {
+      // Update refs for change detection
+      lastContentRef.current = content;
+      lastFormStateRef.current = formValues;
+      
       // Clear any existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -73,7 +83,6 @@ export const useArticleAutoSave = ({
       autoSaveTimeoutRef.current = setTimeout(() => {
         // Double-check submission state before executing save
         if (submissionCompletedRef?.current === true) {
-          logger.info(LogSource.EDITOR, 'Skipping scheduled auto-save because submission has completed');
           return;
         }
         

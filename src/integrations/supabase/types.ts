@@ -838,6 +838,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      submit_article_for_review: {
+        Args: { p_article_id: string; p_user_id: string }
+        Returns: {
+          success: boolean
+          error_message: string
+          article_id: string
+        }[]
+      }
     }
     Enums: {
       activity_type:
