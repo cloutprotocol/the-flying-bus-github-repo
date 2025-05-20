@@ -59,14 +59,16 @@ export const saveDraftOptimized = async (
     // Log the data returned to help with debugging
     logger.debug(LogSource.DATABASE, 'save_article_draft response', { data });
     
-    // Handle different response formats - could be direct UUID or structured response
-    let articleId;
+    // Handle different response formats
+    let articleId: string | undefined;
+    
+    // Properly handle the response from save_article_draft function
     if (typeof data === 'string') {
       // Direct UUID return
       articleId = data;
     } else if (data && typeof data === 'object') {
-      // Object with article_id field
-      articleId = data.article_id;
+      // Check if data is structured and has article_id
+      articleId = data.article_id || data.id;
     } else {
       // Fallback to the original ID if provided
       articleId = articleData.id;

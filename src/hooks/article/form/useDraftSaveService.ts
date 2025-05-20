@@ -68,17 +68,18 @@ export const useDraftSaveService = () => {
       logger.debug(LogSource.DATABASE, 'save_article_draft hook response', { data });
       
       // Handle different response formats - could be direct UUID or structured response
-      let articleId;
+      let articleId: string | undefined = formData.id;
+      
       if (typeof data === 'string') {
         // Direct UUID return
         articleId = data;
       } else if (data && typeof data === 'object') {
-        // Object with article_id field 
-        articleId = data.article_id;
-      } else {
-        // Fallback to the original ID if provided
-        articleId = formData.id;
-        logger.warn(LogSource.DATABASE, 'Unexpected response format from save_article_draft in hook', { data });
+        // Handle object response - try to extract article_id or id
+        articleId = (data as any).article_id || (data as any).id || formData.id;
+      }
+      
+      if (!articleId) {
+        logger.warn(LogSource.DATABASE, 'Could not determine article ID from response', { data });
       }
       
       return { success: true, articleId, error: null };
