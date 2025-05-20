@@ -7,8 +7,8 @@ import { validateArticle } from '@/utils/validation/articleValidation';
 import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
- * Submit an article for review using an optimized stored procedure
- * This version uses a single database operation to reduce latency
+ * Submit an article for review using the new optimized stored procedure
+ * This version uses submit_article_with_validation for combined draft saving and submission
  */
 export const submitForReview = async (
   articleData: any,
@@ -32,17 +32,17 @@ export const submitForReview = async (
     
     const userId = session.user.id;
     
-    // Get the article ID if it exists
-    const articleId = articleData.id;
+    // Generate slug on client-side to avoid extra DB query if needed
+    if (!articleData.slug && articleData.title) {
+      articleData.slug = generateClientSideSlug(articleData.title);
+    }
     
-    // Generate slug on client-side to avoid extra DB query
-    const slug = articleData.slug || generateClientSideSlug(articleData.title);
-    
-    // Call the optimized stored procedure using the existing submit_article_for_review function
+    // Call the new optimized stored procedure for validation and submission
     const { data, error } = await supabase
-      .rpc('submit_article_for_review', {
-        p_article_id: articleId || null,
-        p_user_id: userId
+      .rpc('submit_article_with_validation', {
+        p_user_id: userId,
+        p_article_data: articleData,
+        p_save_draft: saveDraft
       });
 
     if (error) {
@@ -57,7 +57,7 @@ export const submitForReview = async (
       };
     }
     
-    // Fix: Make sure we properly handle the response data type
+    // Handle the structured response from the function
     if (data === null) {
       return {
         success: false,
@@ -65,8 +65,8 @@ export const submitForReview = async (
       };
     }
 
-    // Type guard for proper checking of data structure
-    if (typeof data === 'object' && 'success' in data && data.success === false) {
+    // Check if submission was successful based on function response
+    if ('success' in data && !data.success) {
       const errorMessage = 'error_message' in data ? String(data.error_message) : 'Submission failed';
       return {
         success: false,
@@ -74,10 +74,10 @@ export const submitForReview = async (
       };
     }
 
-    // Get the article_id from data if it exists
+    // Extract the article_id from the response
     let submissionId = null;
-    if (typeof data === 'object' && 'article_id' in data) {
-      submissionId = data.article_id as string;
+    if ('article_id' in data) {
+      submissionId = data.article_id;
     }
 
     return { 
@@ -85,7 +85,7 @@ export const submitForReview = async (
       submissionId
     };
   } catch (e) {
-    // Minimal error logging for performance
+    // Log error
     logger.error(LogSource.DATABASE, 'Unexpected error in article submission', { error: e });
     
     return { 

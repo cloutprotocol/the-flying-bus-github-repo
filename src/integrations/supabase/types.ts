@@ -838,8 +838,24 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      save_article_draft: {
+        Args: { p_article_data: Json }
+        Returns: string
+      }
       submit_article_for_review: {
         Args: { p_article_id: string; p_user_id: string }
+        Returns: {
+          success: boolean
+          error_message: string
+          article_id: string
+        }[]
+      }
+      submit_article_with_validation: {
+        Args: {
+          p_user_id: string
+          p_article_data: Json
+          p_save_draft?: boolean
+        }
         Returns: {
           success: boolean
           error_message: string

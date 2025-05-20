@@ -7,8 +7,8 @@ import { LogSource } from '@/utils/logger/types';
 import { submitForReview } from '@/services/articles/submission/articleSubmitService';
 
 /**
- * Optimized hook for article submission that reduces database operations
- * by combining draft saving and submission in a single transaction
+ * Optimized hook for article submission that uses the new SQL functions
+ * for combined draft saving and submission in a single transaction
  */
 export function useOptimizedSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,8 +36,8 @@ export function useOptimizedSubmission() {
         description: "Your article is being processed...",
       });
       
-      // The key optimization: submit directly with form data
-      // This avoids separate draft save + status update operations
+      // The key optimization: submit directly with form data using new function
+      // This handles both saving and status update in one DB operation
       const { success, error, submissionId } = await submitForReview(formData, true);
       
       if (!success) {

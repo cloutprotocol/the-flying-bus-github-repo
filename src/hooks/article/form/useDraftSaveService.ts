@@ -6,6 +6,7 @@ import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Optimized service for saving article drafts with minimal validation
+ * using the new save_article_draft database function
  */
 export const useDraftSaveService = () => {
   const saveDraftOptimized = async (formData: any) => {
@@ -41,26 +42,23 @@ export const useDraftSaveService = () => {
         };
       }
       
-      // Create or update the article using our custom RPC function
+      // Prepare article data with author_id
+      const articleData = {
+        ...formData,
+        author_id: session.user.id
+      };
+      
+      // Call the new database function to save the draft
       const { data, error } = await supabase
-        .rpc('submit_article_for_review', {
-          p_article_id: formData.id || null,
-          p_user_id: session.user.id,
-          // Additional parameters to be added if needed
-        });
+        .rpc('save_article_draft', articleData);
       
       if (error) {
         logger.error(LogSource.DATABASE, 'Error saving draft', { error });
         return { success: false, error, articleId: formData.id };
       }
       
-      // Fix: Make sure data is treated as a single object, not an array
-      let articleId = formData.id;
-      
-      // Type guard to ensure data has the expected structure
-      if (data !== null && typeof data === 'object' && 'article_id' in data) {
-        articleId = data.article_id as string || formData.id;
-      }
+      // The function returns the article UUID directly
+      const articleId = data || formData.id;
       
       return { success: true, articleId, error: null };
     } catch (error) {

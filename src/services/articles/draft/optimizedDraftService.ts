@@ -7,7 +7,7 @@ import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Save an article draft with optimized database operations
- * Uses a single RPC call to save all article data
+ * Uses the new save_article_draft database function for efficient saving
  */
 export const saveDraftOptimized = async (
   articleData: any
@@ -37,12 +37,9 @@ export const saveDraftOptimized = async (
       categoryId: articleData.categoryId || articleData.category_id
     };
 
-    // Call the database function to save the draft (single DB call)
+    // Call the new database function to save the draft (single DB call)
     const { data, error } = await supabase
-      .rpc('submit_article_for_review', { 
-        p_article_id: completeArticleData.id || null,
-        p_user_id: userId 
-      });
+      .rpc('save_article_draft', completeArticleData);
     
     if (error) {
       logger.error(LogSource.DATABASE, 'Error saving draft', { 
@@ -53,13 +50,8 @@ export const saveDraftOptimized = async (
       return { success: false, error };
     }
     
-    // Fix: Make sure data is treated as a single object, not an array
-    let articleId = null;
-    
-    // Type guard to ensure data has the expected structure
-    if (data !== null && typeof data === 'object' && 'article_id' in data) {
-      articleId = data.article_id as string;
-    }
+    // Fix: Handle the UUID return type from the function
+    const articleId = data;
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
       articleId,
