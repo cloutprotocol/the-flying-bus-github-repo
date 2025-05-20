@@ -37,15 +37,23 @@ export const submitForReview = async (
       articleData.slug = generateClientSideSlug(articleData.title);
     }
     
+    // Log the parameters being sent to the function
+    logger.debug(LogSource.DATABASE, 'Submitting article with parameters', {
+      userId,
+      articleDataKeys: Object.keys(articleData),
+      saveDraft
+    });
+    
     // Call the new optimized stored procedure for validation and submission
-    const { data, error } = await supabase
-      .rpc('submit_article_with_validation', {
-        p_user_id: userId,
-        p_article_data: articleData,
-        p_save_draft: saveDraft
-      });
+    const { data, error } = await supabase.rpc('submit_article_with_validation', {
+      p_user_id: userId,
+      p_article_data: articleData,
+      p_save_draft: saveDraft
+    });
 
     if (error) {
+      logger.error(LogSource.DATABASE, 'Error calling submit_article_with_validation', { error });
+      
       return { 
         success: false, 
         error: new ApiError(
@@ -57,6 +65,9 @@ export const submitForReview = async (
       };
     }
     
+    // Add debug logging to see the response format
+    logger.debug(LogSource.DATABASE, 'submit_article_with_validation response', { data });
+    
     // Handle the structured response from the function
     if (data === null) {
       return {
@@ -65,9 +76,12 @@ export const submitForReview = async (
       };
     }
 
+    // Check if we got an array result (handle both object and array responses)
+    const result = Array.isArray(data) ? data[0] : data;
+
     // Check if submission was successful based on function response
-    if ('success' in data && !data.success) {
-      const errorMessage = 'error_message' in data ? String(data.error_message) : 'Submission failed';
+    if (result && 'success' in result && !result.success) {
+      const errorMessage = result.error_message || 'Submission failed';
       return {
         success: false,
         error: new ApiError(errorMessage, ApiErrorType.VALIDATION)
@@ -76,8 +90,8 @@ export const submitForReview = async (
 
     // Extract the article_id from the response
     let submissionId = null;
-    if ('article_id' in data) {
-      submissionId = data.article_id;
+    if (result && 'article_id' in result) {
+      submissionId = result.article_id;
     }
 
     return { 

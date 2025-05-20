@@ -36,6 +36,13 @@ export function useOptimizedSubmission() {
         description: "Your article is being processed...",
       });
       
+      // Log detailed information about the form data being submitted
+      logger.debug(LogSource.EDITOR, 'Article submission data', {
+        hasId: !!formData.id,
+        title: formData.title?.substring(0, 20),
+        dataKeys: Object.keys(formData)
+      });
+      
       // The key optimization: submit directly with form data using new function
       // This handles both saving and status update in one DB operation
       const { success, error, submissionId } = await submitForReview(formData, true);

@@ -36,10 +36,16 @@ export const saveDraftOptimized = async (
       imageUrl: articleData.imageUrl || articleData.cover_image,
       categoryId: articleData.categoryId || articleData.category_id
     };
+    
+    logger.debug(LogSource.DATABASE, 'Calling save_article_draft with data', {
+      dataKeys: Object.keys(completeArticleData)
+    });
 
     // Call the new database function to save the draft (single DB call)
     const { data, error } = await supabase
-      .rpc('save_article_draft', completeArticleData);
+      .rpc('save_article_draft', {
+        p_article_data: completeArticleData
+      });
     
     if (error) {
       logger.error(LogSource.DATABASE, 'Error saving draft', { 
@@ -50,8 +56,22 @@ export const saveDraftOptimized = async (
       return { success: false, error };
     }
     
-    // Fix: Handle the UUID return type from the function
-    const articleId = data;
+    // Log the data returned to help with debugging
+    logger.debug(LogSource.DATABASE, 'save_article_draft response', { data });
+    
+    // Handle different response formats - could be direct UUID or structured response
+    let articleId;
+    if (typeof data === 'string') {
+      // Direct UUID return
+      articleId = data;
+    } else if (data && typeof data === 'object') {
+      // Object with article_id field
+      articleId = data.article_id;
+    } else {
+      // Fallback to the original ID if provided
+      articleId = articleData.id;
+      logger.warn(LogSource.DATABASE, 'Unexpected response format from save_article_draft', { data });
+    }
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
       articleId,

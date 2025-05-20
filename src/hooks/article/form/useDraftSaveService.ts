@@ -48,21 +48,42 @@ export const useDraftSaveService = () => {
         author_id: session.user.id
       };
       
-      // Call the new database function to save the draft
-      const { data, error } = await supabase
-        .rpc('save_article_draft', articleData);
+      // Log the data we're sending to the function
+      logger.debug(LogSource.DATABASE, 'Calling save_article_draft from hook', {
+        id: articleData.id,
+        title: articleData.title?.substring(0, 20)
+      });
+      
+      // Call the new database function to save the draft with correct parameter name
+      const { data, error } = await supabase.rpc('save_article_draft', {
+        p_article_data: articleData
+      });
       
       if (error) {
         logger.error(LogSource.DATABASE, 'Error saving draft', { error });
         return { success: false, error, articleId: formData.id };
       }
       
-      // The function returns the article UUID directly
-      const articleId = data || formData.id;
+      // Log the response data
+      logger.debug(LogSource.DATABASE, 'save_article_draft hook response', { data });
+      
+      // Handle different response formats - could be direct UUID or structured response
+      let articleId;
+      if (typeof data === 'string') {
+        // Direct UUID return
+        articleId = data;
+      } else if (data && typeof data === 'object') {
+        // Object with article_id field 
+        articleId = data.article_id;
+      } else {
+        // Fallback to the original ID if provided
+        articleId = formData.id;
+        logger.warn(LogSource.DATABASE, 'Unexpected response format from save_article_draft in hook', { data });
+      }
       
       return { success: true, articleId, error: null };
     } catch (error) {
-      logger.error(LogSource.DATABASE, 'Exception saving draft', { error });
+      logger.error(LogSource.DATABASE, 'Exception saving draft in hook', { error });
       return { success: false, error, articleId: formData.id };
     }
   };
