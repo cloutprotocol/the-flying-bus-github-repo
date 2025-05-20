@@ -37,22 +37,12 @@ export const submitForReview = async (
     // Generate slug on client-side to avoid extra DB query
     const slug = articleData.slug || generateClientSideSlug(articleData.title);
     
-    // Set basic required fields
-    const submissionData = {
-      p_user_id: userId,
-      p_article_data: {
-        ...articleData,
-        slug,
-        author_id: userId,
-        status: 'pending'
-      },
-      p_save_draft: saveDraft
-    };
-
-    // Call the optimized stored procedure in a single database transaction
+    // Call the optimized stored procedure using the existing submit_article_for_review function
     const { data, error } = await supabase
-      .rpc('submit_article_with_validation', submissionData)
-      .single();
+      .rpc('submit_article_for_review', {
+        p_article_id: articleId || null,
+        p_user_id: userId
+      });
 
     if (error) {
       return { 

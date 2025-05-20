@@ -27,7 +27,7 @@ export const saveDraftOptimized = async (
     // Generate client-side slug if not provided
     const slug = articleData.slug || generateSlug(articleData.title || 'untitled-draft');
     
-    // Build complete article data for the RPC call
+    // Build complete article data for the DB call
     const completeArticleData = {
       ...articleData,
       slug: slug,
@@ -37,9 +37,12 @@ export const saveDraftOptimized = async (
     };
 
     // Call the database function to save the draft (single DB call)
+    // Use the existing submit_article_for_review function with p_user_id and p_article_id parameters
     const { data, error } = await supabase
-      .rpc('save_article_draft', { p_article_data: completeArticleData })
-      .single();
+      .rpc('submit_article_for_review', { 
+        p_article_id: completeArticleData.id || null,
+        p_user_id: userId 
+      });
     
     if (error) {
       logger.error(LogSource.DATABASE, 'Error saving draft', { 
@@ -51,11 +54,11 @@ export const saveDraftOptimized = async (
     }
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
-      articleId: data,
+      articleId: data?.article_id,
       title: articleData.title
     });
     
-    return { success: true, error: null, articleId: data };
+    return { success: true, error: null, articleId: data?.article_id };
     
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception saving draft', { error: e });

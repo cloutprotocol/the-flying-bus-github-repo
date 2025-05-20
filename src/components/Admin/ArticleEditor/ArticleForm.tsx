@@ -25,7 +25,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   isNewArticle = true 
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
-  const { addDebugStep } = useArticleDebug();
+  const { addDebugStep, debugSteps } = useArticleDebug();
   const { toast } = useToast();
   
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
@@ -156,6 +156,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <ArticleFormLayout 
       form={form}
       onSubmit={form.handleSubmit(onSubmit)}
+      debugSteps={debugSteps}
     >
       <ArticleFormContent 
         form={form}
