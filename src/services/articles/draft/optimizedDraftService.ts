@@ -54,7 +54,9 @@ export const saveDraftOptimized = async (
     
     // Fix: Make sure data is treated as a single object, not an array
     let articleId = null;
-    if (data !== null && typeof data === 'object') {
+    
+    // Type guard to ensure data has the expected structure
+    if (data !== null && typeof data === 'object' && 'article_id' in data) {
       articleId = data.article_id;
     }
     

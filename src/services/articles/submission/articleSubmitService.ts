@@ -64,14 +64,12 @@ export const submitForReview = async (
       };
     }
 
-    // Properly check if data is an object and has the success property
+    // Type guard for proper checking of data structure
     if (typeof data === 'object' && 'success' in data && data.success === false) {
+      const errorMessage = 'error_message' in data ? data.error_message : 'Submission failed';
       return {
         success: false,
-        error: new ApiError(
-          data.error_message || 'Submission failed', 
-          ApiErrorType.VALIDATION
-        )
+        error: new ApiError(errorMessage, ApiErrorType.VALIDATION)
       };
     }
 

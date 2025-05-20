@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -79,7 +78,9 @@ const saveDraftOptimized = async (formData: any) => {
     
     // Fix: Make sure data is treated as a single object, not an array
     let articleId = formData.id;
-    if (data !== null && typeof data === 'object') {
+    
+    // Type guard to ensure data has the expected structure
+    if (data !== null && typeof data === 'object' && 'article_id' in data) {
       articleId = data.article_id || formData.id;
     }
     
