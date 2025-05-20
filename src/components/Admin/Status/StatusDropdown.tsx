@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   DropdownMenu,
@@ -11,7 +12,7 @@ import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import { updateArticleStatus } from '@/services/articles/status/articleStatusService';
-import { articleSubmissionService } from '@/services/articles/articleSubmissionService'; 
+import { requestArticleReview } from '@/services/articles/articleReviewService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -76,7 +77,8 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
           newStatus 
         });
         
-        const { success, error } = await articleSubmissionService.submitForReview(articleId);
+        // Using requestArticleReview which accepts just the articleId parameter
+        const { success, error } = await requestArticleReview(articleId);
         
         if (success) {
           onStatusChange(newStatus);
