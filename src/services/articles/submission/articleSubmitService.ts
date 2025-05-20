@@ -57,16 +57,19 @@ export const submitForReview = async (
     }
     
     // Fix: Handle the single object response correctly
-    if (!data || data.success === false) {
+    if (!data || (typeof data === 'object' && data.success === false)) {
       return {
         success: false,
-        error: new ApiError(data?.error_message || 'Submission failed', ApiErrorType.VALIDATION)
+        error: new ApiError(
+          (data && typeof data === 'object' ? data.error_message : 'Submission failed') || 'Submission failed', 
+          ApiErrorType.VALIDATION
+        )
       };
     }
 
     return { 
       success: true, 
-      submissionId: data.article_id 
+      submissionId: typeof data === 'object' ? data.article_id : null
     };
   } catch (e) {
     // Minimal error logging for performance

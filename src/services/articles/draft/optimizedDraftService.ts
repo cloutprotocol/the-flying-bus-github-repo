@@ -52,8 +52,8 @@ export const saveDraftOptimized = async (
       return { success: false, error };
     }
     
-    // Fix: Extract article_id from data (single object, not array)
-    const articleId = data?.article_id;
+    // Fix: Access article_id directly from the data object (not an array)
+    const articleId = data && typeof data === 'object' ? data.article_id : null;
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
       articleId,
