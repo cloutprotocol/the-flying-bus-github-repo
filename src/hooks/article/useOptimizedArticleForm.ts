@@ -77,11 +77,8 @@ const saveDraftOptimized = async (formData: any) => {
       return { success: false, error, articleId: formData.id };
     }
     
-    // Extract the article ID from the response
-    let articleId = formData.id;
-    if (data && data.article_id) {
-      articleId = data.article_id;
-    }
+    // Fix: Extract article_id from data (single object, not array)
+    const articleId = data?.article_id || formData.id;
     
     return { success: true, articleId, error: null };
   } catch (error) {

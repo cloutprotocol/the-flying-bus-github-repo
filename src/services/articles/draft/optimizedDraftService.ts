@@ -37,7 +37,6 @@ export const saveDraftOptimized = async (
     };
 
     // Call the database function to save the draft (single DB call)
-    // Use the existing submit_article_for_review function with p_user_id and p_article_id parameters
     const { data, error } = await supabase
       .rpc('submit_article_for_review', { 
         p_article_id: completeArticleData.id || null,
@@ -53,12 +52,15 @@ export const saveDraftOptimized = async (
       return { success: false, error };
     }
     
+    // Fix: Extract article_id from data (single object, not array)
+    const articleId = data?.article_id;
+    
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
-      articleId: data?.article_id,
+      articleId,
       title: articleData.title
     });
     
-    return { success: true, error: null, articleId: data?.article_id };
+    return { success: true, error: null, articleId };
     
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception saving draft', { error: e });

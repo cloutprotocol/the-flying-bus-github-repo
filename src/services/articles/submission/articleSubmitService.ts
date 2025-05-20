@@ -56,7 +56,8 @@ export const submitForReview = async (
       };
     }
     
-    if (!data || !data.success) {
+    // Fix: Handle the single object response correctly
+    if (!data || data.success === false) {
       return {
         success: false,
         error: new ApiError(data?.error_message || 'Submission failed', ApiErrorType.VALIDATION)
