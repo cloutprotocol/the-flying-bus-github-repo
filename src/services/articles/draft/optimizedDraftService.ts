@@ -62,13 +62,18 @@ export const saveDraftOptimized = async (
     // Handle different response formats
     let articleId: string | undefined;
     
-    // Properly handle the response from save_article_draft function
+    // Properly handle the response from save_article_draft function with correct type handling
     if (typeof data === 'string') {
       // Direct UUID return
       articleId = data;
     } else if (data && typeof data === 'object') {
-      // Check if data is structured and has article_id
-      articleId = data.article_id || data.id;
+      // Type assertion to access properties safely
+      const responseObj = data as Record<string, unknown>;
+      
+      // Check if data is structured and has article_id or id property
+      articleId = 
+        (typeof responseObj.article_id === 'string' ? responseObj.article_id : undefined) || 
+        (typeof responseObj.id === 'string' ? responseObj.id : undefined);
     } else {
       // Fallback to the original ID if provided
       articleId = articleData.id;

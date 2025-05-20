@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -74,8 +73,16 @@ export const useDraftSaveService = () => {
         // Direct UUID return
         articleId = data;
       } else if (data && typeof data === 'object') {
-        // Handle object response - try to extract article_id or id
-        articleId = (data as any).article_id || (data as any).id || formData.id;
+        // Use type assertion to safely access properties
+        const responseObj = data as Record<string, unknown>;
+        
+        // Try to extract article_id or id with proper type checking
+        if (typeof responseObj.article_id === 'string') {
+          articleId = responseObj.article_id;
+        } else if (typeof responseObj.id === 'string') {
+          articleId = responseObj.id;
+        }
+        // Otherwise keep the original id
       }
       
       if (!articleId) {
