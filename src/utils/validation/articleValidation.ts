@@ -106,15 +106,8 @@ export const debateArticleSchema = baseArticleSchemaObject.extend({
     .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
   votingEnabled: z.boolean().optional().default(true),
   votingEndsAt: z.string().datetime().optional()
-}).refine((data) => {
-  if (data.articleType === 'video' && !data.videoUrl) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Video URL is required for video articles",
-  path: ["videoUrl"]
 });
+// No need for video validation in debate articles since type is fixed
 
 // Schema for video article
 export const videoArticleSchema = baseArticleSchemaObject.extend({
@@ -125,30 +118,16 @@ export const videoArticleSchema = baseArticleSchemaObject.extend({
   transcript: z.string()
     .refine(text => !text.includes("<script>"), "Transcript cannot contain script tags")
     .optional()
-}).refine((data) => {
-  if (data.articleType === 'video' && !data.videoUrl) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Video URL is required for video articles",
-  path: ["videoUrl"]
 });
+// Video URL validation not needed here since it's already required by the schema
 
 // Schema for storyboard article
 export const storyboardArticleSchema = baseArticleSchemaObject.extend({
   articleType: z.literal('storyboard'),
   seriesId: uuidSchema,
   episodeNumber: z.number().int().positive()
-}).refine((data) => {
-  if (data.articleType === 'video' && !data.videoUrl) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Video URL is required for video articles",
-  path: ["videoUrl"]
 });
+// No need for video validation in storyboard articles since type is fixed
 
 // Schema for article deletion
 export const deleteArticleSchema = z.object({
