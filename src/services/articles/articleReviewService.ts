@@ -8,7 +8,8 @@ import { updateArticleStatus } from './status/articleStatusService';
 export { reviewArticle } from './review/articleReviewHandlerService';
 export { updateArticleStatus } from './status/articleStatusService';
 
-export const submitArticleForReview = async (
+// Rename to avoid conflict with articleSubmitService's function of the same name
+export const requestArticleReview = async (
   articleId: string
 ): Promise<{ success: boolean; error?: any }> => {
   try {
