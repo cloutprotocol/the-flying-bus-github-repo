@@ -44,7 +44,7 @@ export const submitForReview = async (
         success: false, 
         error: new ApiError(
           error.message || 'Error submitting article', 
-          ApiErrorType.DATABASE, 
+          ApiErrorType.SERVER, // Changed from DATABASE to SERVER
           error.code === '23505' ? 409 : undefined, 
           error
         )
