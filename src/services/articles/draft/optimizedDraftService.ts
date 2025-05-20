@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from '@/utils/errors/types';
+import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Save an article draft with optimized database operations
@@ -25,7 +26,7 @@ export const saveDraftOptimized = async (
     }
     
     // Generate client-side slug if not provided
-    const slug = articleData.slug || generateSlug(articleData.title || 'untitled-draft');
+    const slug = articleData.slug || generateClientSideSlug(articleData.title || 'untitled-draft');
     
     // Build complete article data for the DB call
     const completeArticleData = {
@@ -57,7 +58,7 @@ export const saveDraftOptimized = async (
     
     // Type guard to ensure data has the expected structure
     if (data !== null && typeof data === 'object' && 'article_id' in data) {
-      articleId = data.article_id;
+      articleId = data.article_id as string;
     }
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
@@ -71,25 +72,4 @@ export const saveDraftOptimized = async (
     logger.error(LogSource.DATABASE, 'Exception saving draft', { error: e });
     return { success: false, error: e };
   }
-};
-
-/**
- * Generate a slug on the client-side to avoid database queries
- * Uses timestamp suffix to ensure uniqueness
- */
-const generateSlug = (title: string): string => {
-  if (!title || typeof title !== 'string') {
-    return `draft-${Date.now()}`;
-  }
-  
-  // Create base slug from title
-  const baseSlug = title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')  // Remove special characters
-    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-    .replace(/-+/g, '-')      // Remove consecutive hyphens
-    .trim();
-    
-  // Add timestamp to ensure uniqueness without needing additional DB queries
-  return `${baseSlug}-${Date.now().toString().slice(-8)}`;
 };

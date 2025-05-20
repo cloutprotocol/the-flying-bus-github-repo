@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from '@/utils/errors/types';
 import { validateArticle } from '@/utils/validation/articleValidation';
+import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Submit an article for review using an optimized stored procedure
@@ -66,7 +67,7 @@ export const submitForReview = async (
 
     // Type guard for proper checking of data structure
     if (typeof data === 'object' && 'success' in data && data.success === false) {
-      const errorMessage = 'error_message' in data ? data.error_message : 'Submission failed';
+      const errorMessage = 'error_message' in data ? String(data.error_message) : 'Submission failed';
       return {
         success: false,
         error: new ApiError(errorMessage, ApiErrorType.VALIDATION)
@@ -76,7 +77,7 @@ export const submitForReview = async (
     // Get the article_id from data if it exists
     let submissionId = null;
     if (typeof data === 'object' && 'article_id' in data) {
-      submissionId = data.article_id;
+      submissionId = data.article_id as string;
     }
 
     return { 
@@ -92,25 +93,4 @@ export const submitForReview = async (
       error: new ApiError('An unexpected error occurred during submission', ApiErrorType.UNKNOWN)
     };
   }
-};
-
-/**
- * Generate a slug on the client-side to avoid database queries
- * Uses timestamp suffix to ensure uniqueness
- */
-const generateClientSideSlug = (title: string): string => {
-  if (!title || typeof title !== 'string') {
-    return `draft-${Date.now()}`;
-  }
-  
-  // Create base slug from title
-  const baseSlug = title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')  // Remove special characters
-    .replace(/\s+/g, '-')     // Replace spaces with hyphens
-    .replace(/-+/g, '-')      // Remove consecutive hyphens
-    .trim();
-    
-  // Add timestamp to ensure uniqueness without needing additional DB queries
-  return `${baseSlug}-${Date.now().toString().slice(-8)}`;
 };
