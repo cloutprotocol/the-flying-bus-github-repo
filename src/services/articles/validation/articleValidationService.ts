@@ -1,40 +1,28 @@
 
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { validateArticle } from '@/utils/validation/articleValidation';
 
 /**
  * Validate required fields for an article
+ * This is a thin wrapper around the central validation utility
+ * to maintain backward compatibility
  */
 export const validateArticleFields = (article: any): void => {
-  console.log("Validating article fields:", { 
-    hasTitle: !!article.title,
-    hasContent: !!article.content,
-    hasCategoryId: !!article.category_id,
-    contentLength: article.content?.length || 0
-  });
-
-  if (!article.title || article.title.trim() === '') {
-    const error = new Error('Article title is required');
-    logger.error(LogSource.ARTICLE, 'Article validation error: missing title', { article });
-    throw error;
-  }
-
-  if (!article.content || article.content.trim() === '') {
-    const error = new Error('Article content is required');
-    logger.error(LogSource.ARTICLE, 'Article validation error: missing content', { article });
-    throw error;
-  }
-
-  if (!article.category_id) {
-    const error = new Error('Article category is required');
-    logger.error(LogSource.ARTICLE, 'Article validation error: missing category', { article });
+  // Use the central validation utility
+  const { isValid, errors } = validateArticle(article);
+  
+  // If validation fails, throw the first error
+  if (!isValid && errors.length > 0) {
+    const error = new Error(errors[0]);
+    logger.error(LogSource.ARTICLE, `Article validation error: ${errors[0]}`, { article });
     throw error;
   }
   
-  console.log("Article validation successful");
+  // Log success
   logger.info(LogSource.ARTICLE, 'Article validation successful', { 
     title: article.title,
     contentLength: article.content?.length || 0,
-    categoryId: article.category_id
+    categoryId: article.category_id || article.categoryId
   });
 };

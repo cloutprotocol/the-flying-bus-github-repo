@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { z } from 'zod';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -12,11 +12,24 @@ interface ValidationContextType {
     options?: {
       context?: string;
       showToast?: boolean;
+      toastOnSuccess?: boolean;
     }
   ) => {
     isValid: boolean;
     data: z.infer<T> | null;
     errors: Record<string, string> | null;
+  };
+  
+  validateField: <T extends z.ZodType<any, any>>(
+    schema: T,
+    fieldPath: string,
+    value: any,
+    options?: {
+      context?: string;
+    }
+  ) => {
+    isValid: boolean;
+    error: string | null;
   };
 }
 
@@ -29,16 +42,32 @@ export function ValidationProvider({ children }: { children: React.ReactNode }) 
     options?: {
       context?: string;
       showToast?: boolean;
+      toastOnSuccess?: boolean;
     }
   ) => {
     const context = options?.context || 'validation';
     const showToast = options?.showToast ?? false;
+    const toastOnSuccess = options?.toastOnSuccess ?? false;
 
     try {
       // Parse data with schema
       const result = schema.safeParse(data);
       
       if (result.success) {
+        logger.info(
+          LogSource.APP,
+          `Validation successful: ${context}`,
+          { data: JSON.stringify(data).substring(0, 200) + '...' }
+        );
+        
+        if (showToast && toastOnSuccess) {
+          toast({
+            title: "Validation Successful",
+            description: "All fields are valid.",
+            variant: "default"
+          });
+        }
+        
         return {
           isValid: true,
           data: result.data,
@@ -97,9 +126,48 @@ export function ValidationProvider({ children }: { children: React.ReactNode }) 
       };
     }
   };
+  
+  const validateField = <T extends z.ZodType<any, any>>(
+    schema: T,
+    fieldPath: string,
+    value: any,
+    options?: {
+      context?: string;
+    }
+  ) => {
+    const context = options?.context || 'field_validation';
+    
+    try {
+      // Create a single-field schema to validate just this field
+      const fieldSchema = z.object({
+        [fieldPath]: z.any()
+      });
+      
+      // Parse the field
+      const result = fieldSchema.safeParse({ [fieldPath]: value });
+      
+      if (result.success) {
+        return { isValid: true, error: null };
+      } else {
+        const error = result.error.errors.find(err => 
+          err.path.join('.') === fieldPath
+        )?.message || 'Invalid value';
+        
+        return { isValid: false, error };
+      }
+    } catch (error) {
+      logger.error(
+        LogSource.APP,
+        `Field validation exception: ${context}`,
+        error
+      );
+      
+      return { isValid: false, error: 'Unexpected validation error' };
+    }
+  };
 
   return (
-    <ValidationContext.Provider value={{ validateForm }}>
+    <ValidationContext.Provider value={{ validateForm, validateField }}>
       {children}
     </ValidationContext.Provider>
   );

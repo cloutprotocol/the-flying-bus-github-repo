@@ -1,5 +1,9 @@
 import { UseFormReturn } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
+import { useValidation } from '@/providers/ValidationProvider';
+import { createArticleSchema } from '@/utils/validation/articleValidation';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 export const useFormValidation = (
   form?: UseFormReturn<any>,
@@ -7,6 +11,7 @@ export const useFormValidation = (
   customValidation?: () => { isValid: boolean; errors: string[] }
 ) => {
   const { toast } = useToast();
+  const { validateForm } = useValidation();
 
   const performFormValidation = (): boolean => {
     // If custom validation function is provided, use it
@@ -23,56 +28,38 @@ export const useFormValidation = (
       return isValid;
     }
     
-    // Otherwise, perform basic validation using form and content
+    // Otherwise, use centralized validation
     if (form) {
-      // Check title
-      const title = form.getValues('title');
-      if (!title || title.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "Article title is required",
-          variant: "destructive"
-        });
-        form.setError('title', { type: 'required', message: 'Title is required' });
-        return false;
-      }
+      const formData = form.getValues();
+      const fullData = {
+        ...formData,
+        content: content || ''
+      };
       
-      // Check category
-      const categoryId = form.getValues('categoryId');
-      if (!categoryId) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a category",
-          variant: "destructive"
-        });
-        form.setError('categoryId', { type: 'required', message: 'Category is required' });
-        return false;
-      }
-      
-      // Check image URL
-      const imageUrl = form.getValues('imageUrl');
-      if (!imageUrl || imageUrl.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "A featured image is required",
-          variant: "destructive"
-        });
-        form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
-        return false;
-      }
-    }
-    
-    // Check content
-    if (!content || content.trim() === '') {
-      toast({
-        title: "Validation Error",
-        description: "Article content is required",
-        variant: "destructive"
+      logger.info(LogSource.EDITOR, 'Validating article form', {
+        hasTitle: !!fullData.title,
+        hasCategoryId: !!fullData.categoryId,
+        contentLength: fullData.content?.length || 0
       });
-      return false;
+      
+      const result = validateForm(createArticleSchema, fullData, {
+        context: 'article_submit',
+        showToast: true
+      });
+      
+      if (!result.isValid && result.errors) {
+        // Set the field errors in the form
+        Object.entries(result.errors).forEach(([field, message]) => {
+          if (field !== 'content' && field !== '_error') {
+            form.setError(field as any, { type: 'validate', message });
+          }
+        });
+      }
+      
+      return result.isValid;
     }
     
-    return true;
+    return false;
   };
 
   return { performFormValidation };

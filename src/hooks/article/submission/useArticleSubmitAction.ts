@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { useValidation } from '@/providers/ValidationProvider';
+import { createArticleSchema } from '@/utils/validation/articleValidation';
 
 export interface ArticleSubmitOptions {
   draftId?: string;
@@ -38,6 +40,7 @@ export function useArticleSubmitAction({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addDebugStep } = useArticleDebug();
+  const { validateForm } = useValidation();
   
   // Prevent duplicate submissions and track submission state
   const submittingRef = useRef(false);
@@ -71,35 +74,13 @@ export function useArticleSubmitAction({
     submissionCompletedRef.current = true;
     
     try {
-      // Basic validation to fail fast
-      if (!data.title || data.title.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "Article title is required",
-          variant: "destructive"
-        });
-        setSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
+      // Centralized validation
+      const validationResult = validateForm(createArticleSchema, data, {
+        context: 'article_submission',
+        showToast: true
+      });
       
-      if (!data.categoryId) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a category",
-          variant: "destructive"
-        });
-        setSubmitting(false);
-        submittingRef.current = false;
-        return;
-      }
-      
-      if (!data.content || data.content.trim() === '') {
-        toast({
-          title: "Validation Error",
-          description: "Article content is required", 
-          variant: "destructive"
-        });
+      if (!validationResult.isValid) {
         setSubmitting(false);
         submittingRef.current = false;
         return;

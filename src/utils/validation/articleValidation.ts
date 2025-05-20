@@ -1,3 +1,4 @@
+
 /**
  * Article Validation
  * Validation schemas for article-related operations
@@ -5,6 +6,8 @@
 
 import { z } from 'zod';
 import { uuidSchema, slugSchema, urlSchema } from './validationUtils';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 // Article status enum
 export const ArticleStatusEnum = z.enum([
@@ -54,6 +57,14 @@ const baseArticleSchema = z.object({
   videoUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Video URL must use HTTPS")
     .optional(),
+}).refine((data) => {
+  if (data.articleType === 'video' && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Video URL is required for video articles",
+  path: ["videoUrl"]
 });
 
 // Schema for creating a new article
@@ -108,3 +119,38 @@ export const storyboardArticleSchema = baseArticleSchema.extend({
 export const deleteArticleSchema = z.object({
   id: uuidSchema
 });
+
+// Utility function to validate article
+export const validateArticle = (article: any, logValidation = true): { isValid: boolean; errors: string[] } => {
+  try {
+    if (logValidation) {
+      logger.info(LogSource.ARTICLE, "Validating article", { 
+        hasTitle: !!article.title,
+        hasContent: !!article.content,
+        hasCategoryId: !!article.categoryId,
+        contentLength: article.content?.length || 0,
+        articleType: article.articleType
+      });
+    }
+    
+    const result = createArticleSchema.safeParse(article);
+    
+    if (result.success) {
+      if (logValidation) {
+        logger.info(LogSource.ARTICLE, "Article validation successful");
+      }
+      return { isValid: true, errors: [] };
+    } else {
+      const errors = result.error.errors.map(err => err.message);
+      if (logValidation) {
+        logger.error(LogSource.ARTICLE, "Article validation failed", { errors });
+      }
+      return { isValid: false, errors };
+    }
+  } catch (error) {
+    if (logValidation) {
+      logger.error(LogSource.ARTICLE, "Article validation error", error);
+    }
+    return { isValid: false, errors: ["An unexpected error occurred during validation"] };
+  }
+};

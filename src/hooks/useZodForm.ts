@@ -10,6 +10,7 @@ interface UseZodFormProps<T extends z.ZodType<any, any>> extends Omit<UseFormPro
   schema: T;
   onSubmitSuccess?: (data: z.infer<T>) => void;
   logContext?: string;
+  validateOnSubmit?: boolean;
 }
 
 interface ExtendedUseFormReturn<T> extends UseFormReturn<T> {
@@ -20,6 +21,7 @@ export function useZodForm<T extends z.ZodType<any, any>>({
   schema,
   onSubmitSuccess,
   logContext = 'form',
+  validateOnSubmit = true,
   ...formProps
 }: UseZodFormProps<T>): ExtendedUseFormReturn<z.infer<T>> {
   const { validateForm } = useValidation();
@@ -39,21 +41,32 @@ export function useZodForm<T extends z.ZodType<any, any>>({
       
       return form.handleSubmit(async (data) => {
         try {
-          const result = validateForm(schema, data, { 
-            context: logContext,
-            showToast: true 
-          });
-          
-          if (result.isValid && result.data) {
-            logger.info(LogSource.APP, `Form validated successfully: ${logContext}`);
+          // Only perform additional validation if specified
+          if (validateOnSubmit) {
+            const result = validateForm(schema, data, { 
+              context: logContext,
+              showToast: true 
+            });
             
-            if (onValid) {
+            if (!result.isValid) {
+              logger.warn(LogSource.APP, `Form validation failed: ${logContext}`, result.errors);
+              return;
+            }
+            
+            if (result.data && onValid) {
+              logger.info(LogSource.APP, `Form validated successfully: ${logContext}`);
               await onValid(result.data);
-            } else if (onSubmitSuccess) {
+            } else if (result.data && onSubmitSuccess) {
+              logger.info(LogSource.APP, `Form validated successfully: ${logContext}`);
               await onSubmitSuccess(result.data);
             }
           } else {
-            logger.warn(LogSource.APP, `Form validation failed: ${logContext}`, result.errors);
+            // Skip additional validation and just call the handler
+            if (onValid) {
+              await onValid(data);
+            } else if (onSubmitSuccess) {
+              await onSubmitSuccess(data);
+            }
           }
         } catch (error) {
           logger.error(LogSource.APP, `Form submission error: ${logContext}`, error);

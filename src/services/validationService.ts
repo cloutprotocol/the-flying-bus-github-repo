@@ -5,10 +5,11 @@
  */
 
 import { z } from 'zod';
-import { LogSource } from '@/utils/logger';
-import logger from '@/utils/logger';
+import { LogSource } from '@/utils/logger/logger';
+import { logger } from '@/utils/logger/logger';
 import { supabase } from '@/integrations/supabase/client';
 import * as schemas from '@/utils/validation';
+import { validateAndSanitize, formatValidationErrors } from '@/utils/validation/enhancedValidation';
 
 /**
  * Validate data against a schema and handle errors consistently
@@ -60,46 +61,35 @@ export const sanitizeContent = (content: string): string => {
  * Also sanitizes content for security
  */
 export const validateArticle = (articleData: unknown) => {
-  const result = validateData(schemas.createArticleSchema, articleData, 'article_creation');
+  // Use the enhanced validation
+  const result = validateAndSanitize(schemas.createArticleSchema, articleData, 'article_creation');
   
-  // If valid, sanitize the content fields
-  if (result.isValid && result.data) {
-    result.data.title = sanitizeContent(result.data.title);
-    result.data.content = sanitizeContent(result.data.content);
-    if (result.data.excerpt) {
-      result.data.excerpt = sanitizeContent(result.data.excerpt);
-    }
-  }
-  
-  return result;
+  return {
+    isValid: result.isValid,
+    data: result.data,
+    errors: result.errors ? formatValidationErrors(result.errors) : null
+  };
 };
 
 /**
  * Validate article update data
  */
 export const validateArticleUpdate = (articleData: unknown) => {
-  const result = validateData(schemas.updateArticleSchema, articleData, 'article_update');
+  // Use the enhanced validation
+  const result = validateAndSanitize(schemas.updateArticleSchema, articleData, 'article_update');
   
-  // If valid, sanitize the content fields
-  if (result.isValid && result.data) {
-    if (result.data.title) {
-      result.data.title = sanitizeContent(result.data.title);
-    }
-    if (result.data.content) {
-      result.data.content = sanitizeContent(result.data.content);
-    }
-    if (result.data.excerpt) {
-      result.data.excerpt = sanitizeContent(result.data.excerpt);
-    }
-  }
-  
-  return result;
+  return {
+    isValid: result.isValid,
+    data: result.data,
+    errors: result.errors ? formatValidationErrors(result.errors) : null
+  };
 };
 
 /**
  * Validate comment data before database operations
  */
 export const validateComment = (commentData: unknown) => {
+  // Use the existing validate method for backward compatibility
   const result = validateData(schemas.createCommentSchema, commentData, 'comment_creation');
   
   // If valid, sanitize the content
@@ -114,6 +104,7 @@ export const validateComment = (commentData: unknown) => {
  * Validate comment update data
  */
 export const validateCommentUpdate = (commentData: unknown) => {
+  // Use the existing validate method for backward compatibility
   const result = validateData(schemas.updateCommentSchema, commentData, 'comment_update');
   
   // If valid, sanitize the content
@@ -128,6 +119,7 @@ export const validateCommentUpdate = (commentData: unknown) => {
  * Validate user profile data before database operations
  */
 export const validateUserProfile = (profileData: unknown) => {
+  // Use the existing validate method for backward compatibility
   const result = validateData(schemas.updateProfileSchema, profileData, 'profile_update');
   
   // If valid, sanitize text fields

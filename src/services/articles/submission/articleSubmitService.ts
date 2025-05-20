@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from '@/utils/errors/types';
+import { validateArticle } from '@/utils/validation/articleValidation';
 
 /**
  * Submit an article for review using an optimized stored procedure
@@ -44,7 +45,7 @@ export const submitForReview = async (
         success: false, 
         error: new ApiError(
           error.message || 'Error submitting article', 
-          ApiErrorType.SERVER, // Changed from DATABASE to SERVER
+          ApiErrorType.SERVER, 
           error.code === '23505' ? 409 : undefined, 
           error
         )
