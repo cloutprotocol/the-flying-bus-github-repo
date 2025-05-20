@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getArticleRevisions, createArticleRevision } from '@/services/draftService';
+import { getArticleRevisions, createArticleRevision } from '@/services/articles/draft/unifiedDraftService';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleRevision } from '@/types/ArticleEditorTypes';
 

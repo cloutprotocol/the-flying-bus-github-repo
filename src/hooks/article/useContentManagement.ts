@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getDraftById } from '@/services/draftService';
+import { getDraftById } from '@/services/articles/draft/unifiedDraftService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import type { UseFormReturn } from 'react-hook-form';

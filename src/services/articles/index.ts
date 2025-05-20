@@ -10,3 +10,5 @@ export * from './review/articleReviewHandlerService';
 export * from './slug/slugGenerationService';
 export * from './submission/articleSubmitService';
 export * from './draft/draftSaveService';
+export * from './draft/optimizedDraftService';
+export * from './draft/unifiedDraftService';
