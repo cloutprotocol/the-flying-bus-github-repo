@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useZodForm } from '@/hooks/useZodForm';
@@ -24,13 +25,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   isNewArticle = true 
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
-  const { addDebugStep, updateLastStep, debugSteps } = useArticleDebug();
+  const { addDebugStep } = useArticleDebug();
   const { toast } = useToast();
   
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
   );
   
+  // Initialize form with optimized validation (reduced validation frequency)
   const form = useZodForm({
     schema: createArticleSchema,
     defaultValues: {
@@ -44,6 +46,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       articleType: articleType as any,
       videoUrl: '',
     },
+    mode: 'onSubmit', // Only validate on submit to reduce performance overhead
     logContext: 'article_form'
   });
 
@@ -60,17 +63,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
 
-  // Log initial values for debugging
+  // Performance logging
   useEffect(() => {
-    console.log("ArticleForm initialized", { 
+    console.log("ArticleForm render performance", { 
+      time: new Date().toISOString(),
       articleId,
       draftId,
       articleType,
-      isNewArticle,
-      hasContent: !!content,
-      contentLength: content?.length || 0
+      isNewArticle
     });
-  }, [articleId, draftId, articleType, isNewArticle, content]);
+  }, [articleId, draftId, articleType, isNewArticle]);
 
   // Form validation function
   const validateFormBeforeSubmit = () => {
@@ -99,7 +101,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       isValid = false;
     }
     
-    // Validate image URL (new validation check)
+    // Validate image URL
     const imageUrl = form.getValues('imageUrl');
     if (!imageUrl || imageUrl.trim() === '') {
       errors.push("A featured image is required");
@@ -110,29 +112,25 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     return { isValid, errors };
   };
 
-  // Form submission handler
+  // Form submission handler with performance optimizations
   const onSubmit = async (data: any) => {
     try {
-      console.log("Form submitted with data:", { 
-        ...data, 
-        content, 
-        contentLength: content?.length || 0 
-      });
-      
+      // Only log minimal data to reduce overhead
       addDebugStep('Form validation passed', {
-        formData: {
-          title: data.title,
-          excerpt: data.excerpt?.substring(0, 20) + '...',
-          articleType: data.articleType,
-          categoryId: data.categoryId
-        }
+        hasTitle: !!data.title,
+        hasCategoryId: !!data.categoryId,
+        articleType: data.articleType,
       });
       
-      await handleSubmit(data);
+      await handleSubmit({
+        ...data,
+        content,
+        isDirty: form.formState.isDirty,
+        id: draftId || articleId
+      });
       
     } catch (error) {
       console.error("Form submission error:", error);
-      updateLastStep('error', { error: String(error) });
       logger.error(LogSource.EDITOR, 'Article submission failed', error);
       toast({
         title: 'Error',
@@ -144,23 +142,20 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   const effectiveArticleId = articleId || draftId;
 
-  // Fix: handleSubmitButtonClick now returns a Promise and validates first
+  // Handle submit button click with optimized validation
   const handleSubmitButtonClick = async (): Promise<void> => {
-    console.log("Submit button click handler", { 
-      formValues: form.getValues(),
-      content,
-      contentLength: content?.length || 0
-    });
+    // Skip validation if form is invalid to reduce processing
+    if (!form.formState.isValid && !validateFormBeforeSubmit().isValid) {
+      return Promise.resolve();
+    }
     
-    // Form will be validated in FormActions component
     return form.handleSubmit(onSubmit)();
   };
 
   return (
     <ArticleFormLayout 
-      debugSteps={debugSteps}
-      onSubmit={form.handleSubmit(onSubmit)}
       form={form}
+      onSubmit={form.handleSubmit(onSubmit)}
     >
       <ArticleFormContent 
         form={form}

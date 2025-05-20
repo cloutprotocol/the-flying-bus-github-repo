@@ -61,7 +61,7 @@ const FormActions: React.FC<FormActionsProps> = ({
     };
   }, []);
   
-  // Handle save status notifications
+  // Handle save status notifications with reduced frequency
   useEffect(() => {
     if (saveStatus === 'saved' && !toastShown) {
       setToastShown(true);
@@ -120,7 +120,14 @@ const FormActions: React.FC<FormActionsProps> = ({
     
     // Set submission completed to prevent auto-save
     submissionCompleted.current = true;
-    openSubmitDialog();
+    
+    // Open dialog if changes need to be saved, otherwise submit directly
+    // This optimization reduces steps for the user
+    if (isDirty && saveStatus !== 'saved') {
+      openSubmitDialog();
+    } else {
+      handleDialogConfirm();
+    }
   };
   
   const handleDialogConfirm = async () => {

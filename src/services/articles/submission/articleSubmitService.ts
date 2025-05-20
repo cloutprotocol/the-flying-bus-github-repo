@@ -7,19 +7,19 @@ import { validateArticle } from '@/utils/validation/articleValidation';
 
 /**
  * Submit an article for review using an optimized stored procedure
- * This version uses a single database transaction via a stored procedure
- * to improve performance and reduce database calls
+ * This version uses a single database operation to reduce latency
  */
 export const submitForReview = async (
-  articleId: string
+  articleData: any,
+  saveDraft: boolean = true
 ): Promise<{ success: boolean; error?: any; submissionId?: string }> => {
   try {
-    // Fast fail with basic validation
-    if (!articleId) {
-      return { success: false, error: new Error('Missing article ID') };
+    // Basic validation
+    if (!articleData) {
+      return { success: false, error: new Error('Missing article data') };
     }
 
-    // Get current user session for auth validation
+    // Get current user session once for auth validation
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session?.user?.id) {
@@ -30,14 +30,28 @@ export const submitForReview = async (
     }
     
     const userId = session.user.id;
+    
+    // Get the article ID if it exists
+    const articleId = articleData.id;
+    
+    // Generate slug on client-side to avoid extra DB query
+    const slug = articleData.slug || generateClientSideSlug(articleData.title);
+    
+    // Set basic required fields
+    const submissionData = {
+      p_user_id: userId,
+      p_article_data: {
+        ...articleData,
+        slug,
+        author_id: userId,
+        status: 'pending'
+      },
+      p_save_draft: saveDraft
+    };
 
-    // Call the optimized stored procedure to handle the entire submission process
-    // This runs as a single database transaction and handles all validation and updates
+    // Call the optimized stored procedure in a single database transaction
     const { data, error } = await supabase
-      .rpc('submit_article_for_review', {
-        p_article_id: articleId,
-        p_user_id: userId
-      })
+      .rpc('submit_article_with_validation', submissionData)
       .single();
 
     if (error) {
@@ -52,10 +66,10 @@ export const submitForReview = async (
       };
     }
     
-    if (!data.success) {
+    if (!data || !data.success) {
       return {
         success: false,
-        error: new ApiError(data.error_message || 'Submission failed', ApiErrorType.VALIDATION)
+        error: new ApiError(data?.error_message || 'Submission failed', ApiErrorType.VALIDATION)
       };
     }
 
@@ -72,4 +86,25 @@ export const submitForReview = async (
       error: new ApiError('An unexpected error occurred during submission', ApiErrorType.UNKNOWN)
     };
   }
+};
+
+/**
+ * Generate a slug on the client-side to avoid database queries
+ * Uses timestamp suffix to ensure uniqueness
+ */
+const generateClientSideSlug = (title: string): string => {
+  if (!title || typeof title !== 'string') {
+    return `draft-${Date.now()}`;
+  }
+  
+  // Create base slug from title
+  const baseSlug = title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')  // Remove special characters
+    .replace(/\s+/g, '-')     // Replace spaces with hyphens
+    .replace(/-+/g, '-')      // Remove consecutive hyphens
+    .trim();
+    
+  // Add timestamp to ensure uniqueness without needing additional DB queries
+  return `${baseSlug}-${Date.now().toString().slice(-8)}`;
 };
