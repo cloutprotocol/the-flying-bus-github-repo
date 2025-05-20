@@ -1,12 +1,11 @@
-
 /**
  * Validation Service
  * Centralized service for validating data on the server-side
  */
 
 import { z } from 'zod';
-import { LogSource } from '@/utils/logger/logger';
 import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types'; // Corrected import from types
 import { supabase } from '@/integrations/supabase/client';
 import * as schemas from '@/utils/validation';
 import { validateAndSanitize, formatValidationErrors } from '@/utils/validation/enhancedValidation';

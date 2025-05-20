@@ -33,8 +33,8 @@ export const ReadingLevelEnum = z.enum([
   'Advanced'
 ]);
 
-// Base article schema with common fields
-const baseArticleSchema = z.object({
+// Base article schema with common fields - without refine wrapping
+const baseArticleSchemaObject = z.object({
   title: z.string()
     .min(1, 'Title is required')
     .max(150, 'Title is too long')
@@ -57,7 +57,10 @@ const baseArticleSchema = z.object({
   videoUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Video URL must use HTTPS")
     .optional(),
-}).refine((data) => {
+});
+
+// Now add the refinement separately
+const baseArticleSchema = baseArticleSchemaObject.refine((data) => {
   if (data.articleType === 'video' && !data.videoUrl) {
     return false;
   }
@@ -70,9 +73,17 @@ const baseArticleSchema = z.object({
 // Schema for creating a new article
 export const createArticleSchema = baseArticleSchema;
 
-// Schema for updating an existing article
-export const updateArticleSchema = baseArticleSchema.partial().extend({
+// Schema for updating an existing article - now partial works
+export const updateArticleSchema = baseArticleSchemaObject.partial().extend({
   id: uuidSchema
+}).refine((data) => {
+  if (data.articleType === 'video' && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Video URL is required for video articles",
+  path: ["videoUrl"]
 });
 
 // Schema for article status update
@@ -82,7 +93,7 @@ export const updateArticleStatusSchema = z.object({
 });
 
 // Schema for debate article
-export const debateArticleSchema = baseArticleSchema.extend({
+export const debateArticleSchema = baseArticleSchemaObject.extend({
   articleType: z.literal('debate'),
   question: z.string()
     .min(10, 'Question must be at least 10 characters long')
@@ -95,10 +106,18 @@ export const debateArticleSchema = baseArticleSchema.extend({
     .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
   votingEnabled: z.boolean().optional().default(true),
   votingEndsAt: z.string().datetime().optional()
+}).refine((data) => {
+  if (data.articleType === 'video' && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Video URL is required for video articles",
+  path: ["videoUrl"]
 });
 
 // Schema for video article
-export const videoArticleSchema = baseArticleSchema.extend({
+export const videoArticleSchema = baseArticleSchemaObject.extend({
   articleType: z.literal('video'),
   videoUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Video URL must use HTTPS"),
@@ -106,13 +125,29 @@ export const videoArticleSchema = baseArticleSchema.extend({
   transcript: z.string()
     .refine(text => !text.includes("<script>"), "Transcript cannot contain script tags")
     .optional()
+}).refine((data) => {
+  if (data.articleType === 'video' && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Video URL is required for video articles",
+  path: ["videoUrl"]
 });
 
 // Schema for storyboard article
-export const storyboardArticleSchema = baseArticleSchema.extend({
+export const storyboardArticleSchema = baseArticleSchemaObject.extend({
   articleType: z.literal('storyboard'),
   seriesId: uuidSchema,
   episodeNumber: z.number().int().positive()
+}).refine((data) => {
+  if (data.articleType === 'video' && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Video URL is required for video articles",
+  path: ["videoUrl"]
 });
 
 // Schema for article deletion
