@@ -56,20 +56,34 @@ export const submitForReview = async (
       };
     }
     
-    // Fix: Handle the single object response correctly
-    if (!data || (typeof data === 'object' && data.success === false)) {
+    // Fix: Make sure we properly handle the response data type
+    if (data === null) {
+      return {
+        success: false,
+        error: new ApiError('Submission failed', ApiErrorType.VALIDATION)
+      };
+    }
+
+    // Properly check if data is an object and has the success property
+    if (typeof data === 'object' && 'success' in data && data.success === false) {
       return {
         success: false,
         error: new ApiError(
-          (data && typeof data === 'object' ? data.error_message : 'Submission failed') || 'Submission failed', 
+          data.error_message || 'Submission failed', 
           ApiErrorType.VALIDATION
         )
       };
     }
 
+    // Get the article_id from data if it exists
+    let submissionId = null;
+    if (typeof data === 'object' && 'article_id' in data) {
+      submissionId = data.article_id;
+    }
+
     return { 
       success: true, 
-      submissionId: typeof data === 'object' ? data.article_id : null
+      submissionId
     };
   } catch (e) {
     // Minimal error logging for performance

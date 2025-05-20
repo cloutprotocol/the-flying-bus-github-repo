@@ -77,8 +77,11 @@ const saveDraftOptimized = async (formData: any) => {
       return { success: false, error, articleId: formData.id };
     }
     
-    // Fix: Access article_id directly from the data object (not an array)
-    const articleId = data && typeof data === 'object' ? data.article_id : formData.id;
+    // Fix: Make sure data is treated as a single object, not an array
+    let articleId = formData.id;
+    if (data !== null && typeof data === 'object') {
+      articleId = data.article_id || formData.id;
+    }
     
     return { success: true, articleId, error: null };
   } catch (error) {
