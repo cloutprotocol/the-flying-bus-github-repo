@@ -1,54 +1,98 @@
-
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useContentManagement } from '../useContentManagement';
+import { getDraftById } from '@/services/articleService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
-import type { UseFormReturn } from 'react-hook-form';
 
-export interface ArticleFormState {
-  isSubmitting: boolean;
-  setIsSubmitting: (value: boolean) => void;
-  isSaving: boolean;
-  setIsSaving: (value: boolean) => void;
-  saveStatus: DraftSaveStatus;
-  setSaveStatus: (status: DraftSaveStatus) => void;
-  lastSaved: Date | null;
-  setLastSaved: (date: Date | null) => void;
-  draftId: string | undefined;
-  setDraftId: (id: string | undefined) => void;
-  content: string;
-  setContent: (content: string) => void;
-  submissionCompletedRef: React.MutableRefObject<boolean>;
-  isMountedRef: React.MutableRefObject<boolean>;
-}
-
-export function useArticleFormState(
-  form: UseFormReturn<any>,
-  articleId?: string,
-  isNewArticle: boolean = true
-): ArticleFormState {
-  // State management
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<DraftSaveStatus>('idle');
+/**
+ * Hook to manage article form state with improved draft ID persistence
+ */
+export const useArticleFormState = (form: any, initialArticleId?: string, isNewArticle: boolean = true) => {
+  // Main form state
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [draftId, setDraftId] = useState<string | undefined>(articleId);
+  const [content, setContent] = useState<string>('');
+  
+  // Improved draft ID management
+  const [draftId, setDraftId] = useState<string | undefined>(initialArticleId);
+  const draftIdRef = useRef<string | undefined>(initialArticleId);
+  
+  // Lifecycle refs
+  const submissionCompletedRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(false);
+  
   const { toast } = useToast();
-  
-  // Content management
-  const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
-  
-  // Track if component is mounted and submission state
-  const isMountedRef = useRef(true);
-  const submissionCompletedRef = useRef(false);
-  
-  // Log component initialization for performance tracking
-  logger.info(LogSource.EDITOR, 'ArticleForm state initialized', {
-    articleId,
-    isNewArticle
-  });
+
+  // Keep the ref in sync with state for consistent draft ID access
+  useEffect(() => {
+    draftIdRef.current = draftId;
+    
+    logger.debug(LogSource.EDITOR, 'Draft ID updated', {
+      draftId,
+      initialArticleId,
+      isNew: isNewArticle
+    });
+  }, [draftId, initialArticleId, isNewArticle]);
+
+  // Fetch article data if ID is provided
+  useEffect(() => {
+    if (!isNewArticle && initialArticleId) {
+      const fetchArticleData = async () => {
+        logger.info(LogSource.EDITOR, 'Fetching existing article', { articleId: initialArticleId });
+        
+        try {
+          const { draft, error } = await getDraftById(initialArticleId);
+          
+          if (error) {
+            toast({
+              title: 'Error',
+              description: 'Failed to fetch article data',
+              variant: 'destructive'
+            });
+            logger.error(LogSource.EDITOR, 'Error fetching article', { error });
+            return;
+          }
+          
+          if (draft) {
+            // Populate form with article data
+            form.reset({
+              title: draft.title,
+              excerpt: draft.excerpt,
+              categoryId: draft.categoryId,
+              imageUrl: draft.imageUrl,
+              articleType: draft.articleType,
+              status: draft.status
+            });
+            
+            // Set content if available
+            if (draft.content) {
+              setContent(draft.content);
+            }
+            
+            // Set video URL or debate settings if applicable
+            if (draft.videoUrl) {
+              form.setValue('videoUrl', draft.videoUrl);
+            }
+            
+            if (draft.debateSettings) {
+              form.setValue('debateSettings', draft.debateSettings);
+            }
+            
+            logger.info(LogSource.EDITOR, 'Article loaded successfully', {
+              articleId: initialArticleId,
+              title: draft.title
+            });
+          }
+        } catch (err) {
+          logger.error(LogSource.EDITOR, 'Exception fetching article', { error: err });
+        }
+      };
+      
+      fetchArticleData();
+    }
+  }, [initialArticleId, isNewArticle, form, toast]);
   
   return {
     isSubmitting,
@@ -57,13 +101,14 @@ export function useArticleFormState(
     setIsSaving,
     saveStatus,
     setSaveStatus,
-    lastSaved, 
+    lastSaved,
     setLastSaved,
-    draftId,
-    setDraftId,
     content,
     setContent,
+    draftId,
+    setDraftId,
+    draftIdRef, // Expose ref for more reliable access to current draft ID
     submissionCompletedRef,
     isMountedRef
   };
-}
+};

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,7 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
 }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const pendingOperationRef = useRef<boolean>(false);
 
   const getAvailableStatuses = (): { status: StatusType; label: string; icon: React.ReactNode }[] => {
     const allStatuses: { status: StatusType; label: string; icon: React.ReactNode }[] = [
@@ -60,6 +61,13 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
   const handleStatusChange = async (newStatus: StatusType) => {
     if (newStatus === currentStatus || isSubmitting) return;
     
+    // Prevent duplicate operations
+    if (pendingOperationRef.current) {
+      logger.warn(LogSource.EDITOR, 'Status change operation already in progress. Ignoring duplicate request');
+      return;
+    }
+    
+    pendingOperationRef.current = true;
     setIsSubmitting(true);
     
     try {
@@ -146,6 +154,10 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
       });
     } finally {
       setIsSubmitting(false);
+      // Reset the pending operation flag after a small delay to prevent accidental double-clicks
+      setTimeout(() => {
+        pendingOperationRef.current = false;
+      }, 300);
     }
   };
 

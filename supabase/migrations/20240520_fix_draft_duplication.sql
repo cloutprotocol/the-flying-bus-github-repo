@@ -1,96 +1,5 @@
 
--- This file contains SQL functions for optimized database operations
--- To use these functions, they need to be executed against the database
-
--- Function to save and submit an article in a single transaction
-CREATE OR REPLACE FUNCTION public.submit_article_with_validation(
-  p_user_id UUID,
-  p_article_data JSONB,
-  p_save_draft BOOLEAN DEFAULT TRUE
-)
-RETURNS TABLE(success BOOLEAN, error_message TEXT, article_id UUID)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_article_id UUID;
-  v_article_exists BOOLEAN;
-  v_is_author BOOLEAN;
-  v_article_status TEXT;
-  v_article_type TEXT;
-  v_article_title TEXT;
-  v_slug TEXT;
-BEGIN
-  -- Extract data from the input
-  v_article_id := (p_article_data->>'id')::UUID;
-  v_article_type := p_article_data->>'articleType';
-  v_article_title := p_article_data->>'title';
-  v_slug := p_article_data->>'slug';
-  
-  -- Start a transaction for atomic operations
-  BEGIN
-    -- If article exists, check if user has permission
-    IF v_article_id IS NOT NULL THEN
-      SELECT 
-        EXISTS(SELECT 1 FROM articles WHERE id = v_article_id),
-        (author_id = p_user_id),
-        status
-      INTO 
-        v_article_exists,
-        v_is_author,
-        v_article_status
-      FROM articles 
-      WHERE id = v_article_id;
-      
-      -- Verify article exists
-      IF NOT v_article_exists THEN
-        RETURN QUERY SELECT false, 'Article not found', NULL::UUID;
-        RETURN;
-      END IF;
-      
-      -- Verify author ownership
-      IF NOT v_is_author THEN
-        RETURN QUERY SELECT false, 'You do not have permission to submit this article', NULL::UUID;
-        RETURN;
-      END IF;
-      
-      -- Skip if already pending
-      IF v_article_status = 'pending' THEN
-        RETURN QUERY SELECT true, NULL::TEXT, v_article_id;
-        RETURN;
-      END IF;
-    END IF;
-    
-    -- If saving as draft first
-    IF p_save_draft THEN
-      -- Save article draft
-      v_article_id := save_article_draft(p_article_data);
-      
-      -- Check if draft was saved successfully
-      IF v_article_id IS NULL THEN
-        RETURN QUERY SELECT false, 'Failed to save article draft', NULL::UUID;
-        RETURN;
-      END IF;
-    END IF;
-    
-    -- Update status to pending in one operation
-    UPDATE articles
-    SET 
-      status = 'pending',
-      updated_at = now()
-    WHERE id = v_article_id;
-    
-    -- Success
-    RETURN QUERY SELECT true, NULL::TEXT, v_article_id;
-    
-  EXCEPTION WHEN OTHERS THEN
-    -- Handle errors
-    RETURN QUERY SELECT false, SQLERRM, NULL::UUID;
-  END;
-END;
-$$;
-
--- Function to save an article draft efficiently with duplicate detection
+-- Fix article duplication issues in the save_article_draft function
 CREATE OR REPLACE FUNCTION public.save_article_draft(
   p_article_data JSONB
 )
@@ -204,5 +113,93 @@ BEGIN
   END IF;
   
   RETURN v_result_id;
+END;
+$$;
+
+-- Update the submit_article_with_validation function to work with the improved save_article_draft
+CREATE OR REPLACE FUNCTION public.submit_article_with_validation(
+  p_user_id UUID,
+  p_article_data JSONB,
+  p_save_draft BOOLEAN DEFAULT TRUE
+)
+RETURNS TABLE(success BOOLEAN, error_message TEXT, article_id UUID)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_article_id UUID;
+  v_article_exists BOOLEAN;
+  v_is_author BOOLEAN;
+  v_article_status TEXT;
+  v_article_type TEXT;
+  v_article_title TEXT;
+  v_slug TEXT;
+BEGIN
+  -- Extract data from the input
+  v_article_id := (p_article_data->>'id')::UUID;
+  v_article_type := p_article_data->>'articleType';
+  v_article_title := p_article_data->>'title';
+  v_slug := p_article_data->>'slug';
+  
+  -- Start a transaction for atomic operations
+  BEGIN
+    -- If article exists, check if user has permission
+    IF v_article_id IS NOT NULL THEN
+      SELECT 
+        EXISTS(SELECT 1 FROM articles WHERE id = v_article_id),
+        (author_id = p_user_id),
+        status
+      INTO 
+        v_article_exists,
+        v_is_author,
+        v_article_status
+      FROM articles 
+      WHERE id = v_article_id;
+      
+      -- Verify article exists
+      IF NOT v_article_exists THEN
+        RETURN QUERY SELECT false, 'Article not found', NULL::UUID;
+        RETURN;
+      END IF;
+      
+      -- Verify author ownership
+      IF NOT v_is_author THEN
+        RETURN QUERY SELECT false, 'You do not have permission to submit this article', NULL::UUID;
+        RETURN;
+      END IF;
+      
+      -- Skip if already pending
+      IF v_article_status = 'pending' THEN
+        RETURN QUERY SELECT true, NULL::TEXT, v_article_id;
+        RETURN;
+      END IF;
+    END IF;
+    
+    -- If saving as draft first
+    IF p_save_draft THEN
+      -- Save article draft
+      v_article_id := save_article_draft(p_article_data);
+      
+      -- Check if draft was saved successfully
+      IF v_article_id IS NULL THEN
+        RETURN QUERY SELECT false, 'Failed to save article draft', NULL::UUID;
+        RETURN;
+      END IF;
+    END IF;
+    
+    -- Update status to pending in one operation
+    UPDATE articles
+    SET 
+      status = 'pending',
+      updated_at = now()
+    WHERE id = v_article_id;
+    
+    -- Success
+    RETURN QUERY SELECT true, NULL::TEXT, v_article_id;
+    
+  EXCEPTION WHEN OTHERS THEN
+    -- Handle errors
+    RETURN QUERY SELECT false, SQLERRM, NULL::UUID;
+  END;
 END;
 $$;

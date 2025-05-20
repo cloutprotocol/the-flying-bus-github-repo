@@ -8,6 +8,7 @@ import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 /**
  * Save an article draft with optimized database operations
  * Uses the new save_article_draft database function for efficient saving
+ * with improved duplicate detection
  */
 export const saveDraftOptimized = async (
   articleData: any
@@ -25,6 +26,38 @@ export const saveDraftOptimized = async (
       };
     }
     
+    // IMPORTANT: Check if we have a draft ID - crucial for preventing duplicates
+    const originalId = articleData.id;
+    
+    // If no draft ID but we have content, check for existing drafts by this author with this title
+    // This helps prevent duplicate article creation during auto-saves
+    if (!originalId && articleData.title) {
+      logger.info(LogSource.DATABASE, 'No draft ID provided, checking for existing drafts', {
+        title: articleData.title,
+        authorId: userId
+      });
+      
+      const { data: existingDrafts, error: searchError } = await supabase
+        .from('articles')
+        .select('id')
+        .eq('author_id', userId)
+        .eq('title', articleData.title)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (!searchError && existingDrafts && existingDrafts.length > 0) {
+        const existingId = existingDrafts[0].id;
+        logger.info(LogSource.DATABASE, 'Found existing draft with same title', { 
+          existingId,
+          title: articleData.title 
+        });
+        
+        // Use the existing draft ID to prevent duplicates
+        articleData.id = existingId;
+      }
+    }
+    
     // Generate client-side slug if not provided
     const slug = articleData.slug || generateClientSideSlug(articleData.title || 'untitled-draft');
     
@@ -38,10 +71,13 @@ export const saveDraftOptimized = async (
     };
     
     logger.debug(LogSource.DATABASE, 'Calling save_article_draft with data', {
-      dataKeys: Object.keys(completeArticleData)
+      articleId: completeArticleData.id || 'new',
+      title: completeArticleData.title,
+      hasContent: !!completeArticleData.content,
+      contentLength: completeArticleData.content?.length || 0
     });
 
-    // Call the new database function to save the draft (single DB call)
+    // Call the database function to save the draft (single DB call)
     const { data, error } = await supabase
       .rpc('save_article_draft', {
         p_article_data: completeArticleData
@@ -74,14 +110,20 @@ export const saveDraftOptimized = async (
       articleId = 
         (typeof responseObj.article_id === 'string' ? responseObj.article_id : undefined) || 
         (typeof responseObj.id === 'string' ? responseObj.id : undefined);
-    } else {
-      // Fallback to the original ID if provided
-      articleId = articleData.id;
-      logger.warn(LogSource.DATABASE, 'Unexpected response format from save_article_draft', { data });
+    }
+    
+    // If we still don't have an article ID, log this issue but return the original ID
+    if (!articleId) {
+      logger.warn(LogSource.DATABASE, 'No article ID returned from save_article_draft', { 
+        originalId, 
+        responseData: data 
+      });
+      articleId = originalId;
     }
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
       articleId,
+      originalId,
       title: articleData.title
     });
     

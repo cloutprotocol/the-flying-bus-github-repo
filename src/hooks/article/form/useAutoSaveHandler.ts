@@ -32,7 +32,7 @@ export function useAutoSaveHandler({
   setLastSaved,
   saveDraft,
   setDraftId,
-  autoSaveInterval = 60000, // Default to 60 seconds
+  autoSaveInterval = 120000, // Increased from 60s to 120s to reduce frequency
   submissionCompletedRef,
   isMountedRef
 }: AutoSaveProps) {
@@ -40,8 +40,16 @@ export function useAutoSaveHandler({
   const saveInProgressRef = useRef(false);
   const lastContentRef = useRef<string>(content);
   const lastFormStateRef = useRef<any>(form.getValues());
+  const lastSavedDraftIdRef = useRef<string | undefined>(draftId);
+  const saveCountRef = useRef<number>(0);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Optimized auto save effect with improved submission handling and change detection
+  // Update draftId ref when prop changes
+  useEffect(() => {
+    lastSavedDraftIdRef.current = draftId;
+  }, [draftId]);
+  
+  // Optimized auto save effect with improved submission handling, change detection, and debouncing
   useEffect(() => {
     // Skip auto-save if any of these conditions are true
     if (isSubmitting || isSaving || saveInProgressRef.current) {
@@ -50,6 +58,7 @@ export function useAutoSaveHandler({
     
     // Critical check: Skip auto-save if submission has completed
     if (submissionCompletedRef?.current === true) {
+      logger.debug(LogSource.EDITOR, 'Auto-save skipped: submission completed');
       return;
     }
     
@@ -65,66 +74,98 @@ export function useAutoSaveHandler({
       lastContentRef.current = content;
       lastFormStateRef.current = formValues;
       
-      // Clear any existing timeout
+      // Clear any existing timeouts (debounce)
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
       
-      // Set new timeout for auto-save
-      autoSaveTimeoutRef.current = setTimeout(() => {
-        // Double-check submission state before executing save
-        if (submissionCompletedRef?.current === true) {
-          return;
-        }
-        
-        // Skip if unmounted or already saving
-        if (!isMountedRef.current || saveInProgressRef.current) {
-          return;
-        }
-        
-        saveInProgressRef.current = true;
-        setSaving(true);
-        setSaveStatus('saving');
-        
-        const formData = {
-          ...form.getValues(),
-          content
-        };
-        
-        saveDraft(formData)
-          .then(result => {
-            if (!isMountedRef.current) return;
-            
-            if (result.success) {
-              setSaveStatus('saved');
-              setLastSaved(new Date());
-              
-              // Update draft ID if needed
-              if (result.articleId && setDraftId && !draftId) {
-                setDraftId(result.articleId);
-              }
-            } else {
-              setSaveStatus('error');
-            }
-          })
-          .catch(() => {
-            if (isMountedRef.current) {
-              setSaveStatus('error');
-            }
-          })
-          .finally(() => {
-            if (isMountedRef.current) {
-              setSaving(false);
-              saveInProgressRef.current = false;
-            }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Implement debouncing to prevent rapid auto-saves
+      // Only start the auto-save timer after 1.5s of inactivity
+      debounceTimeoutRef.current = setTimeout(() => {
+        // Set new timeout for auto-save
+        autoSaveTimeoutRef.current = setTimeout(() => {
+          // Double-check submission state before executing save
+          if (submissionCompletedRef?.current === true) {
+            logger.debug(LogSource.EDITOR, 'Auto-save canceled: submission completed during timeout');
+            return;
+          }
+          
+          // Skip if unmounted or already saving
+          if (!isMountedRef.current || saveInProgressRef.current) {
+            return;
+          }
+          
+          // Track save count for logging
+          saveCountRef.current += 1;
+          const currentSaveCount = saveCountRef.current;
+          
+          saveInProgressRef.current = true;
+          setSaving(true);
+          setSaveStatus('saving');
+          
+          const formData = {
+            ...form.getValues(),
+            content,
+            id: lastSavedDraftIdRef.current // Use the most current draft ID
+          };
+          
+          logger.info(LogSource.EDITOR, `Auto-save #${currentSaveCount} starting`, {
+            hasDraftId: !!lastSavedDraftIdRef.current,
+            contentLength: content.length
           });
-      }, autoSaveInterval);
+          
+          saveDraft(formData)
+            .then(result => {
+              if (!isMountedRef.current) return;
+              
+              if (result.success) {
+                setSaveStatus('saved');
+                setLastSaved(new Date());
+                
+                // Update draft ID if needed and ensure it's stored in ref for future saves
+                if (result.articleId && setDraftId) {
+                  lastSavedDraftIdRef.current = result.articleId;
+                  setDraftId(result.articleId);
+                  
+                  logger.info(LogSource.EDITOR, `Auto-save #${currentSaveCount} completed`, {
+                    articleId: result.articleId,
+                    isNew: !lastSavedDraftIdRef.current || lastSavedDraftIdRef.current !== result.articleId
+                  });
+                }
+              } else {
+                setSaveStatus('error');
+                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} failed`, { 
+                  error: result.error 
+                });
+              }
+            })
+            .catch((error) => {
+              if (isMountedRef.current) {
+                setSaveStatus('error');
+                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} exception`, { error });
+              }
+            })
+            .finally(() => {
+              if (isMountedRef.current) {
+                setSaving(false);
+                saveInProgressRef.current = false;
+              }
+            });
+        }, autoSaveInterval);
+      }, 1500); // 1.5 second debounce before starting auto-save timer
     }
     
-    // Cleanup the timeout when dependencies change
+    // Cleanup the timeouts when dependencies change
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, [
@@ -149,6 +190,9 @@ export function useAutoSaveHandler({
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
+      }
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, []);
