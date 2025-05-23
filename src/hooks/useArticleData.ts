@@ -6,7 +6,7 @@ import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles/fetchArticle';
 import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
 import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
-import { checkArticlePublished } from '@/services/articleMetricsService';
+import { checkArticlePublished } from '@/services/articles/articleMetricsService';
 import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
