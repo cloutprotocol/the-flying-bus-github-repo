@@ -8,7 +8,7 @@ import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Submit an article for review using the new optimized stored procedure
- * This version uses submit_article_with_validation for combined draft saving and submission
+ * This version uses submit_article_optimized for combined draft saving and submission
  */
 export const submitForReview = async (
   articleData: any,
@@ -61,12 +61,12 @@ export const submitForReview = async (
     }
     
     // Call the new optimized stored procedure for validation and submission
-    logger.info(LogSource.DATABASE, 'Calling submit_article_with_validation function', {
+    logger.info(LogSource.DATABASE, 'Calling submit_article_optimized function', {
       hasId: !!articleData.id,
       title: articleData.title?.substring(0, 30)
     });
     
-    const { data, error } = await supabase.rpc('submit_article_with_validation', {
+    const { data, error } = await supabase.rpc('submit_article_optimized', {
       p_user_id: userId,
       p_article_data: articleData,
       p_save_draft: saveDraft
@@ -81,7 +81,7 @@ export const submitForReview = async (
         hint: error.hint
       };
       
-      logger.error(LogSource.DATABASE, 'Error calling submit_article_with_validation', errorDetails);
+      logger.error(LogSource.DATABASE, 'Error calling submit_article_optimized', errorDetails);
       
       return { 
         success: false, 
@@ -95,7 +95,7 @@ export const submitForReview = async (
     }
     
     // Add debug logging to see the response format
-    logger.debug(LogSource.DATABASE, 'submit_article_with_validation response', { data });
+    logger.debug(LogSource.DATABASE, 'submit_article_optimized response', { data });
     
     // Handle the structured response from the function
     if (data === null) {
@@ -108,8 +108,8 @@ export const submitForReview = async (
     // Check if we got an array result (handle both object and array responses)
     const result = Array.isArray(data) ? data[0] : data;
 
-    // Check if submission was successful based on function response
-    if (result && 'success' in result && !result.success) {
+    // Check if submission was successful
+    if (!result.success) {
       const errorMessage = result.error_message || 'Submission failed';
       return {
         success: false,
@@ -118,9 +118,14 @@ export const submitForReview = async (
     }
 
     // Extract the article_id from the response
-    let submissionId = null;
-    if (result && 'article_id' in result) {
-      submissionId = result.article_id;
+    const submissionId = result.article_id;
+
+    // Log performance metrics
+    if (result.duration_ms) {
+      logger.debug(LogSource.DATABASE, 'Article submission performance', { 
+        durationMs: result.duration_ms,
+        articleId: submissionId
+      });
     }
 
     logger.info(LogSource.DATABASE, 'Article submitted successfully', { 

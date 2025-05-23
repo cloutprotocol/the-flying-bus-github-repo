@@ -559,6 +559,30 @@ export type Database = {
           },
         ]
       }
+      performance_logs: {
+        Row: {
+          context: Json | null
+          duration_ms: number
+          function_name: string
+          id: string
+          logged_at: string | null
+        }
+        Insert: {
+          context?: Json | null
+          duration_ms: number
+          function_name: string
+          id?: string
+          logged_at?: string | null
+        }
+        Update: {
+          context?: Json | null
+          duration_ms?: number
+          function_name?: string
+          id?: string
+          logged_at?: string | null
+        }
+        Relationships: []
+      }
       privacy_settings: {
         Row: {
           profile_visibility: string
@@ -838,9 +862,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_db_performance: {
+        Args: {
+          p_function_name: string
+          p_duration_ms: number
+          p_context?: Json
+        }
+        Returns: undefined
+      }
       save_article_draft: {
         Args: { p_article_data: Json }
         Returns: string
+      }
+      save_draft_optimized: {
+        Args: { p_user_id: string; p_article_data: Json }
+        Returns: {
+          success: boolean
+          error_message: string
+          article_id: string
+          duration_ms: number
+        }[]
       }
       submit_article_for_review: {
         Args: { p_article_id: string; p_user_id: string }
@@ -848,6 +889,19 @@ export type Database = {
           success: boolean
           error_message: string
           article_id: string
+        }[]
+      }
+      submit_article_optimized: {
+        Args: {
+          p_user_id: string
+          p_article_data: Json
+          p_save_draft?: boolean
+        }
+        Returns: {
+          success: boolean
+          error_message: string
+          article_id: string
+          duration_ms: number
         }[]
       }
       submit_article_with_validation: {

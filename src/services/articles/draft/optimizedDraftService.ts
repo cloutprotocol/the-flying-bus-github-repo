@@ -7,7 +7,7 @@ import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Save an article draft with optimized database operations
- * Uses the new save_article_draft database function for efficient saving
+ * Uses the new save_draft_optimized database function for efficient saving
  * with improved duplicate detection
  */
 export const saveDraftOptimized = async (
@@ -26,38 +26,6 @@ export const saveDraftOptimized = async (
       };
     }
     
-    // IMPORTANT: Check if we have a draft ID - crucial for preventing duplicates
-    const originalId = articleData.id;
-    
-    // If no draft ID but we have content, check for existing drafts by this author with this title
-    // This helps prevent duplicate article creation during auto-saves
-    if (!originalId && articleData.title) {
-      logger.info(LogSource.DATABASE, 'No draft ID provided, checking for existing drafts', {
-        title: articleData.title,
-        authorId: userId
-      });
-      
-      const { data: existingDrafts, error: searchError } = await supabase
-        .from('articles')
-        .select('id')
-        .eq('author_id', userId)
-        .eq('title', articleData.title)
-        .eq('status', 'draft')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (!searchError && existingDrafts && existingDrafts.length > 0) {
-        const existingId = existingDrafts[0].id;
-        logger.info(LogSource.DATABASE, 'Found existing draft with same title', { 
-          existingId,
-          title: articleData.title 
-        });
-        
-        // Use the existing draft ID to prevent duplicates
-        articleData.id = existingId;
-      }
-    }
-    
     // Generate client-side slug if not provided
     const slug = articleData.slug || generateClientSideSlug(articleData.title || 'untitled-draft');
     
@@ -70,12 +38,11 @@ export const saveDraftOptimized = async (
     const completeArticleData = {
       ...articleData,
       slug: slug,
-      author_id: userId,
       imageUrl: articleData.imageUrl || articleData.cover_image,
       categoryId: articleData.categoryId || articleData.category_id
     };
     
-    logger.debug(LogSource.DATABASE, 'Calling save_article_draft with data', {
+    logger.debug(LogSource.DATABASE, 'Calling save_draft_optimized with data', {
       articleId: completeArticleData.id || 'new',
       title: completeArticleData.title,
       hasContent: !!completeArticleData.content,
@@ -85,7 +52,8 @@ export const saveDraftOptimized = async (
 
     // Call the database function to save the draft (single DB call)
     const { data, error } = await supabase
-      .rpc('save_article_draft', {
+      .rpc('save_draft_optimized', {
+        p_user_id: userId,
         p_article_data: completeArticleData
       });
     
@@ -108,41 +76,34 @@ export const saveDraftOptimized = async (
     }
     
     // Log the data returned to help with debugging
-    logger.debug(LogSource.DATABASE, 'save_article_draft response', { data });
+    logger.debug(LogSource.DATABASE, 'save_draft_optimized response', { data });
     
     // Handle different response formats
-    let articleId: string | undefined;
+    const result = Array.isArray(data) ? data[0] : data;
     
-    // Properly handle the response from save_article_draft function with correct type handling
-    if (typeof data === 'string') {
-      // Direct UUID return
-      articleId = data;
-    } else if (data && typeof data === 'object') {
-      // Type assertion to access properties safely
-      const responseObj = data as Record<string, unknown>;
-      
-      // Check if data is structured and has article_id or id property
-      articleId = 
-        (typeof responseObj.article_id === 'string' ? responseObj.article_id : undefined) || 
-        (typeof responseObj.id === 'string' ? responseObj.id : undefined);
+    if (!result || !result.success) {
+      const errorMessage = result?.error_message || 'Unknown error saving draft';
+      logger.error(LogSource.DATABASE, errorMessage);
+      return { 
+        success: false, 
+        error: new ApiError(errorMessage, ApiErrorType.SERVER)
+      };
     }
     
-    // If we still don't have an article ID, log this issue but return the original ID
-    if (!articleId) {
-      logger.warn(LogSource.DATABASE, 'No article ID returned from save_article_draft', { 
-        originalId, 
-        responseData: data 
+    // Log performance metrics
+    if (result.duration_ms) {
+      logger.debug(LogSource.DATABASE, 'Draft save performance', { 
+        durationMs: result.duration_ms 
       });
-      articleId = originalId;
     }
     
     logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
-      articleId,
-      originalId,
+      articleId: result.article_id,
+      originalId: articleData.id,
       title: articleData.title
     });
     
-    return { success: true, error: null, articleId };
+    return { success: true, error: null, articleId: result.article_id };
     
   } catch (e) {
     const errorDetails = e instanceof Error ? {
