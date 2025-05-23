@@ -1,4 +1,3 @@
-
 /**
  * Logger Types
  * Type definitions for the logger system
@@ -40,7 +39,8 @@ export enum LogSource {
   VOTING = 'voting',
   DASHBOARD = 'dashboard',
   SAFETY = 'safety',
-  REALTIME = 'realtime'
+  REALTIME = 'realtime',
+  PERFORMANCE = 'performance'
 }
 
 /**
