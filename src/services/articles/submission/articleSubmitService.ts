@@ -61,6 +61,11 @@ export const submitForReview = async (
     }
     
     // Call the new optimized stored procedure for validation and submission
+    logger.info(LogSource.DATABASE, 'Calling submit_article_with_validation function', {
+      hasId: !!articleData.id,
+      title: articleData.title?.substring(0, 30)
+    });
+    
     const { data, error } = await supabase.rpc('submit_article_with_validation', {
       p_user_id: userId,
       p_article_data: articleData,
@@ -117,6 +122,11 @@ export const submitForReview = async (
     if (result && 'article_id' in result) {
       submissionId = result.article_id;
     }
+
+    logger.info(LogSource.DATABASE, 'Article submitted successfully', { 
+      submissionId,
+      articleId: articleData.id
+    });
 
     return { 
       success: true, 

@@ -18,22 +18,31 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
   isProcessingSubmit,
   disabled = false
 }) => {
+  const isDisabled = disabled || isSubmitting || isProcessingSubmit;
+  
   const handleClick = (e: React.MouseEvent) => {
-    console.log("Submit button clicked, calling onSubmitClick");
-    logger.info(LogSource.EDITOR, "Submit button clicked", { 
-      isSubmitting,
-      isProcessingSubmit,
-      disabled
-    });
-    onSubmitClick(e);
+    try {
+      logger.info(LogSource.EDITOR, "Submit button clicked", { 
+        isSubmitting,
+        isProcessingSubmit,
+        disabled,
+        timestamp: new Date().toISOString()
+      });
+      
+      onSubmitClick(e);
+    } catch (error) {
+      logger.error(LogSource.EDITOR, "Error in submit button click handler", error);
+      // Don't re-throw as we don't want to break the UI if the click handler fails
+    }
   };
 
   return (
     <Button 
       type="button"
       onClick={handleClick}
-      disabled={disabled || isSubmitting || isProcessingSubmit}
-      className="min-w-[180px]"
+      disabled={isDisabled}
+      className="min-w-[180px] relative"
+      data-submitting={isSubmitting || isProcessingSubmit}
     >
       {isSubmitting || isProcessingSubmit ? (
         <>

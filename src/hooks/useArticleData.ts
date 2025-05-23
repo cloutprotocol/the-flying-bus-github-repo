@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { fetchArticleById, fetchRelatedArticles } from '@/utils/articles/fetchArticle';
 import { isDebateArticle, fetchDebateSettings } from '@/utils/articles';
-import { trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
+import { checkArticlePublished, trackArticleViewWithRetry } from '@/utils/articles/trackArticleView';
 import { handleApiError } from '@/utils/apiErrorHandler';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -46,11 +46,18 @@ export const useArticleData = (articleId: string | undefined) => {
         
         setArticle(articleData);
         
-        // Track article view
-        trackArticleViewWithRetry(articleId, user?.id)
-          .catch(error => {
-            logger.error(LogSource.DATABASE, 'Failed to track article view', error);
+        // Only track article views for published articles
+        if (articleData.status === 'published') {
+          trackArticleViewWithRetry(articleId, user?.id)
+            .catch(error => {
+              logger.error(LogSource.DATABASE, 'Failed to track article view', error);
+            });
+        } else {
+          logger.info(LogSource.ARTICLE, 'Skipping view tracking for unpublished article', {
+            articleId,
+            status: articleData.status
           });
+        }
         
         // Load debate settings if it's a debate article
         if (isDebateArticle(articleData.articleType)) {

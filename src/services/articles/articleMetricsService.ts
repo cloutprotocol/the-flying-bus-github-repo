@@ -39,21 +39,28 @@ export const getArticleViews = async (articleId: string) => {
 export const checkArticlePublished = async (articleId: string): Promise<boolean> => {
   try {
     if (!articleId || articleId.trim() === '') {
+      logger.warn(LogSource.ARTICLE, 'Invalid article ID when checking publication status');
       return false;
     }
     
     const { data, error } = await supabase
       .from('articles')
-      .select('id')
+      .select('id, status')
       .eq('id', articleId)
-      .eq('status', 'published')
       .maybeSingle();
     
-    if (error || !data) {
+    if (error) {
+      logger.error(LogSource.ARTICLE, 'Error checking article publication status', { error, articleId });
       return false;
     }
     
-    return true;
+    const isPublished = data?.status === 'published';
+    logger.debug(LogSource.ARTICLE, `Article publication check: ${isPublished ? 'published' : 'not published'}`, { 
+      articleId, 
+      status: data?.status 
+    });
+    
+    return isPublished;
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Error checking article status', e);
     return false;

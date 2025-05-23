@@ -29,13 +29,24 @@ export const trackArticleView = async (
     // Check if the article exists and is published before tracking the view
     const { data: articleExists, error: checkError } = await supabase
       .from('articles')
-      .select('id')
+      .select('id, status')
       .eq('id', articleId)
-      .eq('status', 'published')
-      .maybeSingle();
+      .single();
     
-    if (checkError || !articleExists) {
-      logger.warn(LogSource.DATABASE, 'Cannot track view - article not found or not published', { articleId });
+    if (checkError) {
+      logger.warn(LogSource.DATABASE, 'Error checking article status for view tracking', { 
+        error: checkError, 
+        articleId 
+      });
+      return false;
+    }
+    
+    // Critical check: Only track views for published articles
+    if (!articleExists || articleExists.status !== 'published') {
+      logger.info(LogSource.DATABASE, 'Skipping view tracking - article not published', { 
+        articleId,
+        status: articleExists?.status || 'not found'
+      });
       return false;
     }
 
@@ -51,6 +62,7 @@ export const trackArticleView = async (
       return false;
     }
 
+    logger.debug(LogSource.DATABASE, 'Article view tracked successfully', { articleId });
     return true;
   } catch (error) {
     logger.error(LogSource.DATABASE, 'Exception tracking article view', error);
