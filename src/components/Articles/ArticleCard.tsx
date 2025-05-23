@@ -20,13 +20,14 @@ export interface ArticleProps {
   readingLevel: string;
   readTime: number;
   author: string;
-  authorAvatar?: string;  // Added authorAvatar property
+  authorAvatar?: string;
   date: string;
   publishDate: string;
   commentCount?: number;
   articleType?: string;
   videoUrl?: string;
   duration?: string;
+  status?: string; // Added status property
   onClick?: () => void;
 }
 
