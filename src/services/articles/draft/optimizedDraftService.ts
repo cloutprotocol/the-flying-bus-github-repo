@@ -61,6 +61,11 @@ export const saveDraftOptimized = async (
     // Generate client-side slug if not provided
     const slug = articleData.slug || generateClientSideSlug(articleData.title || 'untitled-draft');
     
+    // Ensure we have the minimum required data
+    if (!articleData.title) {
+      articleData.title = 'Untitled Draft';
+    }
+    
     // Build complete article data for the DB call
     const completeArticleData = {
       ...articleData,
@@ -74,7 +79,8 @@ export const saveDraftOptimized = async (
       articleId: completeArticleData.id || 'new',
       title: completeArticleData.title,
       hasContent: !!completeArticleData.content,
-      contentLength: completeArticleData.content?.length || 0
+      contentLength: completeArticleData.content?.length || 0,
+      keys: Object.keys(completeArticleData)
     });
 
     // Call the database function to save the draft (single DB call)
@@ -84,11 +90,20 @@ export const saveDraftOptimized = async (
       });
     
     if (error) {
+      // Log detailed error information
+      const errorDetails = {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      };
+      
       logger.error(LogSource.DATABASE, 'Error saving draft', { 
-        error, 
+        errorDetails, 
         title: articleData.title,
         slug: slug
       });
+      
       return { success: false, error };
     }
     
@@ -130,7 +145,13 @@ export const saveDraftOptimized = async (
     return { success: true, error: null, articleId };
     
   } catch (e) {
-    logger.error(LogSource.DATABASE, 'Exception saving draft', { error: e });
+    const errorDetails = e instanceof Error ? {
+      message: e.message,
+      name: e.name,
+      stack: e.stack
+    } : e;
+    
+    logger.error(LogSource.DATABASE, 'Exception saving draft', errorDetails);
     return { success: false, error: e };
   }
 };

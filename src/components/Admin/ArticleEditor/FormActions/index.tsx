@@ -9,6 +9,8 @@ import SubmitButton from './SubmitButton';
 import RevisionButton from './RevisionButton';
 import useFormValidation from './useFormValidation';
 import useSubmitDialog from './useSubmitDialog';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface FormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -40,6 +42,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   const { toast } = useToast();
   const [toastShown, setToastShown] = useState(false);
   const submissionCompleted = useRef(false);
+  const errorCountRef = useRef(0);
   
   const { performFormValidation } = useFormValidation(form, content, validateForm);
   const { 
@@ -56,6 +59,7 @@ const FormActions: React.FC<FormActionsProps> = ({
   // Reset submission state when component mounts
   useEffect(() => {
     submissionCompleted.current = false;
+    errorCountRef.current = 0;
     return () => {
       submissionCompleted.current = false;
     };
@@ -72,10 +76,18 @@ const FormActions: React.FC<FormActionsProps> = ({
         variant: "destructive"
       });
       setToastShown(true);
+      
+      // Track error count for logging
+      errorCountRef.current += 1;
+      logger.error(LogSource.EDITOR, `Draft save error #${errorCountRef.current}`, {
+        isDirty,
+        hasForm: !!form,
+        contentLength: content.length
+      });
     } else if (saveStatus === 'idle' || saveStatus === 'saving') {
       setToastShown(false);
     }
-  }, [saveStatus, toast, toastShown]);
+  }, [saveStatus, toast, toastShown, isDirty, content.length, form]);
   
   const handleSaveDraft = async () => {
     // Don't save if submission is completed
@@ -91,6 +103,12 @@ const FormActions: React.FC<FormActionsProps> = ({
       });
       return Promise.resolve();
     }
+    
+    logger.info(LogSource.EDITOR, "Manual draft save initiated", {
+      isDirty,
+      saveStatus,
+      contentLength: content.length
+    });
     
     return onSaveDraft();
   };
@@ -109,12 +127,20 @@ const FormActions: React.FC<FormActionsProps> = ({
     }
     
     if (isSubmitting || isProcessingSubmit || isProcessingSubmitRef.current) {
+      logger.info(LogSource.EDITOR, "Submission already in progress, ignoring duplicate click");
       return;
     }
     
     setSubmissionError(null);
     
+    logger.info(LogSource.EDITOR, "Submit button clicked", {
+      isDirty,
+      saveStatus,
+      contentLength: content.length
+    });
+    
     if (!performFormValidation()) {
+      logger.warn(LogSource.EDITOR, "Form validation failed on submission");
       return;
     }
     
@@ -124,8 +150,10 @@ const FormActions: React.FC<FormActionsProps> = ({
     // Open dialog if changes need to be saved, otherwise submit directly
     // This optimization reduces steps for the user
     if (isDirty && saveStatus !== 'saved') {
+      logger.info(LogSource.EDITOR, "Opening submit dialog for unsaved changes");
       openSubmitDialog();
     } else {
+      logger.info(LogSource.EDITOR, "No unsaved changes, proceeding with direct submission");
       handleDialogConfirm();
     }
   };
@@ -135,12 +163,20 @@ const FormActions: React.FC<FormActionsProps> = ({
     isProcessingSubmitRef.current = true;
     setSubmissionError(null);
     
+    logger.info(LogSource.EDITOR, "Submission dialog confirmed, proceeding with submission");
+    
     try {
       if (onSubmit) {
         await onSubmit();
       }
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : "Submission failed");
+      const errorMessage = error instanceof Error ? error.message : "Submission failed";
+      setSubmissionError(errorMessage);
+      
+      logger.error(LogSource.EDITOR, "Error during submission after dialog confirmation", {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
   };
   

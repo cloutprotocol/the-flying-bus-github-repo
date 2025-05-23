@@ -1,3 +1,4 @@
+
 import { UseFormReturn } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
 import { useValidation } from '@/providers/ValidationProvider';
@@ -39,6 +40,17 @@ export const useFormValidation = (
       logger.info(LogSource.EDITOR, 'Validating article form', {
         hasTitle: !!fullData.title,
         hasCategoryId: !!fullData.categoryId,
+        contentLength: fullData.content?.length || 0,
+        status: fullData.status || 'draft' 
+      });
+      
+      // Log the complete data for debugging purposes
+      logger.debug(LogSource.EDITOR, 'Form data for validation', {
+        title: fullData.title,
+        excerpt: fullData.excerpt?.substring(0, 30),
+        categoryId: fullData.categoryId,
+        articleType: fullData.articleType,
+        status: fullData.status || 'draft',
         contentLength: fullData.content?.length || 0
       });
       
@@ -53,6 +65,11 @@ export const useFormValidation = (
           if (field !== 'content' && field !== '_error') {
             form.setError(field as any, { type: 'validate', message });
           }
+        });
+        
+        // Log validation errors for debugging
+        logger.warn(LogSource.EDITOR, 'Form validation failed', {
+          errors: result.errors
         });
       }
       

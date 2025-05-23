@@ -43,6 +43,7 @@ export function useAutoSaveHandler({
   const lastSavedDraftIdRef = useRef<string | undefined>(draftId);
   const saveCountRef = useRef<number>(0);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorCountRef = useRef<number>(0);
   
   // Update draftId ref when prop changes
   useEffect(() => {
@@ -115,8 +116,24 @@ export function useAutoSaveHandler({
           
           logger.info(LogSource.EDITOR, `Auto-save #${currentSaveCount} starting`, {
             hasDraftId: !!lastSavedDraftIdRef.current,
-            contentLength: content.length
+            contentLength: content.length,
+            formDataKeys: Object.keys(formData),
           });
+          
+          // Additional validation check before saving
+          const requiredFields = ['title', 'categoryId'];
+          const missingFields = requiredFields.filter(field => !formData[field]);
+          
+          if (missingFields.length > 0) {
+            logger.warn(LogSource.EDITOR, `Auto-save #${currentSaveCount} missing required fields`, {
+              missingFields
+            });
+            
+            // Add defaults for any missing required fields
+            if (!formData.title) {
+              formData.title = 'Untitled Draft';
+            }
+          }
           
           saveDraft(formData)
             .then(result => {
@@ -128,25 +145,37 @@ export function useAutoSaveHandler({
                 
                 // Update draft ID if needed and ensure it's stored in ref for future saves
                 if (result.articleId && setDraftId) {
+                  const isNewId = !lastSavedDraftIdRef.current || lastSavedDraftIdRef.current !== result.articleId;
+                  
                   lastSavedDraftIdRef.current = result.articleId;
                   setDraftId(result.articleId);
                   
                   logger.info(LogSource.EDITOR, `Auto-save #${currentSaveCount} completed`, {
                     articleId: result.articleId,
-                    isNew: !lastSavedDraftIdRef.current || lastSavedDraftIdRef.current !== result.articleId
+                    isNew: isNewId
                   });
                 }
               } else {
                 setSaveStatus('error');
-                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} failed`, { 
-                  error: result.error 
+                errorCountRef.current += 1;
+                
+                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} failed (error #${errorCountRef.current})`, { 
+                  error: result.error,
+                  errorMessage: result.error?.message || 'Unknown error',
+                  formDataKeys: Object.keys(formData)
                 });
               }
             })
             .catch((error) => {
               if (isMountedRef.current) {
                 setSaveStatus('error');
-                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} exception`, { error });
+                errorCountRef.current += 1;
+                
+                logger.error(LogSource.EDITOR, `Auto-save #${currentSaveCount} exception (error #${errorCountRef.current})`, { 
+                  error,
+                  errorMessage: error?.message || 'Unknown error',
+                  stack: error?.stack
+                });
               }
             })
             .finally(() => {

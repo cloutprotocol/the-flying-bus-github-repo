@@ -20,6 +20,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     console.log("Submit button clicked, calling onSubmitClick");
+    logger.info(LogSource.EDITOR, "Submit button clicked", { 
+      isSubmitting,
+      isProcessingSubmit,
+      disabled
+    });
     onSubmitClick(e);
   };
 

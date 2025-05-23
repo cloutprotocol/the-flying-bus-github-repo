@@ -24,9 +24,11 @@ export const submitForReview = async (
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError || !session?.user?.id) {
+      const errorMsg = 'Authentication required - no valid session found';
+      logger.error(LogSource.DATABASE, errorMsg, { sessionError });
       return { 
         success: false, 
-        error: new ApiError('Authentication required', ApiErrorType.AUTH, 401, sessionError)
+        error: new ApiError(errorMsg, ApiErrorType.AUTH, 401, sessionError)
       };
     }
     
@@ -41,8 +43,22 @@ export const submitForReview = async (
     logger.debug(LogSource.DATABASE, 'Submitting article with parameters', {
       userId,
       articleDataKeys: Object.keys(articleData),
-      saveDraft
+      saveDraft,
+      title: articleData.title?.substring(0, 30),
+      articleId: articleData.id,
+      contentLength: articleData.content?.length || 0
     });
+    
+    // First run client-side validation to catch obvious issues
+    const validationResult = validateArticle(articleData, true);
+    if (!validationResult.isValid) {
+      const errorMsg = `Validation error before submission: ${validationResult.errors.join(', ')}`;
+      logger.error(LogSource.DATABASE, errorMsg);
+      return {
+        success: false,
+        error: new ApiError(errorMsg, ApiErrorType.VALIDATION)
+      };
+    }
     
     // Call the new optimized stored procedure for validation and submission
     const { data, error } = await supabase.rpc('submit_article_with_validation', {
@@ -52,7 +68,15 @@ export const submitForReview = async (
     });
 
     if (error) {
-      logger.error(LogSource.DATABASE, 'Error calling submit_article_with_validation', { error });
+      // Log with more details for debugging
+      const errorDetails = {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      };
+      
+      logger.error(LogSource.DATABASE, 'Error calling submit_article_with_validation', errorDetails);
       
       return { 
         success: false, 
@@ -72,7 +96,7 @@ export const submitForReview = async (
     if (data === null) {
       return {
         success: false,
-        error: new ApiError('Submission failed', ApiErrorType.VALIDATION)
+        error: new ApiError('Submission failed - null response from database', ApiErrorType.VALIDATION)
       };
     }
 
@@ -99,8 +123,14 @@ export const submitForReview = async (
       submissionId
     };
   } catch (e) {
-    // Log error
-    logger.error(LogSource.DATABASE, 'Unexpected error in article submission', { error: e });
+    // Log error with detailed stack trace
+    const errorDetails = e instanceof Error ? {
+      message: e.message,
+      stack: e.stack,
+      name: e.name
+    } : e;
+    
+    logger.error(LogSource.DATABASE, 'Unexpected error in article submission', errorDetails);
     
     return { 
       success: false, 

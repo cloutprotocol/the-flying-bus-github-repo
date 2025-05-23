@@ -41,12 +41,28 @@ export function useArticleSubmission() {
           description: "Could not determine article ID for submission.",
           variant: "destructive"
         });
+        logger.error(LogSource.EDITOR, "Missing article ID during submission");
+        return false;
+      }
+      
+      // Check if user session is valid before proceeding
+      const { data: sessionData } = await articleSubmissionService.checkSession();
+      if (!sessionData || !sessionData.valid) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive"
+        });
+        logger.error(LogSource.EDITOR, "Invalid user session during submission");
+        // Redirect to login
+        navigate('/login', { state: { returnTo: window.location.pathname } });
         return false;
       }
       
       logger.info(LogSource.EDITOR, 'Article submission in progress', { 
         articleId, 
-        isDraft
+        isDraft,
+        userHasValidSession: true
       });
       
       if (isDraft) {
@@ -87,7 +103,7 @@ export function useArticleSubmission() {
           
           logger.error(LogSource.EDITOR, 'Article submission failed', {
             articleId,
-            error
+            errorDetails: error
           });
           
           updateLastStep('error', { error: errorMessage });
@@ -109,29 +125,27 @@ export function useArticleSubmission() {
           articleId
         });
         
-        // IMPORTANT: Increase navigation timeout to ensure DB operations complete
-        // Wait longer before navigating away to ensure database operations finish
-        const navigationDelay = 3000; // Increased from 1500ms to 3000ms
-        logger.info(LogSource.EDITOR, `Scheduling navigation after ${navigationDelay}ms delay`, {
-          articleId
-        });
-        
-        // Return true immediately for UI feedback, but delay navigation
+        // Increase navigation timeout to ensure DB operations complete
         setTimeout(() => {
-          logger.info(LogSource.EDITOR, 'Executing delayed navigation to articles list', {
+          logger.info(LogSource.EDITOR, 'Executing navigation to articles list', {
             articleId
           });
           navigate('/admin/articles');
-        }, navigationDelay);
+        }, 3000);
         
         return true;
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       addDebugStep('Exception in article submission', { error }, 'error');
-      logger.error(LogSource.EDITOR, "Exception in article submission", error);
+      logger.error(LogSource.EDITOR, "Exception in article submission", { 
+        error, 
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       toast({
         title: "Error",
-        description: "There was a problem with your submission.",
+        description: "There was a problem with your submission. Please try again.",
         variant: "destructive"
       });
       return false;
