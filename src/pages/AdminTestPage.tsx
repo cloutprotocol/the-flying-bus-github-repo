@@ -87,7 +87,7 @@ const AdminTestPage = () => {
     }
     
     setIsSubmitting(true);
-    const startTime = performance.now();
+    const startTime = window.performance.now();
     
     try {
       const articleData = {
@@ -105,7 +105,7 @@ const AdminTestPage = () => {
       
       const result = await submitForReview(articleData);
       
-      const endTime = performance.now();
+      const endTime = window.performance.now();
       setPerformance(prev => ({ 
         ...prev, 
         submitTime: Math.round(endTime - startTime) 

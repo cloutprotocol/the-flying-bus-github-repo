@@ -48,6 +48,40 @@ export const measureApiCall = (
 };
 
 /**
+ * Helper function to measure performance of any operation
+ * 
+ * @param category Category of the operation (e.g., 'component-render', 'user-interaction')
+ * @param name Name of the specific operation
+ * @param metadata Optional additional data to log
+ * @returns A function to call when the operation is complete
+ */
+export const measurePerformance = (
+  category: string,
+  name: string,
+  metadata: Record<string, any> = {}
+): (() => number) => {
+  const startTime = performance.now();
+  
+  return () => {
+    try {
+      const endTime = performance.now();
+      const durationMs = Math.round(endTime - startTime);
+      
+      // Log to client console
+      logger.debug(LogSource.PERFORMANCE, `${category}:${name} completed`, { 
+        durationMs,
+        ...metadata 
+      });
+      
+      return durationMs;
+    } catch (error) {
+      logger.error(LogSource.PERFORMANCE, 'Error in performance measurement', { error });
+      return 0;
+    }
+  };
+};
+
+/**
  * Get performance logs for analysis
  */
 export const getPerformanceLogs = async (
