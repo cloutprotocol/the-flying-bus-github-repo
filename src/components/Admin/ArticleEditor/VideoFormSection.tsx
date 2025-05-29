@@ -7,13 +7,17 @@ import { UseFormReturn } from 'react-hook-form';
 
 interface VideoFormSectionProps {
   form: UseFormReturn<any>;
+  isOptional?: boolean;
 }
 
-const VideoFormSection: React.FC<VideoFormSectionProps> = ({ form }) => {
+const VideoFormSection: React.FC<VideoFormSectionProps> = ({ form, isOptional = false }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Video Content</CardTitle>
+        <CardTitle>
+          Video Content
+          {isOptional && <span className="text-sm text-muted-foreground ml-2">(Optional)</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <FormField

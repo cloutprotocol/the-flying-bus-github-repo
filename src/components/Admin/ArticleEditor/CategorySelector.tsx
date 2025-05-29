@@ -10,14 +10,21 @@ import { LogSource } from '@/utils/logger/types';
 
 interface CategorySelectorProps {
   form: UseFormReturn<any>;
+  preselectedSlug?: string;
+  preselectedName?: string;
 }
 
 interface Category {
   id: string;
   name: string;
+  slug?: string;
 }
 
-const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
+const CategorySelector: React.FC<CategorySelectorProps> = ({ 
+  form, 
+  preselectedSlug, 
+  preselectedName 
+}) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +44,18 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
 
         if (data) {
           setCategories(data);
+          
+          // If we have a preselected category, try to find and set it
+          if (preselectedSlug && preselectedName) {
+            const matchedCategory = data.find(cat => 
+              cat.name.toLowerCase().replace(/\s+/g, '-') === preselectedSlug ||
+              cat.name === preselectedName
+            );
+            
+            if (matchedCategory) {
+              form.setValue('categoryId', matchedCategory.id);
+            }
+          }
         }
       } catch (err) {
         logger.error(LogSource.EDITOR, 'Exception fetching categories', err);
@@ -46,7 +65,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ form }) => {
     };
 
     fetchCategories();
-  }, []);
+  }, [preselectedSlug, preselectedName, form]);
 
   return (
     <FormField
