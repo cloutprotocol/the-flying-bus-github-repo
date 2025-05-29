@@ -52,7 +52,7 @@ const AdminTestPage = () => {
       }));
       
       if (result.success) {
-        setDraftId(result.articleId);
+        setDraftId(result.draftId);
         toast({
           title: "Draft saved successfully",
           description: `Time: ${Math.round(endTime - startTime)}ms | DB duration: ${result.error?.duration_ms || 'unknown'}ms`,

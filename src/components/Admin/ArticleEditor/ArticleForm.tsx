@@ -99,24 +99,13 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <ArticleFormLayout 
       form={form}
       onSubmit={form.handleSubmit(async (data) => {
-        // Prepare debate settings if this is a debate article
+        // Prepare submission data with content
         const submissionData = {
           ...data,
           content,
           isDirty: form.formState.isDirty,
           id: draftId || articleId
         };
-        
-        // For debate articles, structure the debate settings properly
-        if (articleType === 'debate') {
-          submissionData.debateSettings = {
-            question: data.question || '',
-            yesPosition: data.yesPosition || '',
-            noPosition: data.noPosition || '',
-            votingEnabled: data.votingEnabled ?? true,
-            votingEndsAt: data.votingEndsAt || undefined
-          };
-        }
         
         await handleSubmit(submissionData);
       })}
