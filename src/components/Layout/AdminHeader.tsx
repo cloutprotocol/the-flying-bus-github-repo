@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,8 +11,7 @@ import {
   Image,
   MessageSquare,
   Flag,
-  ListCheck,
-  Plus
+  ListCheck
 } from 'lucide-react';
 
 const navItems = [
@@ -59,14 +57,7 @@ const AdminHeader = () => {
           </nav>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Link to="/admin/articles/select-type">
-            <Button size="sm" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              New Article
-            </Button>
-          </Link>
-          
+        <div className="flex items-center">
           <Link to="/" className="mr-4">
             <Button variant="outline" size="sm">
               View Site
