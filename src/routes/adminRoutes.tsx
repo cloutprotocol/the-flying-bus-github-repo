@@ -1,9 +1,9 @@
-
 import { Navigate } from 'react-router-dom';
 import AdminPortalIndex from '@/pages/Admin/AdminPortalIndex';
 import Dashboard from '@/pages/Admin/Dashboard';
 import MyArticles from '@/pages/Admin/MyArticles';
 import ArticleEditor from '@/pages/Admin/ArticleEditor';
+import ArticleTypeSelection from '@/pages/Admin/ArticleTypeSelection';
 import MediaManager from '@/pages/Admin/MediaManager';
 import UserManagement from '@/pages/Admin/UserManagement';
 import ApprovalQueue from '@/pages/Admin/ApprovalQueue';
@@ -28,7 +28,15 @@ export const adminRoutes = [
     element: <ProtectedRoute><MyArticles /></ProtectedRoute>
   },
   { 
+    path: "/admin/articles/select-type", 
+    element: <ProtectedRoute><ArticleTypeSelection /></ProtectedRoute>
+  },
+  { 
     path: "/admin/articles/new", 
+    element: <ProtectedRoute><ArticleTypeSelection /></ProtectedRoute>
+  },
+  { 
+    path: "/admin/articles/new/:type", 
     element: <ProtectedRoute><ArticleEditor /></ProtectedRoute>
   },
   { 

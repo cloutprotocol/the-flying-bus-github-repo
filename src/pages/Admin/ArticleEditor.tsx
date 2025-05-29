@@ -11,12 +11,14 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
 const ArticleEditor = () => {
-  const { articleId } = useParams();
+  const { articleId, type } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isNewArticle = !articleId;
-  const articleType = location.state?.articleType || 'standard';
+  
+  // Get article type from URL params (for new articles) or location state (fallback)
+  const articleType = type || location.state?.articleType || 'standard';
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,17 +67,27 @@ const ArticleEditor = () => {
     }
   };
 
+  const getArticleTypeTitle = (type: string) => {
+    const typeMap = {
+      'standard': 'Standard Article',
+      'video': 'Video Article', 
+      'debate': 'Debate Article',
+      'storyboard': 'Storyboard Episode'
+    };
+    return typeMap[type as keyof typeof typeMap] || 'Article';
+  };
+
   return (
     <AdminPortalLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {isNewArticle ? 'Create New Article' : 'Edit Article'}
+              {isNewArticle ? `Create New ${getArticleTypeTitle(articleType)}` : 'Edit Article'}
             </h1>
             <p className="text-muted-foreground">
               {isNewArticle
-                ? 'Create a new article for publication'
+                ? `Create a new ${articleType} article for publication`
                 : 'Make changes to your article'}
             </p>
           </div>

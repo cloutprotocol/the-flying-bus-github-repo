@@ -27,7 +27,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/admin/articles/new">
+        <Link to="/admin/articles/select-type">
           <Button variant="outline" className="w-full">
             <PenLine className="h-4 w-4 mr-2" />
             New Article
