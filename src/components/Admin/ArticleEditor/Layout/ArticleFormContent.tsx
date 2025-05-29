@@ -71,11 +71,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         )}
         
         {articleType === 'debate' && (
-          <DebateFormSection 
-            form={form} 
-            content={content} 
-            setContent={setContent} 
-          />
+          <DebateFormSection form={form} />
         )}
       </div>
       

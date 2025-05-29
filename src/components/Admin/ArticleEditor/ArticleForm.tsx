@@ -35,7 +35,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     !isNewArticle ? articleId : undefined
   );
   
-  // Initialize form with optimized validation (reduced validation frequency)
+  // Initialize form with optimized validation and debate-specific defaults
   const form = useZodForm({
     schema: createArticleSchema,
     defaultValues: {
@@ -48,6 +48,12 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       status: 'draft',
       articleType: articleType as any,
       videoUrl: '',
+      // Add debate-specific default values
+      question: '',
+      yesPosition: '',
+      noPosition: '',
+      votingEnabled: true,
+      votingEndsAt: ''
     },
     mode: 'onSubmit', // Only validate on submit to reduce performance overhead
     logContext: 'article_form'
@@ -93,12 +99,26 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <ArticleFormLayout 
       form={form}
       onSubmit={form.handleSubmit(async (data) => {
-        await handleSubmit({
+        // Prepare debate settings if this is a debate article
+        const submissionData = {
           ...data,
           content,
           isDirty: form.formState.isDirty,
           id: draftId || articleId
-        });
+        };
+        
+        // For debate articles, structure the debate settings properly
+        if (articleType === 'debate') {
+          submissionData.debateSettings = {
+            question: data.question || '',
+            yesPosition: data.yesPosition || '',
+            noPosition: data.noPosition || '',
+            votingEnabled: data.votingEnabled ?? true,
+            votingEndsAt: data.votingEndsAt || undefined
+          };
+        }
+        
+        await handleSubmit(submissionData);
       })}
       debugSteps={debugSteps}
     >

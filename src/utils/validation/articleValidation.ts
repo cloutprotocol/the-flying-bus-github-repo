@@ -57,6 +57,21 @@ const baseArticleSchemaObject = z.object({
   videoUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Video URL must use HTTPS")
     .optional(),
+  // Add debate-specific fields
+  question: z.string()
+    .min(10, 'Question must be at least 10 characters long')
+    .refine(q => !q.includes("<script>"), "Question cannot contain script tags")
+    .optional(),
+  yesPosition: z.string()
+    .min(50, 'Yes position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags")
+    .optional(),
+  noPosition: z.string()
+    .min(50, 'No position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags")
+    .optional(),
+  votingEnabled: z.boolean().optional().default(true),
+  votingEndsAt: z.string().datetime().optional()
 });
 
 // Now add the refinement separately
@@ -64,10 +79,13 @@ const baseArticleSchema = baseArticleSchemaObject.refine((data) => {
   if (data.articleType === 'video' && !data.videoUrl) {
     return false;
   }
+  if (data.articleType === 'debate' && (!data.question || !data.yesPosition || !data.noPosition)) {
+    return false;
+  }
   return true;
 }, {
-  message: "Video URL is required for video articles",
-  path: ["videoUrl"]
+  message: "Video URL is required for video articles, and question with both positions are required for debate articles",
+  path: ["videoUrl", "question", "yesPosition", "noPosition"]
 });
 
 // Schema for creating a new article
@@ -80,10 +98,13 @@ export const updateArticleSchema = baseArticleSchemaObject.partial().extend({
   if (data.articleType === 'video' && !data.videoUrl) {
     return false;
   }
+  if (data.articleType === 'debate' && data.question && (!data.yesPosition || !data.noPosition)) {
+    return false;
+  }
   return true;
 }, {
-  message: "Video URL is required for video articles",
-  path: ["videoUrl"]
+  message: "Video URL is required for video articles, and both positions are required if question is provided for debate articles",
+  path: ["videoUrl", "question", "yesPosition", "noPosition"]
 });
 
 // Schema for article status update
@@ -107,7 +128,6 @@ export const debateArticleSchema = baseArticleSchemaObject.extend({
   votingEnabled: z.boolean().optional().default(true),
   votingEndsAt: z.string().datetime().optional()
 });
-// No need for video validation in debate articles since type is fixed
 
 // Schema for video article
 export const videoArticleSchema = baseArticleSchemaObject.extend({
@@ -119,7 +139,6 @@ export const videoArticleSchema = baseArticleSchemaObject.extend({
     .refine(text => !text.includes("<script>"), "Transcript cannot contain script tags")
     .optional()
 });
-// Video URL validation not needed here since it's already required by the schema
 
 // Schema for storyboard article
 export const storyboardArticleSchema = baseArticleSchemaObject.extend({
@@ -127,7 +146,6 @@ export const storyboardArticleSchema = baseArticleSchemaObject.extend({
   seriesId: uuidSchema,
   episodeNumber: z.number().int().positive()
 });
-// No need for video validation in storyboard articles since type is fixed
 
 // Schema for article deletion
 export const deleteArticleSchema = z.object({
