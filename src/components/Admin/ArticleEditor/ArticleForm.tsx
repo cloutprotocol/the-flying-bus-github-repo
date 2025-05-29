@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
 import { useZodForm } from '@/hooks/useZodForm';
 import { createArticleSchema } from '@/utils/validation/articleValidation';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
 import useArticleRevisions from '@/hooks/useArticleRevisions';
 import { useArticleForm } from '@/hooks/useArticleForm';
+import { useArticleFormState } from './ArticleFormState';
+import { useArticleFormValidation } from './ArticleFormValidation';
+import { useArticleFormSubmission } from './ArticleFormSubmission';
 import FormActions from './FormActions';
 import ArticleFormLayout from './Layout/ArticleFormLayout';
 import ArticleFormContent from './Layout/ArticleFormContent';
@@ -30,7 +30,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
   const { addDebugStep, debugSteps } = useArticleDebug();
-  const { toast } = useToast();
   
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
@@ -67,119 +66,40 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
 
-  // Set category ID based on categorySlug when available
-  useEffect(() => {
-    if (categorySlug && isNewArticle) {
-      // In a real implementation, you'd fetch the category ID from the database
-      // For now, we'll use a placeholder approach
-      const getCategoryIdBySlug = async () => {
-        // This would normally be a Supabase query to get category ID by slug
-        // form.setValue('categoryId', categoryId);
-        logger.info(LogSource.EDITOR, 'Category set from selection', { 
-          categorySlug, 
-          categoryName 
-        });
-      };
-      
-      getCategoryIdBySlug();
-    }
-  }, [categorySlug, isNewArticle, form]);
+  // Use extracted state management
+  const { effectiveArticleId } = useArticleFormState({
+    form,
+    categorySlug,
+    isNewArticle,
+    articleId,
+    draftId,
+    articleType
+  });
 
-  // Performance logging
-  useEffect(() => {
-    console.log("ArticleForm render performance", { 
-      time: new Date().toISOString(),
-      articleId,
-      draftId,
-      articleType,
-      isNewArticle,
-      categorySlug
-    });
-  }, [articleId, draftId, articleType, isNewArticle, categorySlug]);
+  // Use extracted validation logic
+  const { validateFormBeforeSubmit } = useArticleFormValidation(form, content);
 
-  // Form validation function
-  const validateFormBeforeSubmit = () => {
-    let isValid = true;
-    const errors: string[] = [];
-
-    // Validate title
-    const title = form.getValues('title');
-    if (!title || title.trim() === '') {
-      form.setError('title', { type: 'required', message: 'Title is required' });
-      errors.push("Article title is required");
-      isValid = false;
-    }
-    
-    // Validate category
-    const categoryId = form.getValues('categoryId');
-    if (!categoryId) {
-      form.setError('categoryId', { type: 'required', message: 'Category is required' });
-      errors.push("Please select a category");
-      isValid = false;
-    }
-    
-    // Validate content
-    if (!content || content.trim() === '') {
-      errors.push("Article content is required");
-      isValid = false;
-    }
-    
-    // Validate image URL
-    const imageUrl = form.getValues('imageUrl');
-    if (!imageUrl || imageUrl.trim() === '') {
-      errors.push("A featured image is required");
-      form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
-      isValid = false;
-    }
-
-    return { isValid, errors };
-  };
-
-  // Form submission handler with performance optimizations
-  const onSubmit = async (data: any) => {
-    try {
-      // Only log minimal data to reduce overhead
-      addDebugStep('Form validation passed', {
-        hasTitle: !!data.title,
-        hasCategoryId: !!data.categoryId,
-        articleType: data.articleType,
-        categorySlug
-      });
-      
-      await handleSubmit({
-        ...data,
-        content,
-        isDirty: form.formState.isDirty,
-        id: draftId || articleId
-      });
-      
-    } catch (error) {
-      console.error("Form submission error:", error);
-      logger.error(LogSource.EDITOR, 'Article submission failed', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to submit article for review. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const effectiveArticleId = articleId || draftId;
-
-  // Handle submit button click with optimized validation
-  const handleSubmitButtonClick = async (): Promise<void> => {
-    // Skip validation if form is invalid to reduce processing
-    if (!form.formState.isValid && !validateFormBeforeSubmit().isValid) {
-      return Promise.resolve();
-    }
-    
-    return form.handleSubmit(onSubmit)();
-  };
+  // Use extracted submission logic
+  const { handleSubmitButtonClick } = useArticleFormSubmission({
+    form,
+    content,
+    handleSubmit,
+    draftId,
+    articleId,
+    categorySlug
+  });
 
   return (
     <ArticleFormLayout 
       form={form}
-      onSubmit={form.handleSubmit(onSubmit)}
+      onSubmit={form.handleSubmit(async (data) => {
+        await handleSubmit({
+          ...data,
+          content,
+          isDirty: form.formState.isDirty,
+          id: draftId || articleId
+        });
+      })}
       debugSteps={debugSteps}
     >
       <ArticleFormContent 
