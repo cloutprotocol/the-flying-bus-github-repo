@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,19 +10,58 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { UserCheck, UserX, Shield, Clock, MessageSquare, Trophy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getUserStatistics } from '@/services/userService';
 
 interface UserDetailDialogProps {
   user: ReaderProfile;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdateUser: (userId: string, data: Partial<ReaderProfile>) => Promise<boolean>;
+  onUpdateRole: (userId: string, role: string) => Promise<boolean>;
+}
+
+interface UserStats {
+  commentCount: number;
+  readingStreak: number;
+  articlesRead: number;
+  achievements: number;
 }
 
 const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
   user,
   open,
   onOpenChange,
+  onUpdateUser,
+  onUpdateRole,
 }) => {
   const [editedUser, setEditedUser] = useState<ReaderProfile>({...user});
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
+  
+  // Update editedUser when user prop changes
+  useEffect(() => {
+    setEditedUser({...user});
+  }, [user]);
+
+  // Load user statistics when dialog opens
+  useEffect(() => {
+    if (open && user.id) {
+      loadUserStats();
+    }
+  }, [open, user.id]);
+
+  const loadUserStats = async () => {
+    try {
+      setStatsLoading(true);
+      const stats = await getUserStatistics(user.id);
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
   
   const handleRoleChange = (value: string) => {
     setEditedUser({
@@ -31,10 +70,27 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
     });
   };
   
-  const handleSaveChanges = () => {
-    // In a real app, this would save to the database
-    console.log('Saving user changes:', editedUser);
-    onOpenChange(false);
+  const handleSaveChanges = async () => {
+    try {
+      setSaving(true);
+      
+      // Update profile data
+      const profileSuccess = await onUpdateUser(user.id, editedUser);
+      
+      // Update role if it changed
+      let roleSuccess = true;
+      if (editedUser.role !== user.role) {
+        roleSuccess = await onUpdateRole(user.id, editedUser.role);
+      }
+      
+      if (profileSuccess && roleSuccess) {
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error('Error saving changes:', error);
+    } finally {
+      setSaving(false);
+    }
   };
   
   const getInitials = (name: string) => {
@@ -75,9 +131,6 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
               <div className="text-muted-foreground">@{user.username}</div>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start mt-2">
                 <Badge variant="outline">{user.role}</Badge>
-                {user.badges?.map(badge => (
-                  <Badge key={badge} variant="secondary">{badge}</Badge>
-                ))}
               </div>
             </div>
           </div>
@@ -136,40 +189,48 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
             </TabsContent>
             
             <TabsContent value="activity" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-medium">Reading Streak</div>
-                    <div className="text-2xl font-bold">{user.readingStreak || 0} days</div>
+              {statsLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Loading statistics...</p>
+                </div>
+              ) : userStats ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">Reading Streak</div>
+                      <div className="text-2xl font-bold">{userStats.readingStreak} days</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
+                    <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">Comments</div>
+                      <div className="text-2xl font-bold">{userStats.commentCount}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
+                    <Trophy className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">Achievements</div>
+                      <div className="text-2xl font-bold">{userStats.achievements}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
+                    <Trophy className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="text-sm font-medium">Articles Read</div>
+                      <div className="text-2xl font-bold">{userStats.articlesRead}</div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
-                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-medium">Comments</div>
-                    <div className="text-2xl font-bold">{user.commentCount || 0}</div>
-                  </div>
-                </div>
-                
-                <div className="bg-muted/50 rounded-md p-4 flex items-center gap-3">
-                  <Trophy className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-medium">Achievements</div>
-                    <div className="text-2xl font-bold">{user.achievements?.length || 0}</div>
-                  </div>
-                </div>
-              </div>
-              
-              {user.achievements && user.achievements.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Achievements</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {user.achievements.map(achievement => (
-                      <Badge key={achievement} variant="secondary">{achievement}</Badge>
-                    ))}
-                  </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <p>Unable to load user statistics</p>
                 </div>
               )}
             </TabsContent>
@@ -232,8 +293,12 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSaveChanges}>Save Changes</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveChanges} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
