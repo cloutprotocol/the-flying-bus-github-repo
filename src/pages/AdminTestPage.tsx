@@ -18,7 +18,7 @@ const AdminTestPage = () => {
   const [draftId, setDraftId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [performance, setPerformance] = useState<{
+  const [performanceMetrics, setPerformanceMetrics] = useState<{
     saveDraftTime?: number;
     submitTime?: number;
   }>({});
@@ -46,7 +46,7 @@ const AdminTestPage = () => {
       const result = await saveDraftOptimized(articleData);
       
       const endTime = performance.now();
-      setPerformance(prev => ({ 
+      setPerformanceMetrics(prev => ({ 
         ...prev, 
         saveDraftTime: Math.round(endTime - startTime) 
       }));
@@ -106,7 +106,7 @@ const AdminTestPage = () => {
       const result = await submitForReview(articleData);
       
       const endTime = performance.now();
-      setPerformance(prev => ({ 
+      setPerformanceMetrics(prev => ({ 
         ...prev, 
         submitTime: Math.round(endTime - startTime) 
       }));
@@ -199,13 +199,13 @@ const AdminTestPage = () => {
                     <div className="bg-muted p-3 rounded-md">
                       <div className="text-sm font-medium text-muted-foreground">Draft Save Time</div>
                       <div className="text-2xl font-bold mt-1">
-                        {performance.saveDraftTime ? `${performance.saveDraftTime}ms` : '-'}
+                        {performanceMetrics.saveDraftTime ? `${performanceMetrics.saveDraftTime}ms` : '-'}
                       </div>
                     </div>
                     <div className="bg-muted p-3 rounded-md">
                       <div className="text-sm font-medium text-muted-foreground">Submit Time</div>
                       <div className="text-2xl font-bold mt-1">
-                        {performance.submitTime ? `${performance.submitTime}ms` : '-'}
+                        {performanceMetrics.submitTime ? `${performanceMetrics.submitTime}ms` : '-'}
                       </div>
                     </div>
                   </div>
