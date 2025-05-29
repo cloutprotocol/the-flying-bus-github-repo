@@ -5,7 +5,7 @@ import ArticleFormHeader from '../ArticleFormHeader';
 import StoryboardFields from '../StoryboardFields';
 import VideoFormSection from '../VideoFormSection';
 import DebateFormSection from '../DebateFormSection';
-import CategorySelector from '../CategorySelector';
+import SelectedCategoryDisplay from '../SelectedCategoryDisplay';
 import MediaSelector from '../MediaSelector';
 import MetadataFields from '../MetadataFields';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -76,10 +76,10 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       </div>
       
       <div className="space-y-6">
-        <CategorySelector 
-          form={form} 
-          preselectedSlug={categorySlug}
-          preselectedName={categoryName}
+        <SelectedCategoryDisplay 
+          categoryName={categoryName}
+          categorySlug={categorySlug}
+          articleType={articleType}
         />
         <MediaSelector form={form} />
         <MetadataFields form={form} articleType={articleType} />
