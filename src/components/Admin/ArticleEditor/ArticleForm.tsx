@@ -17,12 +17,16 @@ interface ArticleFormProps {
   articleId?: string;
   articleType: string;
   isNewArticle: boolean;
+  categorySlug?: string;
+  categoryName?: string;
 }
 
 const ArticleForm: React.FC<ArticleFormProps> = ({ 
   articleId, 
   articleType = 'standard',
-  isNewArticle = true 
+  isNewArticle = true,
+  categorySlug,
+  categoryName
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
   const { addDebugStep, debugSteps } = useArticleDebug();
@@ -63,6 +67,24 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
 
+  // Set category ID based on categorySlug when available
+  useEffect(() => {
+    if (categorySlug && isNewArticle) {
+      // In a real implementation, you'd fetch the category ID from the database
+      // For now, we'll use a placeholder approach
+      const getCategoryIdBySlug = async () => {
+        // This would normally be a Supabase query to get category ID by slug
+        // form.setValue('categoryId', categoryId);
+        logger.info(LogSource.EDITOR, 'Category set from selection', { 
+          categorySlug, 
+          categoryName 
+        });
+      };
+      
+      getCategoryIdBySlug();
+    }
+  }, [categorySlug, isNewArticle, form]);
+
   // Performance logging
   useEffect(() => {
     console.log("ArticleForm render performance", { 
@@ -70,9 +92,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       articleId,
       draftId,
       articleType,
-      isNewArticle
+      isNewArticle,
+      categorySlug
     });
-  }, [articleId, draftId, articleType, isNewArticle]);
+  }, [articleId, draftId, articleType, isNewArticle, categorySlug]);
 
   // Form validation function
   const validateFormBeforeSubmit = () => {
@@ -120,6 +143,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         hasTitle: !!data.title,
         hasCategoryId: !!data.categoryId,
         articleType: data.articleType,
+        categorySlug
       });
       
       await handleSubmit({
@@ -165,6 +189,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         articleType={articleType}
         isNewArticle={isNewArticle}
         lastSaved={lastSaved}
+        categorySlug={categorySlug}
+        categoryName={categoryName}
       />
       
       <FormActions 

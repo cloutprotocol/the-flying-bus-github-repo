@@ -16,7 +16,11 @@ const ArticleEditor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isNewArticle = !articleId;
+
+  // Get article type and category from location state (from modal selection)
   const articleType = location.state?.articleType || 'standard';
+  const categorySlug = location.state?.categorySlug;
+  const categoryName = location.state?.categoryName;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -35,12 +39,13 @@ const ArticleEditor = () => {
     logger.info(LogSource.EDITOR, 'Article editor opened', { 
       isNewArticle, 
       articleType,
+      categorySlug,
       articleId: articleId || undefined,
       currentPath: location.pathname
     });
     
     checkAuth();
-  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId]);
+  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId, categorySlug]);
 
   // Log when component unmounts to detect navigation issues
   useEffect(() => {
@@ -65,18 +70,33 @@ const ArticleEditor = () => {
     }
   };
 
+  // Determine page title based on whether we have category information
+  const getPageTitle = () => {
+    if (isNewArticle && categoryName) {
+      return `Create New ${categoryName} Article`;
+    }
+    return isNewArticle ? 'Create New Article' : 'Edit Article';
+  };
+
+  const getPageDescription = () => {
+    if (isNewArticle && categoryName) {
+      return `Create a new article for the ${categoryName} category`;
+    }
+    return isNewArticle
+      ? 'Create a new article for publication'
+      : 'Make changes to your article';
+  };
+
   return (
     <AdminPortalLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {isNewArticle ? 'Create New Article' : 'Edit Article'}
+              {getPageTitle()}
             </h1>
             <p className="text-muted-foreground">
-              {isNewArticle
-                ? 'Create a new article for publication'
-                : 'Make changes to your article'}
+              {getPageDescription()}
             </p>
           </div>
           <div className="flex gap-2">
@@ -104,6 +124,8 @@ const ArticleEditor = () => {
           articleId={articleId} 
           articleType={articleType}
           isNewArticle={isNewArticle}
+          categorySlug={categorySlug}
+          categoryName={categoryName}
         />
       </div>
     </AdminPortalLayout>
