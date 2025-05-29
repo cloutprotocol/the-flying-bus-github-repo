@@ -25,11 +25,16 @@ export const useArticleFormState = ({
   articleType
 }: ArticleFormStateProps) => {
   
-  // Set category ID based on categoryName when available
+  // Set category ID based on categoryName when available - make this synchronous for form initialization
   useEffect(() => {
     if (categoryName && isNewArticle) {
       const getCategoryIdByName = async () => {
         try {
+          logger.info(LogSource.EDITOR, 'Fetching category ID for pre-selected category', { 
+            categoryName,
+            timing: 'before_fetch'
+          });
+          
           const { data, error } = await supabase
             .from('categories')
             .select('id')
@@ -42,10 +47,14 @@ export const useArticleFormState = ({
           }
           
           if (data) {
-            form.setValue('categoryId', data.id);
-            logger.info(LogSource.EDITOR, 'Category ID set from selection', { 
+            // Set the category ID in form and mark as dirty to ensure validation sees it
+            form.setValue('categoryId', data.id, { shouldDirty: true, shouldValidate: false });
+            
+            logger.info(LogSource.EDITOR, 'Category ID set successfully from modal selection', { 
               categoryName,
-              categoryId: data.id
+              categoryId: data.id,
+              timing: 'after_set',
+              formValue: form.getValues('categoryId')
             });
           }
         } catch (err) {
@@ -59,16 +68,17 @@ export const useArticleFormState = ({
 
   // Performance logging
   useEffect(() => {
-    console.log("ArticleForm render performance", { 
+    logger.debug(LogSource.EDITOR, "ArticleForm render performance", { 
       time: new Date().toISOString(),
       articleId,
       draftId,
       articleType,
       isNewArticle,
       categorySlug,
-      categoryName
+      categoryName,
+      currentCategoryId: form.getValues('categoryId')
     });
-  }, [articleId, draftId, articleType, isNewArticle, categorySlug, categoryName]);
+  }, [articleId, draftId, articleType, isNewArticle, categorySlug, categoryName, form]);
 
   return {
     effectiveArticleId: articleId || draftId

@@ -15,8 +15,10 @@ export const useFormValidation = (
   const { validateForm } = useValidation();
 
   const performFormValidation = (): boolean => {
-    // If custom validation function is provided, use it
+    // PRIORITY: Use custom validation if provided (this is our ArticleFormValidation)
     if (customValidation) {
+      logger.info(LogSource.EDITOR, 'Using custom validation function');
+      
       const { isValid, errors } = customValidation();
       if (!isValid && errors.length > 0) {
         toast({
@@ -24,12 +26,16 @@ export const useFormValidation = (
           description: errors[0],
           variant: "destructive"
         });
+        
+        logger.warn(LogSource.EDITOR, 'Custom validation failed', { errors });
         return false;
       }
+      
+      logger.info(LogSource.EDITOR, 'Custom validation passed');
       return isValid;
     }
     
-    // Otherwise, use centralized validation
+    // Fallback to centralized validation only if no custom validation
     if (form) {
       const formData = form.getValues();
       const fullData = {
@@ -37,21 +43,11 @@ export const useFormValidation = (
         content: content || ''
       };
       
-      logger.info(LogSource.EDITOR, 'Validating article form', {
+      logger.info(LogSource.EDITOR, 'Using fallback centralized validation', {
         hasTitle: !!fullData.title,
         hasCategoryId: !!fullData.categoryId,
         contentLength: fullData.content?.length || 0,
         status: fullData.status || 'draft' 
-      });
-      
-      // Log the complete data for debugging purposes
-      logger.debug(LogSource.EDITOR, 'Form data for validation', {
-        title: fullData.title,
-        excerpt: fullData.excerpt?.substring(0, 30),
-        categoryId: fullData.categoryId,
-        articleType: fullData.articleType,
-        status: fullData.status || 'draft',
-        contentLength: fullData.content?.length || 0
       });
       
       const result = validateForm(createArticleSchema, fullData, {
@@ -67,8 +63,7 @@ export const useFormValidation = (
           }
         });
         
-        // Log validation errors for debugging
-        logger.warn(LogSource.EDITOR, 'Form validation failed', {
+        logger.warn(LogSource.EDITOR, 'Centralized validation failed', {
           errors: result.errors
         });
       }
@@ -76,6 +71,7 @@ export const useFormValidation = (
       return result.isValid;
     }
     
+    logger.warn(LogSource.EDITOR, 'No validation method available');
     return false;
   };
 

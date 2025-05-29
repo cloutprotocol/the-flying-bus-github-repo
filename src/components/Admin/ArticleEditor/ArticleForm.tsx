@@ -12,6 +12,8 @@ import FormActions from './FormActions';
 import ArticleFormLayout from './Layout/ArticleFormLayout';
 import ArticleFormContent from './Layout/ArticleFormContent';
 import RevisionsDialog from './Revisions/RevisionsDialog';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface ArticleFormProps {
   articleId?: string;
@@ -35,13 +37,24 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     !isNewArticle ? articleId : undefined
   );
   
+  // Initialize form with better defaults for pre-selected categories
+  const defaultCategoryId = ''; // Will be set by useArticleFormState
+  
+  logger.info(LogSource.EDITOR, 'ArticleForm initializing', {
+    isNewArticle,
+    categoryName,
+    categorySlug,
+    articleType,
+    hasPreselectedCategory: !!categoryName
+  });
+  
   // Initialize form with optimized validation and debate-specific defaults
   const form = useZodForm({
     schema: createArticleSchema,
     defaultValues: {
       title: '',
       excerpt: '',
-      categoryId: '',
+      categoryId: defaultCategoryId,
       content: '',
       imageUrl: '',
       readingLevel: 'Intermediate',
@@ -72,10 +85,11 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     draftId
   } = useArticleForm(form, articleId, articleType, isNewArticle);
 
-  // Use extracted state management
+  // Use extracted state management - this will set categoryId asynchronously
   const { effectiveArticleId } = useArticleFormState({
     form,
     categorySlug,
+    categoryName,
     isNewArticle,
     articleId,
     draftId,
