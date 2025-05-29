@@ -113,7 +113,7 @@ const ArticleTypeSelectionModal: React.FC<ArticleTypeSelectionModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Article</DialogTitle>
           <DialogDescription>
@@ -121,11 +121,11 @@ const ArticleTypeSelectionModal: React.FC<ArticleTypeSelectionModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {articleTypes.map((type) => (
             <Card 
               key={type.id} 
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50 h-full"
               onClick={() => handleTypeSelect(type)}
             >
               <CardHeader className="pb-3">
@@ -137,13 +137,13 @@ const ArticleTypeSelectionModal: React.FC<ArticleTypeSelectionModalProps> = ({
                 </div>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-sm mb-3">
                   {type.description}
                 </CardDescription>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="mt-3 w-full"
+                  className="w-full"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleTypeSelect(type);

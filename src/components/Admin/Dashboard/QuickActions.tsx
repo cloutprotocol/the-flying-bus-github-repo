@@ -11,8 +11,7 @@ import {
   Image
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import ArticleTypeSelectionModal from '@/components/Admin/ArticleEditor/ArticleTypeSelectionModal';
-import { useArticleTypeSelection } from '@/hooks/useArticleTypeSelection';
+import { useArticleTypeSelection } from '@/contexts/ArticleTypeSelectionContext';
 
 interface QuickActionsProps {
   pendingArticles?: number;
@@ -25,75 +24,68 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   pendingComments = 0,
   flaggedContent = 0,
 }) => {
-  const { isModalOpen, openModal, closeModal } = useArticleTypeSelection();
+  const { openModal } = useArticleTypeSelection();
 
   return (
-    <>
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="w-full" onClick={openModal}>
-            <PenLine className="h-4 w-4 mr-2" />
-            New Article
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="w-full" onClick={openModal}>
+          <PenLine className="h-4 w-4 mr-2" />
+          New Article
+        </Button>
+        
+        <Link to="/admin/articles">
+          <Button variant="outline" className="w-full relative">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Pending Articles
+            {pendingArticles > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2">
+                {pendingArticles}
+              </Badge>
+            )}
           </Button>
-          
-          <Link to="/admin/articles">
-            <Button variant="outline" className="w-full relative">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Pending Articles
-              {pendingArticles > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {pendingArticles}
-                </Badge>
-              )}
-            </Button>
-          </Link>
+        </Link>
 
-          <Link to="/admin/comment-moderation">
-            <Button variant="outline" className="w-full relative">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Comments
-              {pendingComments > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {pendingComments}
-                </Badge>
-              )}
-            </Button>
-          </Link>
+        <Link to="/admin/comment-moderation">
+          <Button variant="outline" className="w-full relative">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Comments
+            {pendingComments > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2">
+                {pendingComments}
+              </Badge>
+            )}
+          </Button>
+        </Link>
 
-          <Link to="/admin/content-flagging">
-            <Button variant="outline" className="w-full relative">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Flagged Content
-              {flaggedContent > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2">
-                  {flaggedContent}
-                </Badge>
-              )}
-            </Button>
-          </Link>
+        <Link to="/admin/content-flagging">
+          <Button variant="outline" className="w-full relative">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Flagged Content
+            {flaggedContent > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2">
+                {flaggedContent}
+              </Badge>
+            )}
+          </Button>
+        </Link>
 
-          <Link to="/admin/users">
-            <Button variant="outline" className="w-full">
-              <Users className="h-4 w-4 mr-2" />
-              Manage Users
-            </Button>
-          </Link>
+        <Link to="/admin/users">
+          <Button variant="outline" className="w-full">
+            <Users className="h-4 w-4 mr-2" />
+            Manage Users
+          </Button>
+        </Link>
 
-          <Link to="/admin/media">
-            <Button variant="outline" className="w-full">
-              <Image className="h-4 w-4 mr-2" />
-              Media Library
-            </Button>
-          </Link>
-        </div>
-      </Card>
-
-      <ArticleTypeSelectionModal 
-        open={isModalOpen} 
-        onOpenChange={closeModal} 
-      />
-    </>
+        <Link to="/admin/media">
+          <Button variant="outline" className="w-full">
+            <Image className="h-4 w-4 mr-2" />
+            Media Library
+          </Button>
+        </Link>
+      </div>
+    </Card>
   );
 };
 

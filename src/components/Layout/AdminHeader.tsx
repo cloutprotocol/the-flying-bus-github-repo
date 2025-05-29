@@ -15,8 +15,7 @@ import {
   ListCheck,
   Plus
 } from 'lucide-react';
-import ArticleTypeSelectionModal from '@/components/Admin/ArticleEditor/ArticleTypeSelectionModal';
-import { useArticleTypeSelection } from '@/hooks/useArticleTypeSelection';
+import { useArticleTypeSelection } from '@/contexts/ArticleTypeSelectionContext';
 
 const navItems = [
   { icon: <Home className="h-5 w-5" />, label: 'Dashboard', path: '/admin/dashboard' },
@@ -31,68 +30,61 @@ const navItems = [
 
 const AdminHeader = () => {
   const location = useLocation();
-  const { isModalOpen, openModal, closeModal } = useArticleTypeSelection();
+  const { openModal } = useArticleTypeSelection();
   
   return (
-    <>
-      <header className="bg-white border-b sticky top-0 z-30">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center">
-            <Link to="/admin" className="flex items-center mr-10">
-              <FolderOpen className="h-6 w-6 text-primary mr-2" />
-              <span className="font-bold text-lg">Admin Portal</span>
-            </Link>
-            
-            <nav className="hidden md:flex items-center space-x-1">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path ||
-                  (item.path !== '/admin' && location.pathname.startsWith(item.path));
-                
-                return (
-                  <Link key={item.path} to={item.path}>
-                    <Button
-                      variant={isActive ? 'secondary' : 'ghost'}
-                      className="flex items-center gap-2 h-10"
-                    >
-                      {item.icon}
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+    <header className="bg-white border-b sticky top-0 z-30">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center">
+          <Link to="/admin" className="flex items-center mr-10">
+            <FolderOpen className="h-6 w-6 text-primary mr-2" />
+            <span className="font-bold text-lg">Admin Portal</span>
+          </Link>
           
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={openModal}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              New Article
-            </Button>
-            
-            <Link to="/" className="mr-2">
-              <Button variant="outline" size="sm">
-                View Site
-              </Button>
-            </Link>
-            
-            <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-          </div>
+          <nav className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path ||
+                (item.path !== '/admin' && location.pathname.startsWith(item.path));
+              
+              return (
+                <Link key={item.path} to={item.path}>
+                  <Button
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    className="flex items-center gap-2 h-10"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-      </header>
-
-      <ArticleTypeSelectionModal 
-        open={isModalOpen} 
-        onOpenChange={closeModal} 
-      />
-    </>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="default" 
+            size="sm"
+            onClick={openModal}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Article
+          </Button>
+          
+          <Link to="/" className="mr-2">
+            <Button variant="outline" size="sm">
+              View Site
+            </Button>
+          </Link>
+          
+          <Avatar>
+            <AvatarImage src="https://github.com/shadcn.png" />
+            <AvatarFallback>JD</AvatarFallback>
+          </Avatar>
+        </div>
+      </div>
+    </header>
   );
 };
 
