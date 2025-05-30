@@ -81,6 +81,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     categorySlug
   });
 
+  // Wrap saveDraft to return Promise<void>
+  const handleSaveDraft = async (): Promise<void> => {
+    await saveDraft();
+  };
+
+  // Wrap submitForReview to return Promise<void>
+  const handleSubmit = async (): Promise<void> => {
+    await handleSubmitButtonClick();
+  };
+
   return (
     <div className="space-y-6">
       <ArticleFormContent 
@@ -90,8 +100,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       />
       
       <EnhancedFormActions 
-        onSaveDraft={saveDraft}
-        onSubmit={handleSubmitButtonClick}
+        onSaveDraft={handleSaveDraft}
+        onSubmit={handleSubmit}
         onViewRevisions={!isNewArticle && revisions.length > 0 ? () => setShowRevisions(true) : undefined}
         isSubmitting={isSubmitting}
         isDirty={hasUnsavedChanges}

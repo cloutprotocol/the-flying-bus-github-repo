@@ -40,12 +40,14 @@ export const submitArticleOptimized = async (
       articleType: articleData.articleType || 'standard',
       slug: articleData.slug,
       videoUrl: articleData.videoUrl,
-      debateSettings: articleData.debateSettings
+      debateSettings: articleData.debateSettings ? {
+        ...articleData.debateSettings
+      } : undefined
     };
 
     const { data, error } = await supabase.rpc('submit_article_optimized', {
       p_user_id: userId,
-      p_article_data: submissionData,
+      p_article_data: submissionData as any,
       p_save_draft: saveAsDraft
     });
 
@@ -122,8 +124,8 @@ const submitStoryboardArticle = async (
     }));
 
     const result = await createStoryboardSeries(userId, {
-      seriesData,
-      episodes
+      seriesData: seriesData as any,
+      episodes: episodes as any
     });
 
     if (!result.success) {

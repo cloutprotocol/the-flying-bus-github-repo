@@ -1,136 +1,82 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { ApiError, ApiErrorType } from '@/utils/errors/types';
-import { generateClientSideSlug } from '@/utils/article/slugGenerator';
-import { measureApiCall } from '@/services/monitoringService';
 
-/**
- * Optimized draft save service using the new Supabase stored procedure
- * This reduces the number of database operations and improves performance
- */
+export interface DraftSaveResult {
+  success: boolean;
+  articleId?: string;
+  error?: string;
+}
+
 export const saveDraftOptimized = async (
-  articleData: any
-): Promise<{ success: boolean; error?: any; draftId?: string }> => {
+  userId: string,
+  articleData: ArticleFormData
+): Promise<DraftSaveResult> => {
   try {
-    // Get current user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session?.user?.id) {
-      const errorMsg = 'Authentication required - no valid session found';
-      logger.error(LogSource.DATABASE, errorMsg, { sessionError });
-      return { 
-        success: false, 
-        error: new ApiError(errorMsg, ApiErrorType.AUTH, 401, sessionError)
-      };
-    }
-    
-    const userId = session.user.id;
-    
-    // Generate slug on client-side if needed
-    if (!articleData.slug && articleData.title) {
-      articleData.slug = generateClientSideSlug(articleData.title);
-    }
-    
-    // Prepare article data - data comes pre-structured from ArticleForm
-    const preparedData = {
-      ...articleData,
-      author_id: userId
-    };
-    
-    logger.debug(LogSource.DATABASE, 'Saving draft with pre-structured data', {
-      userId,
-      hasId: !!articleData.id,
-      title: articleData.title?.substring(0, 30),
+    logger.info(LogSource.ARTICLE, 'Saving draft', {
       articleType: articleData.articleType,
-      hasDebateSettings: !!preparedData.debateSettings,
-      debateQuestion: preparedData.debateSettings?.question?.substring(0, 30) || 'N/A'
+      title: articleData.title
     });
-    
-    const endMeasure = measureApiCall('save-draft-optimized');
-    
-    // Call the optimized stored procedure
+
+    const submissionData = {
+      id: articleData.id,
+      title: articleData.title || 'Untitled Draft',
+      content: articleData.content || '',
+      excerpt: articleData.excerpt,
+      imageUrl: articleData.imageUrl,
+      categoryId: articleData.categoryId,
+      author_id: userId,
+      articleType: articleData.articleType || 'standard',
+      slug: articleData.slug,
+      videoUrl: articleData.videoUrl,
+      debateSettings: articleData.debateSettings ? {
+        ...articleData.debateSettings
+      } : undefined
+    };
+
     const { data, error } = await supabase.rpc('save_draft_optimized', {
       p_user_id: userId,
-      p_article_data: preparedData
+      p_article_data: submissionData as any
     });
-    
-    endMeasure();
-    
+
     if (error) {
-      const errorDetails = {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      };
-      
-      logger.error(LogSource.DATABASE, 'Error calling save_draft_optimized', errorDetails);
-      
-      return { 
-        success: false, 
-        error: new ApiError(
-          error.message || 'Error saving draft', 
-          ApiErrorType.SERVER, 
-          error.code === '23505' ? 409 : undefined,
-          error
-        )
-      };
+      logger.error(LogSource.ARTICLE, 'Error saving draft', error);
+      throw error;
     }
+
+    if (!data || data.length === 0) {
+      throw new Error('No response from draft save function');
+    }
+
+    const result = data[0];
     
-    // Handle the structured response from the function
-    if (data === null || (Array.isArray(data) && data.length === 0)) {
-      return {
-        success: false,
-        error: new ApiError('Draft save failed - null response from database', ApiErrorType.VALIDATION)
-      };
-    }
-
-    // Check if we got an array result (handle both object and array responses)
-    const result = Array.isArray(data) ? data[0] : data;
-
-    // Check if save was successful
     if (!result.success) {
-      const errorMessage = result.error_message || 'Draft save failed';
+      logger.error(LogSource.ARTICLE, 'Draft save failed', {
+        error: result.error_message
+      });
       return {
         success: false,
-        error: new ApiError(errorMessage, ApiErrorType.VALIDATION)
+        error: result.error_message
       };
     }
 
-    // Extract the article_id from the response
-    const draftId = result.article_id;
-
-    // Log performance metrics
-    if (result.duration_ms) {
-      logger.debug(LogSource.DATABASE, 'Draft save performance', { 
-        durationMs: result.duration_ms,
-        draftId
-      });
-    }
-
-    logger.info(LogSource.DATABASE, 'Draft saved successfully', { 
-      draftId,
-      originalId: articleData.id
+    logger.info(LogSource.ARTICLE, 'Draft saved successfully', {
+      articleId: result.article_id,
+      duration: result.duration_ms
     });
 
-    return { 
-      success: true, 
-      draftId
+    return {
+      success: true,
+      articleId: result.article_id
     };
-  } catch (e) {
-    const errorDetails = e instanceof Error ? {
-      message: e.message,
-      stack: e.stack,
-      name: e.name
-    } : e;
-    
-    logger.error(LogSource.DATABASE, 'Unexpected error in draft save', errorDetails);
-    
-    return { 
-      success: false, 
-      error: new ApiError('An unexpected error occurred during draft save', ApiErrorType.UNKNOWN)
+
+  } catch (error) {
+    logger.error(LogSource.ARTICLE, 'Exception saving draft', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
 };

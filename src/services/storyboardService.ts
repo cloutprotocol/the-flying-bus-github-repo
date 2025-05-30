@@ -11,6 +11,7 @@ export interface StoryboardSeriesData {
   categoryId: string;
   excerpt?: string;
   status?: string;
+  [key: string]: any; // Add index signature for JSON compatibility
 }
 
 export interface StoryboardEpisodeData {
@@ -21,6 +22,7 @@ export interface StoryboardEpisodeData {
   duration?: string;
   number: number;
   content?: string;
+  [key: string]: any; // Add index signature for JSON compatibility
 }
 
 export interface CreateStoryboardRequest {
@@ -47,8 +49,8 @@ export const createStoryboardSeries = async (
 
     const { data, error } = await supabase.rpc('create_storyboard_series', {
       p_user_id: userId,
-      p_series_data: request.seriesData,
-      p_episodes_data: request.episodes
+      p_series_data: request.seriesData as any,
+      p_episodes_data: request.episodes as any
     });
 
     if (error) {

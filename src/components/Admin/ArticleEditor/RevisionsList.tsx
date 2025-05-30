@@ -58,12 +58,12 @@ const RevisionsList: React.FC<RevisionsListProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="font-medium">
-                  {new Date(revision.createdAt).toLocaleString()}
+                  {new Date(revision.created_at).toLocaleString()}
                 </div>
                 <div className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span>By {revision.editorName}</span>
-                  {revision.revisionNote && (
-                    <span className="italic">"{revision.revisionNote}"</span>
+                  <span>By {revision.editorName || 'Unknown'}</span>
+                  {revision.revision_note && (
+                    <span className="italic">"{revision.revision_note}"</span>
                   )}
                 </div>
               </div>

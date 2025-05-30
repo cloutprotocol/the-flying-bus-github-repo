@@ -12,6 +12,7 @@ export interface DebateSettings {
   noPosition: string;
   votingEnabled: boolean;
   voting_ends_at: string | null;
+  [key: string]: any; // Add index signature for JSON compatibility
 }
 
 export interface StoryboardEpisode {
@@ -55,4 +56,14 @@ export interface ArticleRevision {
   created_at: string;
   content: string;
   revision_note?: string;
+  editorName?: string; // Add this for compatibility
+}
+
+export interface ArticleDraft {
+  id: string;
+  title: string;
+  content: string;
+  author_id: string;
+  created_at: string;
+  updated_at: string;
 }
