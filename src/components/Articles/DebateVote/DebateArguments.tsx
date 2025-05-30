@@ -13,8 +13,11 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
   const [expandedYes, setExpandedYes] = useState(false);
   const [expandedNo, setExpandedNo] = useState(false);
 
-  // Don't render if no arguments are provided
-  if (!yesPosition && !noPosition) {
+  // Don't render if no arguments are provided or both are empty
+  const hasYesArgument = yesPosition && yesPosition.trim().length > 0;
+  const hasNoArgument = noPosition && noPosition.trim().length > 0;
+  
+  if (!hasYesArgument && !hasNoArgument) {
     return null;
   }
 
@@ -24,7 +27,7 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Yes Position */}
-        {yesPosition && (
+        {hasYesArgument && (
           <Card className="border-green-200 bg-green-50/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-green-700 flex items-center justify-between">
@@ -43,7 +46,7 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
               <div className={`text-gray-700 text-sm ${expandedYes ? '' : 'line-clamp-3'}`}>
                 {yesPosition}
               </div>
-              {yesPosition.length > 150 && !expandedYes && (
+              {yesPosition && yesPosition.length > 150 && !expandedYes && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -58,7 +61,7 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
         )}
 
         {/* No Position */}
-        {noPosition && (
+        {hasNoArgument && (
           <Card className="border-red-200 bg-red-50/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-red-700 flex items-center justify-between">
@@ -77,7 +80,7 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
               <div className={`text-gray-700 text-sm ${expandedNo ? '' : 'line-clamp-3'}`}>
                 {noPosition}
               </div>
-              {noPosition.length > 150 && !expandedNo && (
+              {noPosition && noPosition.length > 150 && !expandedNo && (
                 <Button
                   variant="ghost"
                   size="sm"
