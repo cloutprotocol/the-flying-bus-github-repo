@@ -48,9 +48,8 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         if (data) {
           setCategories(data);
           
-          logger.info(LogSource.EDITOR, 'Categories fetched for selector', {
+          logger.debug(LogSource.EDITOR, 'Categories fetched for selector', {
             count: data.length,
-            categories: data.map(c => ({ name: c.name, slug: c.slug })),
             preselectedSlug,
             preselectedName
           });
@@ -62,21 +61,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             // First try by slug (more reliable)
             if (preselectedSlug) {
               matchedCategory = data.find(cat => cat.slug === preselectedSlug);
-              logger.info(LogSource.EDITOR, 'Slug match attempt', {
-                preselectedSlug,
-                found: !!matchedCategory,
-                matchedCategory: matchedCategory ? { id: matchedCategory.id, name: matchedCategory.name } : null
-              });
             }
             
             // Fallback to name match
             if (!matchedCategory && preselectedName) {
               matchedCategory = data.find(cat => cat.name === preselectedName);
-              logger.info(LogSource.EDITOR, 'Name match attempt', {
-                preselectedName,
-                found: !!matchedCategory,
-                matchedCategory: matchedCategory ? { id: matchedCategory.id, name: matchedCategory.name } : null
-              });
             }
             
             if (matchedCategory) {
@@ -90,8 +79,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             } else {
               logger.warn(LogSource.EDITOR, 'No matching category found in selector', {
                 preselectedSlug,
-                preselectedName,
-                availableCategories: data.map(c => ({ name: c.name, slug: c.slug }))
+                preselectedName
               });
             }
           }

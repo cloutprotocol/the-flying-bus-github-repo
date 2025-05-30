@@ -15,7 +15,7 @@ export const useFormValidation = (
   const { validateForm } = useValidation();
 
   const performFormValidation = (): boolean => {
-    logger.info(LogSource.EDITOR, 'FormValidation: Starting validation process', {
+    logger.debug(LogSource.EDITOR, 'FormValidation: Starting validation process', {
       hasCustomValidation: !!customValidation,
       hasForm: !!form,
       contentLength: content?.length || 0
@@ -23,14 +23,11 @@ export const useFormValidation = (
 
     // PRIORITY 1: Use custom validation if provided (this is our ArticleFormValidation)
     if (customValidation) {
-      logger.info(LogSource.EDITOR, 'Using custom validation function (ArticleFormValidation)');
-      
       const { isValid, errors } = customValidation();
       
-      logger.info(LogSource.EDITOR, 'Custom validation result', {
+      logger.debug(LogSource.EDITOR, 'Custom validation result', {
         isValid,
-        errorCount: errors.length,
-        errors
+        errorCount: errors.length
       });
       
       if (!isValid && errors.length > 0) {
@@ -42,33 +39,21 @@ export const useFormValidation = (
         });
         
         logger.warn(LogSource.EDITOR, 'Custom validation failed, blocking submission', { 
-          firstError: errors[0],
-          allErrors: errors 
+          firstError: errors[0]
         });
         return false;
       }
       
-      logger.info(LogSource.EDITOR, 'Custom validation passed successfully');
       return isValid;
     }
     
     // PRIORITY 2: Fallback to centralized validation only if no custom validation
     if (form) {
-      logger.info(LogSource.EDITOR, 'Using fallback centralized validation');
-      
       const formData = form.getValues();
       const fullData = {
         ...formData,
         content: content || ''
       };
-      
-      logger.info(LogSource.EDITOR, 'Centralized validation data', {
-        hasTitle: !!fullData.title,
-        hasCategoryId: !!fullData.categoryId,
-        contentLength: fullData.content?.length || 0,
-        status: fullData.status || 'draft',
-        categoryId: fullData.categoryId
-      });
       
       const result = validateForm(createArticleSchema, fullData, {
         context: 'article_submit',
@@ -84,16 +69,14 @@ export const useFormValidation = (
         });
         
         logger.warn(LogSource.EDITOR, 'Centralized validation failed', {
-          errors: result.errors
+          errorCount: Object.keys(result.errors).length
         });
-      } else {
-        logger.info(LogSource.EDITOR, 'Centralized validation passed');
       }
       
       return result.isValid;
     }
     
-    logger.warn(LogSource.EDITOR, 'No validation method available - this should not happen');
+    logger.warn(LogSource.EDITOR, 'No validation method available');
     return false;
   };
 
