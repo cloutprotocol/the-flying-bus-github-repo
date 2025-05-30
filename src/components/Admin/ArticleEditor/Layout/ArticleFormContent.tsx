@@ -1,95 +1,159 @@
 
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import ArticleFormHeader from '../ArticleFormHeader';
-import StoryboardFields from '../StoryboardFields';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import RichTextEditor from '../RichTextEditor';
+import CategorySelector from '../CategorySelector';
+import MetadataFields from '../MetadataFields';
 import VideoFormSection from '../VideoFormSection';
 import DebateFormSection from '../DebateFormSection';
-import SelectedCategoryDisplay from '../SelectedCategoryDisplay';
-import MediaSelector from '../MediaSelector';
-import MetadataFields from '../MetadataFields';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import StoryboardFields from '../StoryboardFields';
+import { MediaSelector } from '../MediaSelector';
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 
 interface ArticleFormContentProps {
-  form: UseFormReturn<any>;
-  content: string;
-  setContent: (content: string) => void;
-  articleType: string;
-  isNewArticle: boolean;
-  lastSaved: Date | null;
-  categorySlug?: string;
-  categoryName?: string;
+  formData: ArticleFormData;
+  onChange: (field: keyof ArticleFormData, value: any) => void;
+  isSubmitting?: boolean;
 }
 
 const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
-  form,
-  content,
-  setContent,
-  articleType,
-  isNewArticle,
-  lastSaved,
-  categorySlug,
-  categoryName
+  formData,
+  onChange,
+  isSubmitting = false
 }) => {
-  // Show category info if selected from modal
-  const showCategoryInfo = isNewArticle && categoryName;
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2 space-y-6">
-        {showCategoryInfo && (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Creating a new <strong>{categoryName}</strong> article. 
-              {articleType === 'debate' && ' This will include polling and debate features.'}
-              {articleType === 'video' && ' You can add an optional video to this article.'}
-              {articleType === 'storyboard' && ' This will be part of a video series.'}
-            </AlertDescription>
-          </Alert>
-        )}
+    <div className="space-y-6">
+      {/* Basic Article Information */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">
+            {formData.articleType === 'storyboard' ? 'Series Title' : 'Title'} *
+          </Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => onChange('title', e.target.value)}
+            placeholder={
+              formData.articleType === 'storyboard' 
+                ? "Enter your storyboard series title" 
+                : "Enter your article title"
+            }
+            disabled={isSubmitting}
+            required
+          />
+        </div>
 
-        <ArticleFormHeader 
-          form={form} 
-          content={content} 
-          setContent={setContent} 
+        <div className="space-y-2">
+          <Label htmlFor="excerpt">
+            {formData.articleType === 'storyboard' ? 'Series Summary' : 'Excerpt'}
+          </Label>
+          <Textarea
+            id="excerpt"
+            value={formData.excerpt}
+            onChange={(e) => onChange('excerpt', e.target.value)}
+            placeholder={
+              formData.articleType === 'storyboard'
+                ? "Brief summary of your storyboard series"
+                : "Brief summary or excerpt of your article"
+            }
+            rows={3}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>
+            {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
+          </Label>
+          <MediaSelector
+            value={formData.imageUrl}
+            onChange={(url) => onChange('imageUrl', url)}
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <CategorySelector
+          value={formData.categoryId}
+          onChange={(value) => onChange('categoryId', value)}
+          disabled={isSubmitting}
         />
-        
-        {articleType === 'storyboard' && (
-          <StoryboardFields 
-            form={form}
-            isNewSeries={isNewArticle}
-          />
-        )}
-        
-        {(articleType === 'video' || categorySlug === 'spice-it-up') && (
-          <VideoFormSection 
-            form={form} 
-            isOptional={categorySlug === 'spice-it-up'}
-          />
-        )}
-        
-        {articleType === 'debate' && (
-          <DebateFormSection form={form} />
-        )}
       </div>
-      
-      <div className="space-y-6">
-        <SelectedCategoryDisplay 
-          categoryName={categoryName}
-          categorySlug={categorySlug}
-          articleType={articleType}
-        />
-        <MediaSelector form={form} />
-        <MetadataFields form={form} articleType={articleType} />
-        
-        {lastSaved && (
-          <div className="text-xs text-muted-foreground text-right">
-            Last saved: {lastSaved.toLocaleTimeString()}
+
+      {/* Content Section - Different for each article type */}
+      {formData.articleType === 'storyboard' ? (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="content">Series Description</Label>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(value) => onChange('content', value)}
+              placeholder="Detailed description of your storyboard series..."
+              disabled={isSubmitting}
+            />
           </div>
-        )}
-      </div>
+          
+          <StoryboardFields
+            episodes={formData.storyboardEpisodes || []}
+            onEpisodesChange={(episodes) => onChange('storyboardEpisodes', episodes)}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      ) : formData.articleType === 'video' ? (
+        <div className="space-y-4">
+          <VideoFormSection
+            videoUrl={formData.videoUrl}
+            onVideoUrlChange={(url) => onChange('videoUrl', url)}
+            disabled={isSubmitting}
+          />
+          
+          <div className="space-y-2">
+            <Label htmlFor="content">Content</Label>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(value) => onChange('content', value)}
+              placeholder="Write your article content here..."
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
+      ) : formData.articleType === 'debate' ? (
+        <div className="space-y-4">
+          <DebateFormSection
+            debateSettings={formData.debateSettings}
+            onDebateSettingsChange={(settings) => onChange('debateSettings', settings)}
+            disabled={isSubmitting}
+          />
+          
+          <div className="space-y-2">
+            <Label htmlFor="content">Additional Context</Label>
+            <RichTextEditor
+              value={formData.content}
+              onChange={(value) => onChange('content', value)}
+              placeholder="Provide additional context for the debate..."
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="content">Content *</Label>
+          <RichTextEditor
+            value={formData.content}
+            onChange={(value) => onChange('content', value)}
+            placeholder="Write your article content here..."
+            disabled={isSubmitting}
+          />
+        </div>
+      )}
+
+      {/* Metadata Fields */}
+      <MetadataFields
+        slug={formData.slug}
+        onSlugChange={(slug) => onChange('slug', slug)}
+        disabled={isSubmitting}
+      />
     </div>
   );
 };

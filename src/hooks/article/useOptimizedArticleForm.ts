@@ -1,189 +1,249 @@
 
-import { useEffect } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+import { ArticleFormData, StoryboardEpisode } from '@/types/ArticleEditorTypes';
+import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
+import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
 
-// Import refactored hooks
-import { useArticleFormState } from './form/useArticleFormState';
-import { useDraftSaveService } from './form/useDraftSaveService';
-import { useManualSaveHandler } from './form/useManualSaveHandler';
-import { useAutoSaveHandler } from './form/useAutoSaveHandler';
-import { useArticleSubmission } from './form/useArticleSubmission';
+const initialFormData: ArticleFormData = {
+  title: '',
+  content: '',
+  excerpt: '',
+  imageUrl: '',
+  categoryId: '',
+  slug: '',
+  articleType: 'standard',
+  storyboardEpisodes: []
+};
 
-export const useOptimizedArticleForm = (
-  form: UseFormReturn<any>,
-  articleId?: string,
-  articleType: string = 'standard',
-  isNewArticle: boolean = true
-) => {
-  const navigate = useNavigate();
+const initialStoryboardEpisode: StoryboardEpisode = {
+  title: 'Episode 1',
+  description: '',
+  videoUrl: '',
+  thumbnailUrl: '',
+  duration: '',
+  number: 1,
+  content: ''
+};
+
+export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) => {
+  const [formData, setFormData] = useState<ArticleFormData>(() => ({
+    ...initialFormData,
+    ...initialData,
+    // Initialize with one episode for storyboard articles
+    storyboardEpisodes: initialData?.articleType === 'storyboard' 
+      ? initialData?.storyboardEpisodes?.length ? initialData.storyboardEpisodes : [initialStoryboardEpisode]
+      : initialData?.storyboardEpisodes || []
+  }));
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  const { user } = useAuth();
   const { toast } = useToast();
-  
-  // Initialize form state management
-  const {
-    isSubmitting,
-    setIsSubmitting,
-    isSaving,
-    setIsSaving,
-    saveStatus,
-    setSaveStatus,
-    lastSaved,
-    setLastSaved,
-    draftId,
-    setDraftId,
-    content,
-    setContent,
-    submissionCompletedRef,
-    isMountedRef
-  } = useArticleFormState(form, articleId, isNewArticle);
-  
-  // Setup draft saving service
-  const { saveDraftOptimized } = useDraftSaveService();
-  
-  // Setup manual save functionality
-  const { handleSaveDraft } = useManualSaveHandler({
-    draftId,
-    articleType,
-    setSaving: setIsSaving,
-    setSaveStatus,
-    setLastSaved,
-    saveDraft: saveDraftOptimized,
-    setDraftId,
-    isMountedRef
-  });
-  
-  // Setup auto-save functionality
-  useAutoSaveHandler({
-    form,
-    content,
-    draftId,
-    articleType,
-    isSubmitting,
-    isSaving,
-    setSaving: setIsSaving,
-    setSaveStatus,
-    setLastSaved,
-    saveDraft: saveDraftOptimized,
-    setDraftId,
-    submissionCompletedRef,
-    isMountedRef
-  });
-  
-  // Setup article submission with improved error handling
-  const { submitArticle } = useArticleSubmission();
-  
-  // Component lifecycle management
+  const navigate = useNavigate();
+
+  // Auto-generate slug from title
   useEffect(() => {
-    isMountedRef.current = true;
-    
-    // Log component initialization for performance tracking
-    logger.info(LogSource.EDITOR, 'ArticleForm initialized', {
-      articleId,
-      isNewArticle,
-      articleType
-    });
-    
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [articleId, isNewArticle, articleType, isMountedRef]);
-  
-  // Handle manual draft save
-  const saveManualDraft = async (): Promise<void> => {
-    if (isSaving || isSubmitting) {
-      return;
+    if (formData.title && !formData.slug) {
+      const slug = formData.title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      setFormData(prev => ({ ...prev, slug }));
     }
-    
-    const formData = {
-      ...form.getValues(),
-      content,
-      id: draftId
-    };
-    
-    await handleSaveDraft(formData);
-  };
-  
-  // Handle article submission with combined save+submit and improved error handling
-  const handleSubmit = async (data: any) => {
-    if (isSubmitting) {
-      logger.warn(LogSource.EDITOR, 'Submission already in progress, ignoring duplicate request');
-      return null;
+  }, [formData.title, formData.slug]);
+
+  // Initialize storyboard episodes when article type changes
+  useEffect(() => {
+    if (formData.articleType === 'storyboard' && (!formData.storyboardEpisodes || formData.storyboardEpisodes.length === 0)) {
+      setFormData(prev => ({
+        ...prev,
+        storyboardEpisodes: [initialStoryboardEpisode]
+      }));
     }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const completeData = {
-        ...data,
-        content,
-        id: draftId || articleId,
-        articleType
-      };
-      
-      logger.info(LogSource.EDITOR, 'Starting article submission', {
-        hasId: !!completeData.id,
-        hasContent: !!completeData.content,
-        contentLength: completeData.content?.length || 0,
-        articleType: completeData.articleType,
-        timestamp: new Date().toISOString()
-      });
-      
-      const success = await submitArticle(completeData);
-      
-      if (!success) {
-        setIsSubmitting(false);
-        toast({
-          title: 'Submission Error',
-          description: 'There was a problem submitting your article. Please try again.',
-          variant: 'destructive'
+  }, [formData.articleType]);
+
+  const updateField = useCallback((field: keyof ArticleFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const validateForm = useCallback((): string[] => {
+    const errors: string[] = [];
+
+    if (!formData.title.trim()) {
+      errors.push('Title is required');
+    }
+
+    if (!formData.categoryId) {
+      errors.push('Category is required');
+    }
+
+    if (formData.articleType === 'storyboard') {
+      if (!formData.storyboardEpisodes || formData.storyboardEpisodes.length === 0) {
+        errors.push('At least one episode is required for storyboard series');
+      } else {
+        formData.storyboardEpisodes.forEach((episode, index) => {
+          if (!episode.title.trim()) {
+            errors.push(`Episode ${index + 1} title is required`);
+          }
         });
-        return null;
       }
-      
-      // Navigate after successful submission
-      toast({
-        title: 'Success!',
-        description: 'Your article has been submitted for review.',
-      });
-      
-      logger.info(LogSource.EDITOR, 'Article submission successful, navigating to articles list');
-      
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          navigate('/admin/articles');
-        }
-      }, 1000); // Small delay to ensure UI updates before navigation
-      
-      return draftId;
-    } catch (error) {
-      logger.error(LogSource.EDITOR, 'Error in form submission', { 
-        error,
-        articleId: draftId || articleId
-      });
-      
-      toast({
-        title: 'Submission Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-      
-      setIsSubmitting(false);
-      return null;
+    } else if (formData.articleType === 'video') {
+      if (!formData.videoUrl) {
+        errors.push('Video URL is required for video articles');
+      }
+    } else if (formData.articleType === 'debate') {
+      if (!formData.debateSettings?.question?.trim()) {
+        errors.push('Debate question is required');
+      }
+    } else {
+      if (!formData.content.trim()) {
+        errors.push('Content is required');
+      }
     }
-  };
+
+    return errors;
+  }, [formData]);
+
+  const saveDraft = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to save drafts.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsSaving(true);
+
+    try {
+      logger.info(LogSource.ARTICLE, 'Saving draft', {
+        articleType: formData.articleType,
+        title: formData.title
+      });
+
+      const result = await saveDraftOptimized(user.id, formData);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save draft');
+      }
+
+      // Update form data with the returned article ID
+      if (result.articleId && !formData.id) {
+        setFormData(prev => ({ ...prev, id: result.articleId }));
+      }
+
+      setHasUnsavedChanges(false);
+      
+      toast({
+        title: "Draft saved",
+        description: "Your changes have been saved successfully.",
+      });
+
+      return true;
+
+    } catch (error) {
+      logger.error(LogSource.ARTICLE, 'Error saving draft', error);
+      
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
+        variant: "destructive"
+      });
+
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user?.id, formData, toast]);
+
+  const submitForReview = useCallback(async (): Promise<boolean> => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to submit articles.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const errors = validateForm();
+    if (errors.length > 0) {
+      toast({
+        title: "Validation failed",
+        description: errors.join('. '),
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      logger.info(LogSource.ARTICLE, 'Submitting article for review', {
+        articleType: formData.articleType,
+        title: formData.title
+      });
+
+      const result = await submitArticleOptimized(user.id, formData, false);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit article');
+      }
+
+      setHasUnsavedChanges(false);
+
+      const successMessage = formData.articleType === 'storyboard' 
+        ? "Your storyboard series has been submitted successfully!"
+        : "Your article has been submitted for review!";
+
+      toast({
+        title: "Submission successful",
+        description: successMessage,
+      });
+
+      // Navigate based on article type
+      if (formData.articleType === 'storyboard' && result.articleId) {
+        navigate(`/storyboard/${result.articleId}`);
+      } else {
+        navigate('/admin/my-articles');
+      }
+
+      return true;
+
+    } catch (error) {
+      logger.error(LogSource.ARTICLE, 'Error submitting article', error);
+      
+      toast({
+        title: "Submission failed",
+        description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
+        variant: "destructive"
+      });
+
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [user?.id, formData, validateForm, toast, navigate]);
 
   return {
-    content,
-    setContent,
-    draftId,
-    saveStatus,
-    lastSaved,
+    formData,
+    updateField,
     isSubmitting,
     isSaving,
-    handleSubmit,
-    handleSaveDraft: saveManualDraft
+    hasUnsavedChanges,
+    saveDraft,
+    submitForReview,
+    validateForm
   };
 };

@@ -655,23 +655,44 @@ export type Database = {
         Row: {
           article_id: string
           created_at: string
+          description: string | null
+          duration: string | null
           episode_number: number
           id: string
+          published_at: string | null
           series_id: string
+          status: string | null
+          thumbnail_url: string | null
+          title: string
+          video_url: string | null
         }
         Insert: {
           article_id: string
           created_at?: string
+          description?: string | null
+          duration?: string | null
           episode_number: number
           id?: string
+          published_at?: string | null
           series_id: string
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          video_url?: string | null
         }
         Update: {
           article_id?: string
           created_at?: string
+          description?: string | null
+          duration?: string | null
           episode_number?: number
           id?: string
+          published_at?: string | null
           series_id?: string
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -693,10 +714,14 @@ export type Database = {
       storyboard_series: {
         Row: {
           author_id: string | null
+          category_id: string | null
           cover_image: string | null
           created_at: string
           description: string | null
+          excerpt: string | null
+          featured: boolean | null
           id: string
+          published_at: string | null
           slug: string
           status: string
           title: string
@@ -704,10 +729,14 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          category_id?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
+          excerpt?: string | null
+          featured?: boolean | null
           id?: string
+          published_at?: string | null
           slug: string
           status?: string
           title: string
@@ -715,10 +744,14 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          category_id?: string | null
           cover_image?: string | null
           created_at?: string
           description?: string | null
+          excerpt?: string | null
+          featured?: boolean | null
           id?: string
+          published_at?: string | null
           slug?: string
           status?: string
           title?: string
@@ -730,6 +763,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storyboard_series_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -850,6 +890,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_storyboard_series: {
+        Args: { p_user_id: string; p_series_data: Json; p_episodes_data: Json }
+        Returns: {
+          success: boolean
+          error_message: string
+          series_id: string
+          duration_ms: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

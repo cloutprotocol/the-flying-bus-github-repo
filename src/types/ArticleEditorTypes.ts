@@ -1,38 +1,46 @@
+export interface ArticleFormValidation {
+  title: string;
+  content: string;
+  categoryId: string;
+  slug: string;
+}
+
+export interface DebateSettings {
+  question: string;
+  yesPosition: string;
+  noPosition: string;
+  votingEnabled: boolean;
+  voting_ends_at: string | null;
+}
+
+export interface StoryboardEpisode {
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  duration: string;
+  number: number;
+  content: string;
+}
 
 export interface ArticleFormData {
+  id?: string;
   title: string;
   content: string;
   excerpt: string;
   imageUrl: string;
   categoryId: string;
+  slug: string;
   articleType: 'standard' | 'video' | 'debate' | 'storyboard';
   videoUrl?: string;
-  readingLevel?: string;
-  debateSettings?: {
-    question: string;
-    yesPosition: string;
-    noPosition: string;
-    votingEnabled: boolean;
-    votingEndsAt?: string;
-  };
+  debateSettings?: DebateSettings;
+  storyboardEpisodes?: StoryboardEpisode[];
 }
 
-export interface ArticleDraft extends ArticleFormData {
+export interface Category {
   id: string;
-  status: 'draft' | 'pending' | 'published' | 'archived' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  readingLevel?: string;
+  name: string;
+  slug: string;
+  description: string;
+  created_at: string;
 }
-
-export interface ArticleRevision {
-  id: string;
-  articleId: string;
-  editorId: string;
-  editorName: string;
-  content: string;
-  revisionNote?: string;
-  createdAt: string;
-}
-
-export type DraftSaveStatus = 'idle' | 'saving' | 'saved' | 'error';

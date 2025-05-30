@@ -1,162 +1,199 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { UseFormReturn } from 'react-hook-form';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Video, Clock, Image } from 'lucide-react';
+import { useStoryboardForm } from '@/hooks/useStoryboardForm';
 
-interface StoryboardFieldsProps {
-  form: UseFormReturn<any>;
-  isNewSeries: boolean;
+interface Episode {
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  duration: string;
+  number: number;
+  content: string;
 }
 
-const StoryboardFields: React.FC<StoryboardFieldsProps> = ({ 
-  form, 
-  isNewSeries = true 
+interface StoryboardFieldsProps {
+  episodes: Episode[];
+  onEpisodesChange: (episodes: Episode[]) => void;
+  onSubmit?: () => void;
+  isSubmitting?: boolean;
+}
+
+const StoryboardFields: React.FC<StoryboardFieldsProps> = ({
+  episodes,
+  onEpisodesChange,
+  onSubmit,
+  isSubmitting = false
 }) => {
-  const [episodes, setEpisodes] = useState<Array<{ title: string, number: number }>>([
-    { title: '', number: 1 }
-  ]);
-  
-  const addEpisode = () => {
-    setEpisodes([...episodes, { title: '', number: episodes.length + 1 }]);
+  const { addEpisode, removeEpisode, updateEpisode } = useStoryboardForm();
+
+  const handleAddEpisode = () => {
+    const newEpisodes = addEpisode(episodes);
+    onEpisodesChange(newEpisodes);
   };
-  
-  const removeEpisode = (index: number) => {
-    if (episodes.length > 1) {
-      const newEpisodes = [...episodes];
-      newEpisodes.splice(index, 1);
-      // Renumber episodes
-      const renumbered = newEpisodes.map((ep, idx) => ({
-        ...ep,
-        number: idx + 1
-      }));
-      setEpisodes(renumbered);
+
+  const handleRemoveEpisode = (index: number) => {
+    if (episodes.length <= 1) return; // Keep at least one episode
+    const newEpisodes = removeEpisode(episodes, index);
+    onEpisodesChange(newEpisodes);
+  };
+
+  const handleUpdateEpisode = (index: number, field: keyof Episode, value: string) => {
+    const updates = { [field]: value };
+    const newEpisodes = updateEpisode(episodes, index, updates);
+    onEpisodesChange(newEpisodes);
+  };
+
+  const formatDuration = (value: string) => {
+    // Allow formats like "5:30" or "05:30"
+    const cleaned = value.replace(/[^\d:]/g, '');
+    if (cleaned.includes(':')) {
+      const [minutes, seconds] = cleaned.split(':');
+      if (minutes && seconds) {
+        return `${minutes.padStart(1, '0')}:${seconds.padStart(2, '0')}`;
+      }
     }
+    return cleaned;
   };
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Storyboard Series</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isNewSeries ? (
-          <>
-            <FormField
-              control={form.control}
-              name="seriesTitle"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Series Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter series title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="seriesDescription"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Series Description</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter series description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
-        ) : (
-          <FormField
-            control={form.control}
-            name="seriesId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Series</FormLabel>
-                <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select series" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="series1">The Adventures of Sam</SelectItem>
-                    <SelectItem value="series2">Space Explorers</SelectItem>
-                    <SelectItem value="series3">Mystery at Green Lake</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        
-        <div className="border-t pt-4 mt-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-medium">Episodes</h4>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={addEpisode}
-              type="button"
-            >
-              <PlusCircle className="mr-1 h-4 w-4" />
-              Add Episode
-            </Button>
-          </div>
-          
-          <div className="space-y-3">
-            {episodes.map((episode, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-12">
-                  <Input
-                    type="number"
-                    value={episode.number}
-                    onChange={(e) => {
-                      const newEpisodes = [...episodes];
-                      newEpisodes[index].number = parseInt(e.target.value);
-                      setEpisodes(newEpisodes);
-                    }}
-                    className="text-center"
-                  />
-                </div>
-                <div className="flex-1">
-                  <Input
-                    placeholder="Episode title"
-                    value={episode.title}
-                    onChange={(e) => {
-                      const newEpisodes = [...episodes];
-                      newEpisodes[index].title = e.target.value;
-                      setEpisodes(newEpisodes);
-                    }}
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeEpisode(index)}
-                  disabled={episodes.length === 1}
-                  type="button"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Episodes</h3>
+        <Button
+          type="button"
+          onClick={handleAddEpisode}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+          disabled={isSubmitting}
+        >
+          <Plus size={16} />
+          Add Episode
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        {episodes.map((episode, index) => (
+          <Card key={index} className="border border-gray-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium">
+                  Episode {episode.number}
+                </CardTitle>
+                {episodes.length > 1 && (
+                  <Button
+                    type="button"
+                    onClick={() => handleRemoveEpisode(index)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    disabled={isSubmitting}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                )}
               </div>
-            ))}
-          </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor={`episode-title-${index}`}>Episode Title *</Label>
+                <Input
+                  id={`episode-title-${index}`}
+                  value={episode.title}
+                  onChange={(e) => handleUpdateEpisode(index, 'title', e.target.value)}
+                  placeholder="Enter episode title"
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`episode-description-${index}`}>Description</Label>
+                <Textarea
+                  id={`episode-description-${index}`}
+                  value={episode.description}
+                  onChange={(e) => handleUpdateEpisode(index, 'description', e.target.value)}
+                  placeholder="Brief description of this episode"
+                  rows={3}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`episode-video-${index}`} className="flex items-center gap-2">
+                    <Video size={16} />
+                    Video URL
+                  </Label>
+                  <Input
+                    id={`episode-video-${index}`}
+                    value={episode.videoUrl}
+                    onChange={(e) => handleUpdateEpisode(index, 'videoUrl', e.target.value)}
+                    placeholder="https://..."
+                    type="url"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`episode-duration-${index}`} className="flex items-center gap-2">
+                    <Clock size={16} />
+                    Duration
+                  </Label>
+                  <Input
+                    id={`episode-duration-${index}`}
+                    value={episode.duration}
+                    onChange={(e) => handleUpdateEpisode(index, 'duration', formatDuration(e.target.value))}
+                    placeholder="5:30"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`episode-thumbnail-${index}`} className="flex items-center gap-2">
+                  <Image size={16} />
+                  Thumbnail URL
+                </Label>
+                <Input
+                  id={`episode-thumbnail-${index}`}
+                  value={episode.thumbnailUrl}
+                  onChange={(e) => handleUpdateEpisode(index, 'thumbnailUrl', e.target.value)}
+                  placeholder="https://..."
+                  type="url"
+                  disabled={isSubmitting}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {episodes.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <Video size={48} className="mx-auto mb-4 text-gray-300" />
+          <p className="text-lg font-medium">No episodes yet</p>
+          <p className="text-sm">Add your first episode to get started</p>
+          <Button
+            type="button"
+            onClick={handleAddEpisode}
+            className="mt-4"
+            disabled={isSubmitting}
+          >
+            <Plus size={16} className="mr-2" />
+            Add First Episode
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };
 
