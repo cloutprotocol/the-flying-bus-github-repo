@@ -331,7 +331,7 @@ export const getDraftById = async (
         yesPosition: data.debate_articles[0].yes_position,
         noPosition: data.debate_articles[0].no_position,
         votingEnabled: data.debate_articles[0].voting_enabled,
-        votingEndsAt: data.debate_articles[0].voting_ends_at
+        voting_ends_at: data.debate_articles[0].voting_ends_at
       } : undefined
     };
     

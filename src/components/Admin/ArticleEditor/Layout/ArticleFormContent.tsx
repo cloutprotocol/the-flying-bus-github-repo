@@ -31,6 +31,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       onChange(field as keyof ArticleFormData, value);
     },
     watch: (field: string) => formData[field as keyof ArticleFormData],
+    register: () => ({ name: '', onBlur: () => {}, onChange: () => {}, ref: () => {} }),
     getFieldState: () => ({ invalid: false, isTouched: false, isDirty: false, error: undefined }),
     setError: () => {},
     clearErrors: () => {},
