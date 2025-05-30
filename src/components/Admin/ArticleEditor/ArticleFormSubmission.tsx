@@ -26,23 +26,65 @@ export const useArticleFormSubmission = ({
   const { toast } = useToast();
   const { addDebugStep } = useArticleDebug();
 
-  // Form submission handler with performance optimizations
+  // Helper function to structure debate data properly
+  const prepareArticleData = (data: any) => {
+    const preparedData = {
+      ...data,
+      content,
+      isDirty: form.formState.isDirty,
+      id: draftId || articleId
+    };
+
+    // If this is a debate article, structure the debate fields properly
+    if (data.articleType === 'debate') {
+      // Extract debate fields and structure them in debateSettings
+      const { question, yesPosition, noPosition, votingEnabled, votingEndsAt, ...otherData } = preparedData;
+      
+      preparedData.debateSettings = {
+        question: question || '',
+        yesPosition: yesPosition || '',
+        noPosition: noPosition || '',
+        votingEnabled: votingEnabled !== undefined ? votingEnabled : true,
+        votingEndsAt: votingEndsAt || null
+      };
+      
+      // Remove the individual debate fields from the root level to avoid duplication
+      delete preparedData.question;
+      delete preparedData.yesPosition;
+      delete preparedData.noPosition;
+      delete preparedData.votingEnabled;
+      delete preparedData.votingEndsAt;
+      
+      logger.debug(LogSource.EDITOR, 'Structured debate data for submission', {
+        hasDebateSettings: !!preparedData.debateSettings,
+        debateQuestion: preparedData.debateSettings?.question?.substring(0, 30)
+      });
+    }
+
+    return preparedData;
+  };
+
+  // Form submission handler with proper data structuring
   const onSubmit = async (data: any) => {
     try {
-      // Only log minimal data to reduce overhead
+      // Structure the data properly before submission
+      const structuredData = prepareArticleData(data);
+      
       addDebugStep('Form validation passed', {
-        hasTitle: !!data.title,
-        hasCategoryId: !!data.categoryId,
-        articleType: data.articleType,
+        hasTitle: !!structuredData.title,
+        hasCategoryId: !!structuredData.categoryId,
+        articleType: structuredData.articleType,
+        hasDebateSettings: !!structuredData.debateSettings,
         categorySlug
       });
       
-      await handleSubmit({
-        ...data,
-        content,
-        isDirty: form.formState.isDirty,
-        id: draftId || articleId
+      logger.debug(LogSource.EDITOR, 'Submitting structured article data', {
+        dataKeys: Object.keys(structuredData),
+        articleType: structuredData.articleType,
+        hasDebateSettings: !!structuredData.debateSettings
       });
+      
+      await handleSubmit(structuredData);
       
     } catch (error) {
       console.error("Form submission error:", error);

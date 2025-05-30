@@ -39,18 +39,45 @@ export const submitForReview = async (
       articleData.slug = generateClientSideSlug(articleData.title);
     }
     
-    // Log the parameters being sent to the function
-    logger.debug(LogSource.DATABASE, 'Submitting article with parameters', {
+    // Prepare article data with proper structure for debate articles
+    const preparedData = {
+      ...articleData,
+      author_id: userId
+    };
+    
+    // Ensure debate data is properly structured for submission
+    if (articleData.articleType === 'debate') {
+      // If debateSettings already exists, use it; otherwise structure it from individual fields
+      if (articleData.debateSettings) {
+        preparedData.debateSettings = articleData.debateSettings;
+      } else if (articleData.question || articleData.yesPosition || articleData.noPosition) {
+        preparedData.debateSettings = {
+          question: articleData.question || '',
+          yesPosition: articleData.yesPosition || '',
+          noPosition: articleData.noPosition || '',
+          votingEnabled: articleData.votingEnabled ?? true,
+          votingEndsAt: articleData.votingEndsAt || null
+        };
+      }
+      
+      logger.debug(LogSource.DATABASE, 'Structured debate data for submission', {
+        hasDebateSettings: !!preparedData.debateSettings,
+        questionLength: preparedData.debateSettings?.question?.length || 0
+      });
+    }
+    
+    logger.debug(LogSource.DATABASE, 'Submitting article with structured data', {
       userId,
-      articleDataKeys: Object.keys(articleData),
+      articleDataKeys: Object.keys(preparedData),
       saveDraft,
-      title: articleData.title?.substring(0, 30),
-      articleId: articleData.id,
-      contentLength: articleData.content?.length || 0
+      title: preparedData.title?.substring(0, 30),
+      articleId: preparedData.id,
+      contentLength: preparedData.content?.length || 0,
+      hasDebateSettings: !!preparedData.debateSettings
     });
     
     // First run client-side validation to catch obvious issues
-    const validationResult = validateArticle(articleData, true);
+    const validationResult = validateArticle(preparedData, true);
     if (!validationResult.isValid) {
       const errorMsg = `Validation error before submission: ${validationResult.errors.join(', ')}`;
       logger.error(LogSource.DATABASE, errorMsg);
@@ -62,13 +89,14 @@ export const submitForReview = async (
     
     // Call the new optimized stored procedure for validation and submission
     logger.info(LogSource.DATABASE, 'Calling submit_article_optimized function', {
-      hasId: !!articleData.id,
-      title: articleData.title?.substring(0, 30)
+      hasId: !!preparedData.id,
+      title: preparedData.title?.substring(0, 30),
+      hasDebateSettings: !!preparedData.debateSettings
     });
     
     const { data, error } = await supabase.rpc('submit_article_optimized', {
       p_user_id: userId,
-      p_article_data: articleData,
+      p_article_data: preparedData,
       p_save_draft: saveDraft
     });
 
@@ -130,7 +158,7 @@ export const submitForReview = async (
 
     logger.info(LogSource.DATABASE, 'Article submitted successfully', { 
       submissionId,
-      articleId: articleData.id
+      articleId: preparedData.id
     });
 
     return { 

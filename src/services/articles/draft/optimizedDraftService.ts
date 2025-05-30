@@ -39,15 +39,25 @@ export const saveDraftOptimized = async (
       author_id: userId
     };
     
-    // Handle debate-specific data structure
-    if (articleData.articleType === 'debate' && (articleData.question || articleData.yesPosition || articleData.noPosition)) {
-      preparedData.debateSettings = {
-        question: articleData.question || '',
-        yesPosition: articleData.yesPosition || '',
-        noPosition: articleData.noPosition || '',
-        votingEnabled: articleData.votingEnabled ?? true,
-        votingEndsAt: articleData.votingEndsAt || null
-      };
+    // Ensure debate data is properly structured
+    if (articleData.articleType === 'debate') {
+      // If debateSettings already exists, use it; otherwise structure it from individual fields
+      if (articleData.debateSettings) {
+        preparedData.debateSettings = articleData.debateSettings;
+      } else if (articleData.question || articleData.yesPosition || articleData.noPosition) {
+        preparedData.debateSettings = {
+          question: articleData.question || '',
+          yesPosition: articleData.yesPosition || '',
+          noPosition: articleData.noPosition || '',
+          votingEnabled: articleData.votingEnabled ?? true,
+          votingEndsAt: articleData.votingEndsAt || null
+        };
+      }
+      
+      logger.debug(LogSource.DATABASE, 'Structured debate data for draft save', {
+        hasDebateSettings: !!preparedData.debateSettings,
+        questionLength: preparedData.debateSettings?.question?.length || 0
+      });
     }
     
     logger.debug(LogSource.DATABASE, 'Saving draft with optimized function', {

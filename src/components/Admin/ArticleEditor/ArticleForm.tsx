@@ -113,13 +113,29 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     <ArticleFormLayout 
       form={form}
       onSubmit={form.handleSubmit(async (data) => {
-        // Prepare submission data with content
+        // Prepare submission data with content and proper debate structure
         const submissionData = {
           ...data,
           content,
           isDirty: form.formState.isDirty,
           id: draftId || articleId
         };
+        
+        // If this is a debate article, ensure debate fields are properly structured
+        if (data.articleType === 'debate') {
+          submissionData.debateSettings = {
+            question: data.question || '',
+            yesPosition: data.yesPosition || '',
+            noPosition: data.noPosition || '',
+            votingEnabled: data.votingEnabled !== undefined ? data.votingEnabled : true,
+            votingEndsAt: data.votingEndsAt || null
+          };
+          
+          logger.debug(LogSource.EDITOR, 'Prepared debate submission data', {
+            hasDebateSettings: !!submissionData.debateSettings,
+            questionLength: submissionData.debateSettings?.question?.length || 0
+          });
+        }
         
         await handleSubmit(submissionData);
       })}
