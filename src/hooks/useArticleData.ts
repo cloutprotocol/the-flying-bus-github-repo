@@ -64,10 +64,49 @@ export const useArticleData = (articleId: string | undefined) => {
         // Load debate settings if it's a debate article
         if (isDebateArticle(articleData.articleType)) {
           try {
-            const debate = await fetchDebateSettings(articleId);
-            setDebateSettings(debate);
+            const debateData = await fetchDebateSettings(articleId);
+            if (debateData) {
+              // Map the data to the expected format for the components
+              const enhancedDebateSettings = {
+                question: debateData.question || articleData.title,
+                yes_position: debateData.yes_position,
+                no_position: debateData.no_position,
+                voting_enabled: debateData.voting_enabled,
+                voting_ends_at: debateData.voting_ends_at,
+                initialVotes: debateData.initialVotes || { yes: 0, no: 0 }
+              };
+              
+              logger.info(LogSource.ARTICLE, 'Debate settings loaded successfully', {
+                articleId,
+                hasQuestion: !!enhancedDebateSettings.question,
+                hasYesPosition: !!enhancedDebateSettings.yes_position,
+                hasNoPosition: !!enhancedDebateSettings.no_position
+              });
+              
+              setDebateSettings(enhancedDebateSettings);
+            } else {
+              logger.warn(LogSource.ARTICLE, 'No debate settings found for debate article', { articleId });
+              // Set default debate settings for debate articles without saved settings
+              setDebateSettings({
+                question: articleData.title,
+                yes_position: '',
+                no_position: '',
+                voting_enabled: true,
+                voting_ends_at: null,
+                initialVotes: { yes: 0, no: 0 }
+              });
+            }
           } catch (debateError) {
             logger.error(LogSource.ARTICLE, 'Error loading debate settings', debateError);
+            // Set minimal debate settings as fallback
+            setDebateSettings({
+              question: articleData.title,
+              yes_position: '',
+              no_position: '',
+              voting_enabled: true,
+              voting_ends_at: null,
+              initialVotes: { yes: 0, no: 0 }
+            });
           }
         }
         

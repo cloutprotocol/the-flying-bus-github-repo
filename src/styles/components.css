@@ -1,6 +1,6 @@
 
 .article-card {
-  @apply bg-flyingbus-card-bg rounded-md shadow-sm overflow-hidden hover:shadow-md transition-shadow;
+  @apply bg-white rounded-md shadow-sm overflow-hidden hover:shadow-md transition-shadow;
 }
 
 .btn-primary {

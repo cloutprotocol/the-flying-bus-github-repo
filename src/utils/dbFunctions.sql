@@ -123,7 +123,7 @@ BEGIN
       DO UPDATE SET video_url = EXCLUDED.video_url;
     END IF;
     
-    -- Handle debate article data
+    -- Handle debate article data with proper field mapping
     IF v_article_type = 'debate' AND p_article_data->'debateSettings' IS NOT NULL THEN
       INSERT INTO debate_articles (
         article_id, 
@@ -134,7 +134,7 @@ BEGIN
       )
       VALUES (
         v_result_id,
-        p_article_data->'debateSettings'->>'question',
+        COALESCE(p_article_data->'debateSettings'->>'question', p_article_data->>'title'),
         p_article_data->'debateSettings'->>'yesPosition',
         p_article_data->'debateSettings'->>'noPosition',
         COALESCE((p_article_data->'debateSettings'->>'votingEnabled')::BOOLEAN, true)
@@ -258,7 +258,7 @@ BEGIN
     DO UPDATE SET video_url = EXCLUDED.video_url;
   END IF;
   
-  -- Handle debate article data in same transaction
+  -- Handle debate article data in same transaction with proper field mapping
   IF v_article_type = 'debate' AND p_article_data->'debateSettings' IS NOT NULL THEN
     -- Upsert debate details
     INSERT INTO debate_articles (
@@ -270,7 +270,7 @@ BEGIN
     )
     VALUES (
       v_result_id,
-      p_article_data->'debateSettings'->>'question',
+      COALESCE(p_article_data->'debateSettings'->>'question', p_article_data->>'title'),
       p_article_data->'debateSettings'->>'yesPosition',
       p_article_data->'debateSettings'->>'noPosition',
       COALESCE((p_article_data->'debateSettings'->>'votingEnabled')::BOOLEAN, true)
