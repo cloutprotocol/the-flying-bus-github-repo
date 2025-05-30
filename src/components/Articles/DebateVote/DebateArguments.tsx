@@ -83,6 +83,8 @@ const DebateArguments: React.FC<DebateArgumentsProps> = ({ yesPosition, noPositi
                   size="sm"
                   onClick={() => setExpandedNo(true)}
                   className="text-red-600 hover:text-red-800 p-0 h-auto mt-2"
+                >
+                  Read more...
                 </Button>
               )}
             </CardContent>
