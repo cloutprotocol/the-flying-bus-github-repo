@@ -30,14 +30,23 @@ export const getUserArticles = async (
   try {
     logger.info(LogSource.ARTICLE, 'Fetching user articles', { page, limit });
     
-    // Get current user session
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get current user session with error handling
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      logger.error(LogSource.ARTICLE, 'Session error when fetching articles', sessionError);
+      return { articles: [], count: 0, error: sessionError };
+    }
+    
     const userId = session?.user?.id;
     
     if (!userId) {
+      const authError = new Error('User not authenticated');
       logger.error(LogSource.ARTICLE, 'No authenticated user found when fetching articles');
-      return { articles: [], count: 0, error: new Error('User not authenticated') };
+      return { articles: [], count: 0, error: authError };
     }
+    
+    console.log('Fetching articles for user:', userId.substring(0, 8));
     
     // Calculate pagination offsets
     const from = (page - 1) * limit;
@@ -66,7 +75,7 @@ export const getUserArticles = async (
       .range(from, to);
     
     if (error) {
-      logger.error(LogSource.ARTICLE, 'Error fetching user articles', error);
+      logger.error(LogSource.ARTICLE, 'Database error fetching user articles', error);
       return { articles: [], count: 0, error };
     }
     
@@ -82,6 +91,7 @@ export const getUserArticles = async (
     };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception fetching user articles', e);
+    console.error('getUserArticles exception:', e);
     return { articles: [], count: 0, error: e };
   }
 };
@@ -90,13 +100,23 @@ export const deleteUserArticle = async (articleId: string): Promise<{ success: b
   try {
     logger.info(LogSource.ARTICLE, 'Deleting article', { articleId });
     
+    // Verify user authentication
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session?.user?.id) {
+      const authError = new Error('User not authenticated');
+      logger.error(LogSource.ARTICLE, 'Authentication error when deleting article', sessionError);
+      return { success: false, error: authError };
+    }
+    
     const { error } = await supabase
       .from('articles')
       .delete()
-      .eq('id', articleId);
+      .eq('id', articleId)
+      .eq('author_id', session.user.id); // Ensure user can only delete their own articles
     
     if (error) {
-      logger.error(LogSource.ARTICLE, 'Error deleting article', error);
+      logger.error(LogSource.ARTICLE, 'Database error deleting article', error);
       return { success: false, error };
     }
     
@@ -104,6 +124,7 @@ export const deleteUserArticle = async (articleId: string): Promise<{ success: b
     return { success: true, error: null };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception deleting article', e);
+    console.error('deleteUserArticle exception:', e);
     return { success: false, error: e };
   }
 };

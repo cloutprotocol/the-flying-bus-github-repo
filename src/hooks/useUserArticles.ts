@@ -18,16 +18,23 @@ export function useUserArticles() {
     setError(null);
     
     try {
+      console.log('Fetching articles for page:', page);
       const { articles, count, error } = await getUserArticles(page, limit);
       
       if (error) {
         throw new Error(error.message || 'Failed to fetch articles');
       }
       
+      console.log('Articles fetched successfully:', { 
+        articlesCount: articles.length, 
+        totalCount: count 
+      });
+      
       setArticles(articles);
       setTotalCount(count);
       setCurrentPage(page);
     } catch (err) {
+      console.error('Error fetching articles:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
       toast({
         title: "Error",
@@ -41,6 +48,7 @@ export function useUserArticles() {
 
   const deleteArticle = async (articleId: string) => {
     try {
+      console.log('Deleting article:', articleId);
       const { success, error } = await deleteUserArticle(articleId);
       
       if (!success) {
@@ -56,6 +64,7 @@ export function useUserArticles() {
       fetchArticles();
       
     } catch (err) {
+      console.error('Error deleting article:', err);
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to delete article",
@@ -74,7 +83,13 @@ export function useUserArticles() {
   };
 
   useEffect(() => {
-    fetchArticles(1);
+    console.log('useUserArticles hook initializing...');
+    try {
+      fetchArticles(1);
+    } catch (err) {
+      console.error('Error during initial fetch:', err);
+      setError(err instanceof Error ? err : new Error('Failed to initialize articles'));
+    }
   }, []);
 
   return {
