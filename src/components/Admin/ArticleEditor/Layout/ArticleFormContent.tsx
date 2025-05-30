@@ -26,7 +26,12 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
   // Create a complete mock form object that satisfies the UseFormReturn interface
   const mockForm = {
     control: null as any,
-    getValues: () => formData,
+    getValues: ((field?: any) => {
+      if (field) {
+        return formData[field as keyof ArticleFormData];
+      }
+      return formData;
+    }) as any,
     setValue: (field: string, value: any) => {
       onChange(field as keyof ArticleFormData, value);
     },
@@ -36,19 +41,19 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       }
       return formData;
     }) as any,
-    register: () => ({ name: '', onBlur: () => {}, onChange: () => {}, ref: () => {} }),
-    getFieldState: () => ({ invalid: false, isTouched: false, isDirty: false, error: undefined }),
-    setError: () => {},
-    clearErrors: () => {},
-    trigger: () => Promise.resolve(true),
-    reset: () => {},
-    resetField: () => {},
-    setFocus: () => {},
-    unregister: () => {},
-    handleSubmit: (onValid: any) => (e?: any) => {
+    register: (() => ({ name: '', onBlur: () => {}, onChange: () => {}, ref: () => {} })) as any,
+    getFieldState: (() => ({ invalid: false, isTouched: false, isDirty: false, error: undefined })) as any,
+    setError: (() => {}) as any,
+    clearErrors: (() => {}) as any,
+    trigger: (() => Promise.resolve(true)) as any,
+    reset: (() => {}) as any,
+    resetField: (() => {}) as any,
+    setFocus: (() => {}) as any,
+    unregister: (() => {}) as any,
+    handleSubmit: ((onValid: any) => (e?: any) => {
       e?.preventDefault();
       onValid(formData);
-    },
+    }) as any,
     formState: {
       errors: {},
       isDirty: false,
@@ -59,7 +64,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       touchedFields: {},
       dirtyFields: {}
     }
-  };
+  } as any;
 
   return (
     <div className="space-y-6">
