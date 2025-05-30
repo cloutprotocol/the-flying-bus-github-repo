@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { DebugContext } from '@/hooks/debug/useDebugContext';
+import { DebugContext } from '@/contexts/DebugContext';
 import type { DebugStep, DebugStepStatus } from '@/types/DebugTypes';
 
 interface DebugProviderProps {

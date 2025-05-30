@@ -1,82 +1,62 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-
-export interface DraftSaveResult {
-  success: boolean;
-  articleId?: string;
-  error?: string;
-}
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 
 export const saveDraftOptimized = async (
   userId: string,
-  articleData: ArticleFormData
-): Promise<DraftSaveResult> => {
+  formData: ArticleFormData
+): Promise<{ success: boolean; error?: string; articleId?: string }> => {
   try {
-    logger.info(LogSource.ARTICLE, 'Saving draft', {
-      articleType: articleData.articleType,
-      title: articleData.title
+    console.log('saveDraftOptimized: Starting save with data:', {
+      title: formData.title,
+      categoryId: formData.categoryId,
+      hasContent: !!formData.content
     });
 
-    const submissionData = {
-      id: articleData.id,
-      title: articleData.title || 'Untitled Draft',
-      content: articleData.content || '',
-      excerpt: articleData.excerpt,
-      imageUrl: articleData.imageUrl,
-      categoryId: articleData.categoryId,
-      author_id: userId,
-      articleType: articleData.articleType || 'standard',
-      slug: articleData.slug,
-      videoUrl: articleData.videoUrl,
-      debateSettings: articleData.debateSettings ? {
-        ...articleData.debateSettings
-      } : undefined
+    const articleData = {
+      title: formData.title || 'Untitled Draft',
+      content: formData.content || '',
+      excerpt: formData.excerpt || '',
+      cover_image: formData.imageUrl || '',
+      category_id: formData.categoryId || null,
+      status: 'draft',
+      article_type: formData.articleType || 'standard',
+      slug: formData.slug || formData.title?.toLowerCase().replace(/\s+/g, '-') || 'untitled',
+      author_id: userId
     };
 
-    const { data, error } = await supabase.rpc('save_draft_optimized', {
-      p_user_id: userId,
-      p_article_data: submissionData as any
-    });
-
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error saving draft', error);
-      throw error;
+    if (formData.id) {
+      // Update existing draft
+      const { error } = await supabase
+        .from('articles')
+        .update(articleData)
+        .eq('id', formData.id);
+      
+      if (error) {
+        console.error('saveDraftOptimized: Update error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, articleId: formData.id };
+    } else {
+      // Create new draft
+      const { data, error } = await supabase
+        .from('articles')
+        .insert(articleData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('saveDraftOptimized: Insert error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, articleId: data.id };
     }
-
-    if (!data || data.length === 0) {
-      throw new Error('No response from draft save function');
-    }
-
-    const result = data[0];
-    
-    if (!result.success) {
-      logger.error(LogSource.ARTICLE, 'Draft save failed', {
-        error: result.error_message
-      });
-      return {
-        success: false,
-        error: result.error_message
-      };
-    }
-
-    logger.info(LogSource.ARTICLE, 'Draft saved successfully', {
-      articleId: result.article_id,
-      duration: result.duration_ms
-    });
-
-    return {
-      success: true,
-      articleId: result.article_id
-    };
-
   } catch (error) {
-    logger.error(LogSource.ARTICLE, 'Exception saving draft', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
+    console.error('saveDraftOptimized: Exception:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
