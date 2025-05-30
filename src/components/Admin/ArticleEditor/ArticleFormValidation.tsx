@@ -17,11 +17,13 @@ export const useArticleFormValidation = (form: UseFormReturn<any>, content: stri
     // Get current form values for debugging
     const formData = form.getValues();
     
-    logger.info(LogSource.EDITOR, 'Starting form validation', {
+    logger.info(LogSource.EDITOR, 'Starting comprehensive form validation', {
       title: formData.title,
       categoryId: formData.categoryId,
       contentLength: content.length,
-      imageUrl: formData.imageUrl
+      imageUrl: formData.imageUrl,
+      formDirty: form.formState.isDirty,
+      hasFormErrors: Object.keys(form.formState.errors).length > 0
     });
 
     // Validate title
@@ -30,28 +32,38 @@ export const useArticleFormValidation = (form: UseFormReturn<any>, content: stri
       form.setError('title', { type: 'required', message: 'Title is required' });
       errors.push("Article title is required");
       isValid = false;
+      logger.warn(LogSource.EDITOR, 'Title validation failed', { title });
     }
     
-    // Validate category - improved logic to handle pre-selected categories
+    // Enhanced category validation with better error reporting
     const categoryId = formData.categoryId;
     if (!categoryId) {
-      logger.warn(LogSource.EDITOR, 'Category validation failed', {
+      logger.error(LogSource.EDITOR, 'Category validation failed - no categoryId found', {
         categoryId,
         hasTitle: !!title,
-        formState: form.formState.isDirty
+        formState: form.formState.isDirty,
+        formErrors: form.formState.errors,
+        allFormValues: formData
       });
       
       form.setError('categoryId', { type: 'required', message: 'Category is required' });
-      errors.push("Please select a category");
+      errors.push("Please select a category. If you selected one from the modal, there may have been an issue loading it.");
       isValid = false;
     } else {
-      logger.info(LogSource.EDITOR, 'Category validation passed', { categoryId });
+      logger.info(LogSource.EDITOR, 'Category validation passed', { 
+        categoryId,
+        categoryType: typeof categoryId 
+      });
     }
     
     // Validate content
     if (!content || content.trim() === '') {
       errors.push("Article content is required");
       isValid = false;
+      logger.warn(LogSource.EDITOR, 'Content validation failed', { 
+        contentLength: content?.length || 0,
+        contentPreview: content?.substring(0, 50) || 'empty'
+      });
     }
     
     // Validate image URL
@@ -60,12 +72,19 @@ export const useArticleFormValidation = (form: UseFormReturn<any>, content: stri
       errors.push("A featured image is required");
       form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
       isValid = false;
+      logger.warn(LogSource.EDITOR, 'Image URL validation failed', { imageUrl });
     }
 
     logger.info(LogSource.EDITOR, 'Form validation completed', {
       isValid,
       errorCount: errors.length,
-      errors: errors
+      errors: errors,
+      validationSummary: {
+        hasTitle: !!title,
+        hasCategoryId: !!categoryId,
+        hasContent: !!content && content.trim() !== '',
+        hasImageUrl: !!imageUrl && imageUrl.trim() !== ''
+      }
     });
 
     return { isValid, errors };

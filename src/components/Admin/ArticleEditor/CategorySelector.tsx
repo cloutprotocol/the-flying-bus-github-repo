@@ -7,6 +7,8 @@ import { UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 interface CategorySelectorProps {
   form: UseFormReturn<any>;
@@ -27,6 +29,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [preselectedCategory, setPreselectedCategory] = useState<Category | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -34,7 +37,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         setLoading(true);
         const { data, error } = await supabase
           .from('categories')
-          .select('id, name')
+          .select('id, name, slug')
           .order('name');
         
         if (error) {
@@ -45,15 +48,51 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         if (data) {
           setCategories(data);
           
-          // If we have a preselected category, try to find and set it
-          if (preselectedSlug && preselectedName) {
-            const matchedCategory = data.find(cat => 
-              cat.name.toLowerCase().replace(/\s+/g, '-') === preselectedSlug ||
-              cat.name === preselectedName
-            );
+          logger.info(LogSource.EDITOR, 'Categories fetched for selector', {
+            count: data.length,
+            categories: data.map(c => ({ name: c.name, slug: c.slug })),
+            preselectedSlug,
+            preselectedName
+          });
+          
+          // Try to find and set preselected category
+          if (preselectedSlug || preselectedName) {
+            let matchedCategory = null;
+            
+            // First try by slug (more reliable)
+            if (preselectedSlug) {
+              matchedCategory = data.find(cat => cat.slug === preselectedSlug);
+              logger.info(LogSource.EDITOR, 'Slug match attempt', {
+                preselectedSlug,
+                found: !!matchedCategory,
+                matchedCategory: matchedCategory ? { id: matchedCategory.id, name: matchedCategory.name } : null
+              });
+            }
+            
+            // Fallback to name match
+            if (!matchedCategory && preselectedName) {
+              matchedCategory = data.find(cat => cat.name === preselectedName);
+              logger.info(LogSource.EDITOR, 'Name match attempt', {
+                preselectedName,
+                found: !!matchedCategory,
+                matchedCategory: matchedCategory ? { id: matchedCategory.id, name: matchedCategory.name } : null
+              });
+            }
             
             if (matchedCategory) {
               form.setValue('categoryId', matchedCategory.id);
+              setPreselectedCategory(matchedCategory);
+              
+              logger.info(LogSource.EDITOR, 'Category preselected in selector', {
+                categoryId: matchedCategory.id,
+                categoryName: matchedCategory.name
+              });
+            } else {
+              logger.warn(LogSource.EDITOR, 'No matching category found in selector', {
+                preselectedSlug,
+                preselectedName,
+                availableCategories: data.map(c => ({ name: c.name, slug: c.slug }))
+              });
             }
           }
         }
@@ -74,6 +113,16 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       render={({ field }) => (
         <FormItem className="space-y-3">
           <FormLabel>Category</FormLabel>
+          
+          {preselectedCategory && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Category <strong>{preselectedCategory.name}</strong> has been pre-selected from your choice.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <FormControl>
             <RadioGroup
               onValueChange={field.onChange}
@@ -92,6 +141,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                     >
                       <span className="mr-2">{getCategoryIcon(category.name)}</span>
                       {category.name}
+                      {preselectedCategory?.id === category.id && (
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Pre-selected
+                        </span>
+                      )}
                     </label>
                   </div>
                 ))

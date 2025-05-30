@@ -4,6 +4,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface ArticleFormStateProps {
   form: UseFormReturn<any>;
@@ -24,47 +25,132 @@ export const useArticleFormState = ({
   draftId,
   articleType
 }: ArticleFormStateProps) => {
+  const { toast } = useToast();
   
-  // Set category ID based on categoryName when available - make this synchronous for form initialization
+  // Set category ID based on categorySlug or categoryName when available
   useEffect(() => {
-    if (categoryName && isNewArticle) {
-      const getCategoryIdByName = async () => {
+    if ((categorySlug || categoryName) && isNewArticle) {
+      const getCategoryId = async () => {
         try {
-          logger.info(LogSource.EDITOR, 'Fetching category ID for pre-selected category', { 
+          logger.info(LogSource.EDITOR, 'Starting category lookup', { 
+            categorySlug,
             categoryName,
             timing: 'before_fetch'
           });
           
-          const { data, error } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('name', categoryName)
-            .single();
+          let categoryData = null;
+          let error = null;
           
-          if (error) {
-            logger.error(LogSource.EDITOR, 'Error fetching category by name', error);
-            return;
+          // First try by slug if available (more reliable)
+          if (categorySlug) {
+            logger.info(LogSource.EDITOR, 'Attempting lookup by slug', { categorySlug });
+            
+            const { data, error: slugError } = await supabase
+              .from('categories')
+              .select('id, name, slug')
+              .eq('slug', categorySlug)
+              .maybeSingle();
+            
+            if (slugError) {
+              logger.warn(LogSource.EDITOR, 'Slug lookup failed', { error: slugError, categorySlug });
+            } else if (data) {
+              logger.info(LogSource.EDITOR, 'Category found by slug', { 
+                categoryId: data.id, 
+                foundName: data.name,
+                foundSlug: data.slug 
+              });
+              categoryData = data;
+            } else {
+              logger.warn(LogSource.EDITOR, 'No category found by slug', { categorySlug });
+            }
           }
           
-          if (data) {
-            // Set the category ID in form and mark as dirty to ensure validation sees it
-            form.setValue('categoryId', data.id, { shouldDirty: true, shouldValidate: false });
+          // Fallback to name lookup if slug lookup failed or no slug provided
+          if (!categoryData && categoryName) {
+            logger.info(LogSource.EDITOR, 'Attempting fallback lookup by name', { categoryName });
             
-            logger.info(LogSource.EDITOR, 'Category ID set successfully from modal selection', { 
-              categoryName,
-              categoryId: data.id,
+            const { data, error: nameError } = await supabase
+              .from('categories')
+              .select('id, name, slug')
+              .eq('name', categoryName)
+              .maybeSingle();
+            
+            if (nameError) {
+              logger.warn(LogSource.EDITOR, 'Name lookup failed', { error: nameError, categoryName });
+              error = nameError;
+            } else if (data) {
+              logger.info(LogSource.EDITOR, 'Category found by name', { 
+                categoryId: data.id, 
+                foundName: data.name,
+                foundSlug: data.slug 
+              });
+              categoryData = data;
+            } else {
+              logger.warn(LogSource.EDITOR, 'No category found by name', { categoryName });
+            }
+          }
+          
+          // Additional debugging: List all available categories
+          const { data: allCategories } = await supabase
+            .from('categories')
+            .select('id, name, slug');
+          
+          logger.info(LogSource.EDITOR, 'Available categories in database', { 
+            count: allCategories?.length || 0,
+            categories: allCategories?.map(c => ({ name: c.name, slug: c.slug })) || []
+          });
+          
+          if (categoryData) {
+            // Set the category ID in form with validation trigger
+            form.setValue('categoryId', categoryData.id, { 
+              shouldDirty: true, 
+              shouldValidate: true 
+            });
+            
+            logger.info(LogSource.EDITOR, 'Category ID set successfully', { 
+              categoryId: categoryData.id,
+              categoryName: categoryData.name,
               timing: 'after_set',
               formValue: form.getValues('categoryId')
             });
+          } else {
+            // Show user-friendly error
+            const searchTerm = categorySlug || categoryName;
+            const errorMessage = `Could not find category "${searchTerm}". Please select a category manually.`;
+            
+            logger.error(LogSource.EDITOR, 'Category lookup completely failed', {
+              categorySlug,
+              categoryName,
+              searchTerm,
+              availableCategories: allCategories?.length || 0
+            });
+            
+            toast({
+              title: "Category Not Found",
+              description: errorMessage,
+              variant: "destructive"
+            });
+            
+            // Don't set any category ID, let user select manually
           }
         } catch (err) {
-          logger.error(LogSource.EDITOR, 'Exception fetching category', err);
+          logger.error(LogSource.EDITOR, 'Exception during category lookup', {
+            error: err,
+            categorySlug,
+            categoryName
+          });
+          
+          toast({
+            title: "Error",
+            description: "Failed to load the selected category. Please select a category manually.",
+            variant: "destructive"
+          });
         }
       };
       
-      getCategoryIdByName();
+      getCategoryId();
     }
-  }, [categoryName, isNewArticle, form]);
+  }, [categorySlug, categoryName, isNewArticle, form, toast]);
 
   // Performance logging
   useEffect(() => {
