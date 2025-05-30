@@ -67,14 +67,10 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
           <Label>
             {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
           </Label>
-          <MediaSelector
-            disabled={isSubmitting}
-          />
+          <MediaSelector />
         </div>
 
-        <CategorySelector
-          disabled={isSubmitting}
-        />
+        <CategorySelector />
       </div>
 
       {/* Content Section - Different for each article type */}
@@ -97,9 +93,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         </div>
       ) : formData.articleType === 'video' ? (
         <div className="space-y-4">
-          <VideoFormSection
-            disabled={isSubmitting}
-          />
+          <VideoFormSection />
           
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
@@ -112,9 +106,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         </div>
       ) : formData.articleType === 'debate' ? (
         <div className="space-y-4">
-          <DebateFormSection
-            disabled={isSubmitting}
-          />
+          <DebateFormSection />
           
           <div className="space-y-2">
             <Label htmlFor="content">Additional Context</Label>
@@ -137,9 +129,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       )}
 
       {/* Metadata Fields */}
-      <MetadataFields
-        disabled={isSubmitting}
-      />
+      <MetadataFields />
     </div>
   );
 };
