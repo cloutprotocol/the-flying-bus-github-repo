@@ -23,6 +23,21 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
   onChange,
   isSubmitting = false
 }) => {
+  // Create a mock form object that satisfies the component interfaces
+  const mockForm = {
+    control: null as any,
+    getValues: () => formData,
+    setValue: (field: string, value: any) => {
+      onChange(field as keyof ArticleFormData, value);
+    },
+    watch: (field: string) => formData[field as keyof ArticleFormData],
+    formState: {
+      errors: {},
+      isDirty: false,
+      isValid: true
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Basic Article Information */}
@@ -67,10 +82,10 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
           <Label>
             {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
           </Label>
-          <MediaSelector />
+          <MediaSelector form={mockForm} />
         </div>
 
-        <CategorySelector />
+        <CategorySelector form={mockForm} />
       </div>
 
       {/* Content Section - Different for each article type */}
@@ -93,7 +108,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         </div>
       ) : formData.articleType === 'video' ? (
         <div className="space-y-4">
-          <VideoFormSection />
+          <VideoFormSection form={mockForm} />
           
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>
@@ -106,7 +121,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         </div>
       ) : formData.articleType === 'debate' ? (
         <div className="space-y-4">
-          <DebateFormSection />
+          <DebateFormSection form={mockForm} />
           
           <div className="space-y-2">
             <Label htmlFor="content">Additional Context</Label>
@@ -129,7 +144,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       )}
 
       {/* Metadata Fields */}
-      <MetadataFields />
+      <MetadataFields form={mockForm} articleType={formData.articleType} />
     </div>
   );
 };

@@ -594,7 +594,7 @@ const transformToDebateSettings = (debateData: any) => {
     yesPosition: debateData.yesPosition || '',
     noPosition: debateData.noPosition || '',
     votingEnabled: debateData.votingEnabled || false,
-    voting_ends_at: debateData.votingEndsAt || debateData.voting_ends_at || null
+    voting_ends_at: debateData.voting_ends_at || debateData.votingEndsAt || null
   };
 };
 
