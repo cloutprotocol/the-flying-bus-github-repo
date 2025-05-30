@@ -33,7 +33,22 @@ export const ReadingLevelEnum = z.enum([
   'Advanced'
 ]);
 
-// Base article schema with common fields - without refine wrapping
+// Debate settings schema for nested structure
+const debateSettingsSchema = z.object({
+  question: z.string()
+    .min(10, 'Question must be at least 10 characters long')
+    .refine(q => !q.includes("<script>"), "Question cannot contain script tags"),
+  yesPosition: z.string()
+    .min(50, 'Yes position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
+  noPosition: z.string()
+    .min(50, 'No position argument must be at least 50 characters long')
+    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
+  votingEnabled: z.boolean().optional().default(true),
+  votingEndsAt: z.string().datetime().optional().nullable()
+});
+
+// Base article schema with common fields
 const baseArticleSchemaObject = z.object({
   title: z.string()
     .min(1, 'Title is required')
@@ -57,7 +72,7 @@ const baseArticleSchemaObject = z.object({
   videoUrl: urlSchema
     .refine(url => url.startsWith('https://'), "Video URL must use HTTPS")
     .optional(),
-  // Add debate-specific fields
+  // Support both flat fields (for backward compatibility) and nested structure
   question: z.string()
     .min(10, 'Question must be at least 10 characters long')
     .refine(q => !q.includes("<script>"), "Question cannot contain script tags")
@@ -71,40 +86,62 @@ const baseArticleSchemaObject = z.object({
     .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags")
     .optional(),
   votingEnabled: z.boolean().optional().default(true),
-  votingEndsAt: z.string().datetime().optional()
+  votingEndsAt: z.string().datetime().optional(),
+  // Nested debate settings (preferred structure)
+  debateSettings: debateSettingsSchema.optional()
 });
 
-// Now add the refinement separately
+// Enhanced validation with support for both flat and nested debate structure
 const baseArticleSchema = baseArticleSchemaObject.refine((data) => {
   if (data.articleType === 'video' && !data.videoUrl) {
     return false;
   }
-  if (data.articleType === 'debate' && (!data.question || !data.yesPosition || !data.noPosition)) {
-    return false;
+  if (data.articleType === 'debate') {
+    // Check if we have nested debateSettings or flat fields
+    const hasNestedSettings = data.debateSettings && 
+      data.debateSettings.question && 
+      data.debateSettings.yesPosition && 
+      data.debateSettings.noPosition;
+    
+    const hasFlatSettings = data.question && data.yesPosition && data.noPosition;
+    
+    if (!hasNestedSettings && !hasFlatSettings) {
+      return false;
+    }
   }
   return true;
 }, {
-  message: "Video URL is required for video articles, and question with both positions are required for debate articles",
-  path: ["videoUrl", "question", "yesPosition", "noPosition"]
+  message: "Video URL is required for video articles, and debate question with both positions are required for debate articles",
+  path: ["videoUrl", "question", "yesPosition", "noPosition", "debateSettings"]
 });
 
 // Schema for creating a new article
 export const createArticleSchema = baseArticleSchema;
 
-// Schema for updating an existing article - now partial works
+// Schema for updating an existing article
 export const updateArticleSchema = baseArticleSchemaObject.partial().extend({
   id: uuidSchema
 }).refine((data) => {
   if (data.articleType === 'video' && !data.videoUrl) {
     return false;
   }
-  if (data.articleType === 'debate' && data.question && (!data.yesPosition || !data.noPosition)) {
-    return false;
+  if (data.articleType === 'debate') {
+    // Check if we have nested debateSettings or flat fields
+    const hasNestedSettings = data.debateSettings && 
+      data.debateSettings.question && 
+      data.debateSettings.yesPosition && 
+      data.debateSettings.noPosition;
+    
+    const hasFlatSettings = data.question && data.yesPosition && data.noPosition;
+    
+    if (!hasNestedSettings && !hasFlatSettings) {
+      return false;
+    }
   }
   return true;
 }, {
-  message: "Video URL is required for video articles, and both positions are required if question is provided for debate articles",
-  path: ["videoUrl", "question", "yesPosition", "noPosition"]
+  message: "Video URL is required for video articles, and debate question with both positions are required for debate articles",
+  path: ["videoUrl", "question", "yesPosition", "noPosition", "debateSettings"]
 });
 
 // Schema for article status update
@@ -116,17 +153,7 @@ export const updateArticleStatusSchema = z.object({
 // Schema for debate article
 export const debateArticleSchema = baseArticleSchemaObject.extend({
   articleType: z.literal('debate'),
-  question: z.string()
-    .min(10, 'Question must be at least 10 characters long')
-    .refine(q => !q.includes("<script>"), "Question cannot contain script tags"),
-  yesPosition: z.string()
-    .min(50, 'Yes position argument must be at least 50 characters long')
-    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
-  noPosition: z.string()
-    .min(50, 'No position argument must be at least 50 characters long')
-    .refine(pos => !pos.includes("<script>"), "Position argument cannot contain script tags"),
-  votingEnabled: z.boolean().optional().default(true),
-  votingEndsAt: z.string().datetime().optional()
+  debateSettings: debateSettingsSchema
 });
 
 // Schema for video article
@@ -161,7 +188,10 @@ export const validateArticle = (article: any, logValidation = true): { isValid: 
         hasContent: !!article.content,
         hasCategoryId: !!article.categoryId,
         contentLength: article.content?.length || 0,
-        articleType: article.articleType
+        articleType: article.articleType,
+        hasDebateSettings: !!article.debateSettings,
+        hasNestedDebate: !!(article.debateSettings?.question),
+        hasFlatDebate: !!(article.question)
       });
     }
     
@@ -175,7 +205,10 @@ export const validateArticle = (article: any, logValidation = true): { isValid: 
     } else {
       const errors = result.error.errors.map(err => err.message);
       if (logValidation) {
-        logger.error(LogSource.ARTICLE, "Article validation failed", { errors });
+        logger.error(LogSource.ARTICLE, "Article validation failed", { 
+          errors,
+          errorDetails: result.error.errors
+        });
       }
       return { isValid: false, errors };
     }

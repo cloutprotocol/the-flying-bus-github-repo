@@ -39,41 +39,21 @@ export const submitForReview = async (
       articleData.slug = generateClientSideSlug(articleData.title);
     }
     
-    // Prepare article data with proper structure for debate articles
+    // Prepare article data - data comes pre-structured from ArticleForm
     const preparedData = {
       ...articleData,
       author_id: userId
     };
     
-    // Ensure debate data is properly structured for submission
-    if (articleData.articleType === 'debate') {
-      // If debateSettings already exists, use it; otherwise structure it from individual fields
-      if (articleData.debateSettings) {
-        preparedData.debateSettings = articleData.debateSettings;
-      } else if (articleData.question || articleData.yesPosition || articleData.noPosition) {
-        preparedData.debateSettings = {
-          question: articleData.question || '',
-          yesPosition: articleData.yesPosition || '',
-          noPosition: articleData.noPosition || '',
-          votingEnabled: articleData.votingEnabled ?? true,
-          votingEndsAt: articleData.votingEndsAt || null
-        };
-      }
-      
-      logger.debug(LogSource.DATABASE, 'Structured debate data for submission', {
-        hasDebateSettings: !!preparedData.debateSettings,
-        questionLength: preparedData.debateSettings?.question?.length || 0
-      });
-    }
-    
-    logger.debug(LogSource.DATABASE, 'Submitting article with structured data', {
+    logger.debug(LogSource.DATABASE, 'Submitting article with pre-structured data', {
       userId,
       articleDataKeys: Object.keys(preparedData),
       saveDraft,
       title: preparedData.title?.substring(0, 30),
       articleId: preparedData.id,
       contentLength: preparedData.content?.length || 0,
-      hasDebateSettings: !!preparedData.debateSettings
+      hasDebateSettings: !!preparedData.debateSettings,
+      debateQuestion: preparedData.debateSettings?.question?.substring(0, 30) || 'N/A'
     });
     
     // First run client-side validation to catch obvious issues

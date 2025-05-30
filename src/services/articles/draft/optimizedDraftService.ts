@@ -33,39 +33,19 @@ export const saveDraftOptimized = async (
       articleData.slug = generateClientSideSlug(articleData.title);
     }
     
-    // Prepare article data with proper structure for debate articles
+    // Prepare article data - data comes pre-structured from ArticleForm
     const preparedData = {
       ...articleData,
       author_id: userId
     };
     
-    // Ensure debate data is properly structured
-    if (articleData.articleType === 'debate') {
-      // If debateSettings already exists, use it; otherwise structure it from individual fields
-      if (articleData.debateSettings) {
-        preparedData.debateSettings = articleData.debateSettings;
-      } else if (articleData.question || articleData.yesPosition || articleData.noPosition) {
-        preparedData.debateSettings = {
-          question: articleData.question || '',
-          yesPosition: articleData.yesPosition || '',
-          noPosition: articleData.noPosition || '',
-          votingEnabled: articleData.votingEnabled ?? true,
-          votingEndsAt: articleData.votingEndsAt || null
-        };
-      }
-      
-      logger.debug(LogSource.DATABASE, 'Structured debate data for draft save', {
-        hasDebateSettings: !!preparedData.debateSettings,
-        questionLength: preparedData.debateSettings?.question?.length || 0
-      });
-    }
-    
-    logger.debug(LogSource.DATABASE, 'Saving draft with optimized function', {
+    logger.debug(LogSource.DATABASE, 'Saving draft with pre-structured data', {
       userId,
       hasId: !!articleData.id,
       title: articleData.title?.substring(0, 30),
       articleType: articleData.articleType,
-      hasDebateSettings: !!preparedData.debateSettings
+      hasDebateSettings: !!preparedData.debateSettings,
+      debateQuestion: preparedData.debateSettings?.question?.substring(0, 30) || 'N/A'
     });
     
     const endMeasure = measureApiCall('save-draft-optimized');

@@ -26,65 +26,33 @@ export const useArticleFormSubmission = ({
   const { toast } = useToast();
   const { addDebugStep } = useArticleDebug();
 
-  // Helper function to structure debate data properly
-  const prepareArticleData = (data: any) => {
-    const preparedData = {
-      ...data,
-      content,
-      isDirty: form.formState.isDirty,
-      id: draftId || articleId
-    };
-
-    // If this is a debate article, structure the debate fields properly
-    if (data.articleType === 'debate') {
-      // Extract debate fields and structure them in debateSettings
-      const { question, yesPosition, noPosition, votingEnabled, votingEndsAt, ...otherData } = preparedData;
-      
-      preparedData.debateSettings = {
-        question: question || '',
-        yesPosition: yesPosition || '',
-        noPosition: noPosition || '',
-        votingEnabled: votingEnabled !== undefined ? votingEnabled : true,
-        votingEndsAt: votingEndsAt || null
-      };
-      
-      // Remove the individual debate fields from the root level to avoid duplication
-      delete preparedData.question;
-      delete preparedData.yesPosition;
-      delete preparedData.noPosition;
-      delete preparedData.votingEnabled;
-      delete preparedData.votingEndsAt;
-      
-      logger.debug(LogSource.EDITOR, 'Structured debate data for submission', {
-        hasDebateSettings: !!preparedData.debateSettings,
-        debateQuestion: preparedData.debateSettings?.question?.substring(0, 30)
-      });
-    }
-
-    return preparedData;
-  };
-
-  // Form submission handler with proper data structuring
+  // Form submission handler - data is already properly structured by ArticleForm
   const onSubmit = async (data: any) => {
     try {
-      // Structure the data properly before submission
-      const structuredData = prepareArticleData(data);
+      // Data comes pre-structured from ArticleForm, just add content and metadata
+      const submissionData = {
+        ...data,
+        content,
+        isDirty: form.formState.isDirty,
+        id: draftId || articleId
+      };
       
       addDebugStep('Form validation passed', {
-        hasTitle: !!structuredData.title,
-        hasCategoryId: !!structuredData.categoryId,
-        articleType: structuredData.articleType,
-        hasDebateSettings: !!structuredData.debateSettings,
+        hasTitle: !!submissionData.title,
+        hasCategoryId: !!submissionData.categoryId,
+        articleType: submissionData.articleType,
+        hasDebateSettings: !!submissionData.debateSettings,
         categorySlug
       });
       
-      logger.debug(LogSource.EDITOR, 'Submitting structured article data', {
-        dataKeys: Object.keys(structuredData),
-        articleType: structuredData.articleType,
-        hasDebateSettings: !!structuredData.debateSettings
+      logger.debug(LogSource.EDITOR, 'Submitting article data (no additional processing)', {
+        dataKeys: Object.keys(submissionData),
+        articleType: submissionData.articleType,
+        hasDebateSettings: !!submissionData.debateSettings,
+        debateQuestion: submissionData.debateSettings?.question?.substring(0, 30) || 'N/A'
       });
       
-      await handleSubmit(structuredData);
+      await handleSubmit(submissionData);
       
     } catch (error) {
       console.error("Form submission error:", error);
