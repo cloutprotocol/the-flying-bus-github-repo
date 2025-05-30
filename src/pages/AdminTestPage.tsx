@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,13 +8,14 @@ import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftServ
 import { submitForReview } from '@/services/articles/submission/articleSubmitService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { useAuth } from '@/hooks/useAuth';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 
 const AdminTestPage = () => {
   const [title, setTitle] = useState('Test Article');
   const [content, setContent] = useState('This is a test article content for performance testing.');
   const [categoryId, setCategoryId] = useState(''); // You'll need to select a valid category ID
-  const [draftId, setDraftId] = useState<string | undefined>(undefined);
+  const [articleId, setArticleId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [performanceMetrics, setPerformanceMetrics] = useState<{
@@ -23,27 +23,40 @@ const AdminTestPage = () => {
     submitTime?: number;
   }>({});
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Handle saving draft
   const handleSaveDraft = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save drafts",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSaving(true);
     const startTime = performance.now();
     
     try {
       const articleData = {
-        id: draftId,
+        id: articleId,
         title,
         content,
         categoryId,
-        articleType: 'standard'
+        articleType: 'standard' as const,
+        excerpt: '',
+        imageUrl: '',
+        slug: ''
       };
       
       logger.info(LogSource.DATABASE, 'Testing optimized draft save', { 
-        hasId: !!draftId,
+        hasId: !!articleId,
         title
       });
       
-      const result = await saveDraftOptimized(articleData);
+      const result = await saveDraftOptimized(user.id, articleData);
       
       const endTime = performance.now();
       setPerformanceMetrics(prev => ({ 
@@ -52,15 +65,15 @@ const AdminTestPage = () => {
       }));
       
       if (result.success) {
-        setDraftId(result.draftId);
+        setArticleId(result.articleId);
         toast({
           title: "Draft saved successfully",
-          description: `Time: ${Math.round(endTime - startTime)}ms | DB duration: ${result.error?.duration_ms || 'unknown'}ms`,
+          description: `Time: ${Math.round(endTime - startTime)}ms`,
         });
       } else {
         toast({
           title: "Error saving draft",
-          description: result.error?.message || "Unknown error",
+          description: result.error || "Unknown error",
           variant: "destructive"
         });
       }
@@ -77,7 +90,7 @@ const AdminTestPage = () => {
 
   // Handle submitting article
   const handleSubmitArticle = async () => {
-    if (!draftId) {
+    if (!articleId) {
       toast({
         title: "Save draft first",
         description: "You need to save a draft before submitting",
@@ -91,15 +104,18 @@ const AdminTestPage = () => {
     
     try {
       const articleData = {
-        id: draftId,
+        id: articleId,
         title,
         content,
         categoryId,
-        articleType: 'standard'
+        articleType: 'standard' as const,
+        excerpt: '',
+        imageUrl: '',
+        slug: ''
       };
       
       logger.info(LogSource.DATABASE, 'Testing optimized article submission', { 
-        draftId,
+        articleId,
         title
       });
       
@@ -119,7 +135,7 @@ const AdminTestPage = () => {
       } else {
         toast({
           title: "Error submitting article",
-          description: result.error?.message || "Unknown error",
+          description: result.error || "Unknown error",
           variant: "destructive"
         });
       }
@@ -211,9 +227,9 @@ const AdminTestPage = () => {
                   </div>
                 </div>
                 
-                {draftId && (
+                {articleId && (
                   <div className="text-sm text-muted-foreground">
-                    Draft ID: <span className="font-mono">{draftId}</span>
+                    Draft ID: <span className="font-mono">{articleId}</span>
                   </div>
                 )}
               </div>
@@ -228,7 +244,7 @@ const AdminTestPage = () => {
               </Button>
               <Button 
                 onClick={handleSubmitArticle}
-                disabled={!draftId || isSaving || isSubmitting}
+                disabled={!articleId || isSaving || isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit for Review"}
               </Button>

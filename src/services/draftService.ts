@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -585,4 +584,42 @@ const saveDebateDetails = async (articleId: string, debateSettings: any): Promis
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception saving debate details', { error: e, articleId });
   }
+};
+
+const transformToDebateSettings = (debateData: any) => {
+  if (!debateData) return undefined;
+  
+  return {
+    question: debateData.question || '',
+    yesPosition: debateData.yesPosition || '',
+    noPosition: debateData.noPosition || '',
+    votingEnabled: debateData.votingEnabled || false,
+    voting_ends_at: debateData.votingEndsAt || debateData.voting_ends_at || null
+  };
+};
+
+const transformToDraft = (data: any): ArticleDraft => {
+  return {
+    id: data.id,
+    title: data.title,
+    content: data.content,
+    excerpt: data.excerpt || '',
+    imageUrl: data.cover_image || '',
+    categoryId: data.category_id || '',
+    slug: data.slug || '',
+    articleType: data.article_type as any,
+    status: data.status as any,
+    author_id: data.author_id,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    videoUrl: data.video_articles && data.video_articles[0] ? data.video_articles[0].video_url : undefined,
+    debateSettings: data.debate_articles && data.debate_articles[0] ? transformToDebateSettings({
+      question: data.debate_articles[0].question,
+      yesPosition: data.debate_articles[0].yes_position,
+      noPosition: data.debate_articles[0].no_position,
+      votingEnabled: data.debate_articles[0].voting_enabled,
+      voting_ends_at: data.debate_articles[0].voting_ends_at
+    }) : undefined,
+    readingLevel: data.reading_level || 'elementary'
+  };
 };

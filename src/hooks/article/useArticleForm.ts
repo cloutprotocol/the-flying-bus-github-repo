@@ -21,7 +21,7 @@ export const useArticleForm = (
   const [isSaving, setIsSaving] = useState(false);
   const { content, setContent } = useContentManagement(form, articleId, isNewArticle);
   const { draftId, saveStatus, lastSaved, saveDraftToServer } = useDraftManagement(articleId, articleType);
-  const { isSubmitting, setIsSubmitting, handleArticleSubmission } = useArticleSubmission();
+  const { isSubmitting, submitArticle } = useArticleSubmission();
   const { addDebugStep, updateLastStep } = useArticleDebug();
   
   const isMountedRef = useRef(true);
@@ -41,7 +41,6 @@ export const useArticleForm = (
     
     try {
       submittingRef.current = true;
-      setIsSubmitting(true);
       
       addDebugStep('Form validation passed', {
         formData: {
@@ -59,7 +58,6 @@ export const useArticleForm = (
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing title' });
-        setIsSubmitting(false);
         submittingRef.current = false;
         return;
       }
@@ -71,7 +69,6 @@ export const useArticleForm = (
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing category' });
-        setIsSubmitting(false);
         submittingRef.current = false;
         return;
       }
@@ -83,7 +80,6 @@ export const useArticleForm = (
           variant: "destructive"
         });
         updateLastStep('error', { error: 'Missing content' });
-        setIsSubmitting(false);
         submittingRef.current = false;
         return;
       }
@@ -128,7 +124,7 @@ export const useArticleForm = (
         });
         
         if (isMountedRef.current) {
-          setIsSubmitting(false);
+          // Note: isSubmitting is managed by useArticleSubmission hook
         }
         submittingRef.current = false;
         return;
@@ -145,9 +141,6 @@ export const useArticleForm = (
           variant: "destructive"
         });
         
-        if (isMountedRef.current) {
-          setIsSubmitting(false);
-        }
         submittingRef.current = false;
         return;
       }
@@ -159,9 +152,6 @@ export const useArticleForm = (
           variant: "default"
         });
         
-        if (isMountedRef.current) {
-          setIsSubmitting(false);
-        }
         submittingRef.current = false;
         return;
       }
@@ -173,9 +163,9 @@ export const useArticleForm = (
       
       try {
         // Call the actual article submission service
-        const submissionResult = await handleArticleSubmission(saveResult.articleId, isDraft);
+        const submissionResult = await submitArticle(formData);
         
-        if (submissionResult) {
+        if (submissionResult.success) {
           updateLastStep('success', { status: isDraft ? 'Draft saved' : 'Submitted for review' });
           addDebugStep('Article submission completed', { 
             isDraft,
@@ -196,9 +186,6 @@ export const useArticleForm = (
         variant: "destructive"
       });
     } finally {
-      if (isMountedRef.current) {
-        setIsSubmitting(false);
-      }
       submittingRef.current = false;
     }
   };

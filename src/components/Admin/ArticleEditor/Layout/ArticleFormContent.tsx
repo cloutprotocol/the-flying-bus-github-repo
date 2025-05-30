@@ -68,13 +68,11 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
             {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
           </Label>
           <MediaSelector
-            onChange={(url) => onChange('imageUrl', url)}
             disabled={isSubmitting}
           />
         </div>
 
         <CategorySelector
-          onCategoryChange={(value) => onChange('categoryId', value)}
           disabled={isSubmitting}
         />
       </div>
@@ -100,7 +98,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       ) : formData.articleType === 'video' ? (
         <div className="space-y-4">
           <VideoFormSection
-            onChange={(url) => onChange('videoUrl', url)}
             disabled={isSubmitting}
           />
           
@@ -116,11 +113,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       ) : formData.articleType === 'debate' ? (
         <div className="space-y-4">
           <DebateFormSection
-            onQuestionChange={(question) => onChange('debateSettings', { ...formData.debateSettings, question })}
-            onYesPositionChange={(yesPosition) => onChange('debateSettings', { ...formData.debateSettings, yesPosition })}
-            onNoPositionChange={(noPosition) => onChange('debateSettings', { ...formData.debateSettings, noPosition })}
-            onVotingEnabledChange={(votingEnabled) => onChange('debateSettings', { ...formData.debateSettings, votingEnabled })}
-            onVotingEndsAtChange={(voting_ends_at) => onChange('debateSettings', { ...formData.debateSettings, voting_ends_at })}
             disabled={isSubmitting}
           />
           
@@ -146,7 +138,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
 
       {/* Metadata Fields */}
       <MetadataFields
-        onChange={(slug) => onChange('slug', slug)}
         disabled={isSubmitting}
       />
     </div>
