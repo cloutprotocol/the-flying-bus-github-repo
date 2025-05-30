@@ -63,7 +63,16 @@ export interface ArticleDraft {
   id: string;
   title: string;
   content: string;
+  excerpt: string;
+  imageUrl: string;
+  categoryId: string;
+  slug: string;
+  articleType: 'standard' | 'video' | 'debate' | 'storyboard';
+  status: 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
   author_id: string;
   created_at: string;
   updated_at: string;
+  videoUrl?: string;
+  debateSettings?: DebateSettings;
+  readingLevel?: string;
 }

@@ -44,6 +44,8 @@ export const getDraftById = async (
         updated_at,
         created_at,
         article_type,
+        author_id,
+        slug,
         video_articles(video_url),
         debate_articles(question, yes_position, no_position, voting_enabled, voting_ends_at)
       `)
@@ -70,17 +72,19 @@ export const getDraftById = async (
       excerpt: data.excerpt || '',
       imageUrl: data.cover_image || '',
       categoryId: data.category_id || '',
+      slug: data.slug || '',
       articleType: data.article_type as any,
       status: data.status as any,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      author_id: data.author_id,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
       videoUrl: data.video_articles && data.video_articles[0] ? data.video_articles[0].video_url : undefined,
       debateSettings: data.debate_articles && data.debate_articles[0] ? {
         question: data.debate_articles[0].question,
         yesPosition: data.debate_articles[0].yes_position,
         noPosition: data.debate_articles[0].no_position,
         votingEnabled: data.debate_articles[0].voting_enabled,
-        votingEndsAt: data.debate_articles[0].voting_ends_at
+        voting_ends_at: data.debate_articles[0].voting_ends_at
       } : undefined
     };
     

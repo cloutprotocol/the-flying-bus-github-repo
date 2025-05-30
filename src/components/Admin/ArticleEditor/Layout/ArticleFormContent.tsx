@@ -68,14 +68,12 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
             {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
           </Label>
           <MediaSelector
-            value={formData.imageUrl}
             onChange={(url) => onChange('imageUrl', url)}
             disabled={isSubmitting}
           />
         </div>
 
         <CategorySelector
-          categoryId={formData.categoryId}
           onCategoryChange={(value) => onChange('categoryId', value)}
           disabled={isSubmitting}
         />
@@ -102,7 +100,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       ) : formData.articleType === 'video' ? (
         <div className="space-y-4">
           <VideoFormSection
-            value={formData.videoUrl}
             onChange={(url) => onChange('videoUrl', url)}
             disabled={isSubmitting}
           />
@@ -119,11 +116,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       ) : formData.articleType === 'debate' ? (
         <div className="space-y-4">
           <DebateFormSection
-            question={formData.debateSettings?.question || ''}
-            yesPosition={formData.debateSettings?.yesPosition || ''}
-            noPosition={formData.debateSettings?.noPosition || ''}
-            votingEnabled={formData.debateSettings?.votingEnabled ?? true}
-            votingEndsAt={formData.debateSettings?.voting_ends_at || ''}
             onQuestionChange={(question) => onChange('debateSettings', { ...formData.debateSettings, question })}
             onYesPositionChange={(yesPosition) => onChange('debateSettings', { ...formData.debateSettings, yesPosition })}
             onNoPositionChange={(noPosition) => onChange('debateSettings', { ...formData.debateSettings, noPosition })}
@@ -154,7 +146,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
 
       {/* Metadata Fields */}
       <MetadataFields
-        value={formData.slug}
         onChange={(slug) => onChange('slug', slug)}
         disabled={isSubmitting}
       />
