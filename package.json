@@ -41,7 +41,6 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/postgrest-js": "^1.19.4",
     "@supabase/supabase-js": "^2.49.4",
-    "@tailwindcss/line-clamp": "^0.4.4",
     "@tanstack/react-query": "^5.56.2",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",

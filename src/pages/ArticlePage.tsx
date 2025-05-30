@@ -80,12 +80,12 @@ const ArticlePage = () => {
     );
   }
 
-  // Enhanced debate settings for voting component with proper field mapping
+  // Enhanced debate settings for voting component with position arguments
   const enhancedDebateSettings = isDebateArticle(article.articleType) && debateSettings ? {
     initialVotes: debateSettings.initialVotes || { yes: 0, no: 0 },
     question: debateSettings.question || article.title,
-    yesPosition: debateSettings.yes_position, // Map from database field
-    noPosition: debateSettings.no_position   // Map from database field
+    yesPosition: debateSettings.yes_position,
+    noPosition: debateSettings.no_position
   } : null;
 
   return (
