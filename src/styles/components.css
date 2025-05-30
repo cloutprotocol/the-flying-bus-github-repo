@@ -1,4 +1,5 @@
 
+
 .article-card {
   @apply bg-white rounded-md shadow-sm overflow-hidden hover:shadow-md transition-shadow;
 }
@@ -15,3 +16,4 @@
 .nav-link {
   @apply px-3 py-2 rounded-xl text-gray-800 hover:bg-gray-200 transition-colors;
 }
+
