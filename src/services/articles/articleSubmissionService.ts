@@ -2,11 +2,17 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
 
+export interface ArticleSubmissionResult {
+  success: boolean;
+  error?: string;
+  articleId?: string;
+}
+
 export const submitArticleOptimized = async (
   userId: string,
   formData: ArticleFormData,
   publishImmediately: boolean = false
-): Promise<{ success: boolean; error?: string; articleId?: string }> => {
+): Promise<ArticleSubmissionResult> => {
   try {
     console.log('submitArticleOptimized: Starting submission with data:', {
       title: formData.title,
