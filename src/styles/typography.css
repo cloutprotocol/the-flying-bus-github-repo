@@ -1,7 +1,7 @@
 
 /* Base typography styles */
 h1, h2, h3, h4, h5, h6 {
-  @apply font-display font-medium text-[#1B344C];
+  @apply font-medium text-[#1B344C];
 }
 
 p, span, div, a, button, input, textarea {
