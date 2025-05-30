@@ -7,6 +7,8 @@ import VoteResults from './VoteResults';
 import VoteStatus from './VoteStatus';
 import { useVoting } from './useVoting';
 import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface DebateVoteProps {
   debateId: string;
@@ -20,7 +22,7 @@ interface DebateVoteProps {
 const DebateVote = ({ 
   debateId, 
   topicTitle, 
-  initialVotes = { yes: 50, no: 50 } 
+  initialVotes = { yes: 0, no: 0 } 
 }: DebateVoteProps) => {
   const { isLoggedIn } = useAuth();
   const {
@@ -35,10 +37,40 @@ const DebateVote = ({
     handleVote
   } = useVoting(debateId, initialVotes);
 
-  // Modified this line to pass only one argument as expected by the useVoting hook
+  // Enhanced logging for debugging
+  React.useEffect(() => {
+    logger.info(LogSource.VOTING, 'DebateVote component rendered', {
+      debateId,
+      topicTitle: topicTitle.substring(0, 50),
+      initialVotes,
+      isLoggedIn,
+      hasVoted,
+      userChoice,
+      currentVotes: votes
+    });
+  }, [debateId, topicTitle, initialVotes, isLoggedIn, hasVoted, userChoice, votes]);
+
   const onVote = (choice: 'yes' | 'no') => {
+    logger.info(LogSource.VOTING, 'Vote attempt', {
+      debateId,
+      choice,
+      isLoggedIn,
+      hasVoted
+    });
     handleVote(choice);
   };
+
+  // Error boundary fallback
+  if (!debateId) {
+    logger.error(LogSource.VOTING, 'DebateVote: Missing debateId');
+    return (
+      <Card className="overflow-hidden border-red-200 bg-red-50">
+        <CardContent className="p-6">
+          <p className="text-red-600">Unable to load voting component - missing debate ID</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="overflow-hidden border-none shadow-md">

@@ -9,7 +9,7 @@ import ArticleFooter from '@/components/Articles/ArticleFooter';
 import ArticleLoadingSkeleton from '@/components/Articles/ArticleLoadingSkeleton';
 import ArticleNotFound from '@/components/Articles/ArticleNotFound';
 import { useArticleData } from '@/hooks/useArticleData';
-import { isStoryboardArticle } from '@/utils/articles';
+import { isStoryboardArticle, isDebateArticle } from '@/utils/articles';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -27,6 +27,20 @@ const ArticlePage = () => {
   }, [articleId]);
   
   const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
+
+  // Enhanced logging for debate articles
+  React.useEffect(() => {
+    if (article) {
+      const isDebate = isDebateArticle(article.articleType);
+      logger.info(LogSource.ARTICLE, 'Article type analysis', {
+        articleId: article.id,
+        articleType: article.articleType,
+        isDebate,
+        hasDebateSettings: !!debateSettings,
+        debateQuestion: debateSettings?.question?.substring(0, 50) || 'N/A'
+      });
+    }
+  }, [article, debateSettings]);
 
   // Redirect to Storyboard page if it's a storyboard article
   React.useEffect(() => {
@@ -64,6 +78,13 @@ const ArticlePage = () => {
     );
   }
 
+  // Enhanced debate settings for voting component
+  const enhancedDebateSettings = isDebateArticle(article.articleType) && debateSettings ? {
+    ...debateSettings,
+    initialVotes: debateSettings.initialVotes || { yes: 0, no: 0 },
+    question: debateSettings.question || article.title
+  } : null;
+
   return (
     <MainLayout fullWidth>
       <div className="w-full bg-white">
@@ -74,7 +95,7 @@ const ArticlePage = () => {
             <ArticleContent 
               article={article} 
               articleContent={article.content || ''} 
-              debateSettings={debateSettings}
+              debateSettings={enhancedDebateSettings}
             />
             
             <ArticleSidebar 
