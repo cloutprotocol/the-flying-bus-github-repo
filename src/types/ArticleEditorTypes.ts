@@ -1,3 +1,4 @@
+
 export interface ArticleFormValidation {
   title: string;
   content: string;
@@ -43,4 +44,15 @@ export interface Category {
   slug: string;
   description: string;
   created_at: string;
+}
+
+export type DraftSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export interface ArticleRevision {
+  id: string;
+  article_id: string;
+  editor_id: string;
+  created_at: string;
+  content: string;
+  revision_note?: string;
 }

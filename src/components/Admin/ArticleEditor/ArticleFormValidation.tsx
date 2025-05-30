@@ -1,5 +1,5 @@
 
-import { UseFormReturn } from 'react-hook-form';
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -8,54 +8,45 @@ interface ValidationResult {
   errors: string[];
 }
 
-export const useArticleFormValidation = (form: UseFormReturn<any>, content: string) => {
+export const useArticleFormValidation = (formData: ArticleFormData) => {
   
   const validateFormBeforeSubmit = (): ValidationResult => {
     let isValid = true;
     const errors: string[] = [];
-
-    // Get current form values for debugging
-    const formData = form.getValues();
     
     logger.debug(LogSource.EDITOR, 'Starting form validation', {
       hasTitle: !!formData.title,
       hasCategoryId: !!formData.categoryId,
-      contentLength: content.length,
+      contentLength: formData.content.length,
       hasImageUrl: !!formData.imageUrl
     });
 
     // Validate title
-    const title = formData.title;
-    if (!title || title.trim() === '') {
-      form.setError('title', { type: 'required', message: 'Title is required' });
+    if (!formData.title || formData.title.trim() === '') {
       errors.push("Article title is required");
       isValid = false;
     }
     
     // Enhanced category validation with better error reporting
-    const categoryId = formData.categoryId;
-    if (!categoryId) {
+    if (!formData.categoryId) {
       logger.warn(LogSource.EDITOR, 'Category validation failed - no categoryId found', {
-        categoryId,
-        hasTitle: !!title
+        categoryId: formData.categoryId,
+        hasTitle: !!formData.title
       });
       
-      form.setError('categoryId', { type: 'required', message: 'Category is required' });
       errors.push("Please select a category. If you selected one from the modal, there may have been an issue loading it.");
       isValid = false;
     }
     
     // Validate content
-    if (!content || content.trim() === '') {
+    if (!formData.content || formData.content.trim() === '') {
       errors.push("Article content is required");
       isValid = false;
     }
     
     // Validate image URL
-    const imageUrl = formData.imageUrl;
-    if (!imageUrl || imageUrl.trim() === '') {
+    if (!formData.imageUrl || formData.imageUrl.trim() === '') {
       errors.push("A featured image is required");
-      form.setError('imageUrl', { type: 'required', message: 'Featured image is required' });
       isValid = false;
     }
 

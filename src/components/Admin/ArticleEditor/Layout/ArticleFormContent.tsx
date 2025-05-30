@@ -9,7 +9,7 @@ import MetadataFields from '../MetadataFields';
 import VideoFormSection from '../VideoFormSection';
 import DebateFormSection from '../DebateFormSection';
 import StoryboardFields from '../StoryboardFields';
-import { MediaSelector } from '../MediaSelector';
+import MediaSelector from '../MediaSelector/MediaSelector';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
 
 interface ArticleFormContentProps {
@@ -75,8 +75,8 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
         </div>
 
         <CategorySelector
-          value={formData.categoryId}
-          onChange={(value) => onChange('categoryId', value)}
+          categoryId={formData.categoryId}
+          onCategoryChange={(value) => onChange('categoryId', value)}
           disabled={isSubmitting}
         />
       </div>
@@ -90,7 +90,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
               value={formData.content}
               onChange={(value) => onChange('content', value)}
               placeholder="Detailed description of your storyboard series..."
-              disabled={isSubmitting}
             />
           </div>
           
@@ -103,8 +102,8 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       ) : formData.articleType === 'video' ? (
         <div className="space-y-4">
           <VideoFormSection
-            videoUrl={formData.videoUrl}
-            onVideoUrlChange={(url) => onChange('videoUrl', url)}
+            value={formData.videoUrl}
+            onChange={(url) => onChange('videoUrl', url)}
             disabled={isSubmitting}
           />
           
@@ -114,15 +113,22 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
               value={formData.content}
               onChange={(value) => onChange('content', value)}
               placeholder="Write your article content here..."
-              disabled={isSubmitting}
             />
           </div>
         </div>
       ) : formData.articleType === 'debate' ? (
         <div className="space-y-4">
           <DebateFormSection
-            debateSettings={formData.debateSettings}
-            onDebateSettingsChange={(settings) => onChange('debateSettings', settings)}
+            question={formData.debateSettings?.question || ''}
+            yesPosition={formData.debateSettings?.yesPosition || ''}
+            noPosition={formData.debateSettings?.noPosition || ''}
+            votingEnabled={formData.debateSettings?.votingEnabled ?? true}
+            votingEndsAt={formData.debateSettings?.voting_ends_at || ''}
+            onQuestionChange={(question) => onChange('debateSettings', { ...formData.debateSettings, question })}
+            onYesPositionChange={(yesPosition) => onChange('debateSettings', { ...formData.debateSettings, yesPosition })}
+            onNoPositionChange={(noPosition) => onChange('debateSettings', { ...formData.debateSettings, noPosition })}
+            onVotingEnabledChange={(votingEnabled) => onChange('debateSettings', { ...formData.debateSettings, votingEnabled })}
+            onVotingEndsAtChange={(voting_ends_at) => onChange('debateSettings', { ...formData.debateSettings, voting_ends_at })}
             disabled={isSubmitting}
           />
           
@@ -132,7 +138,6 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
               value={formData.content}
               onChange={(value) => onChange('content', value)}
               placeholder="Provide additional context for the debate..."
-              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -143,15 +148,14 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
             value={formData.content}
             onChange={(value) => onChange('content', value)}
             placeholder="Write your article content here..."
-            disabled={isSubmitting}
           />
         </div>
       )}
 
       {/* Metadata Fields */}
       <MetadataFields
-        slug={formData.slug}
-        onSlugChange={(slug) => onChange('slug', slug)}
+        value={formData.slug}
+        onChange={(slug) => onChange('slug', slug)}
         disabled={isSubmitting}
       />
     </div>

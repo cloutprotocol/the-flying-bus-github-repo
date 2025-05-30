@@ -1,33 +1,33 @@
 
 import { useEffect, useRef } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface ArticleFormStateProps {
-  form: UseFormReturn<any>;
+  formData: ArticleFormData;
+  updateField: (field: keyof ArticleFormData, value: any) => void;
   categorySlug?: string;
   categoryName?: string;
   isNewArticle: boolean;
   articleId?: string;
-  draftId?: string;
   articleType: string;
 }
 
 export const useArticleFormState = ({
-  form,
+  formData,
+  updateField,
   categorySlug,
   categoryName,
   isNewArticle,
   articleId,
-  draftId,
   articleType
 }: ArticleFormStateProps) => {
   const { toast } = useToast();
   const categoryLookupAttempted = useRef(false);
-  const currentCategoryId = form.watch('categoryId');
+  const currentCategoryId = formData.categoryId;
   
   // Set category ID based on categorySlug or categoryName when available
   useEffect(() => {
@@ -87,11 +87,8 @@ export const useArticleFormState = ({
         }
         
         if (categoryData) {
-          // Set the category ID in form with validation trigger
-          form.setValue('categoryId', categoryData.id, { 
-            shouldDirty: true, 
-            shouldValidate: true 
-          });
+          // Set the category ID in form
+          updateField('categoryId', categoryData.id);
           
           logger.info(LogSource.EDITOR, 'Category ID set successfully', { 
             categoryId: categoryData.id,
@@ -130,9 +127,9 @@ export const useArticleFormState = ({
     };
     
     getCategoryId();
-  }, [categorySlug, categoryName, isNewArticle, currentCategoryId, form, toast]);
+  }, [categorySlug, categoryName, isNewArticle, currentCategoryId, updateField, toast]);
 
   return {
-    effectiveArticleId: articleId || draftId
+    effectiveArticleId: articleId || formData.id
   };
 };

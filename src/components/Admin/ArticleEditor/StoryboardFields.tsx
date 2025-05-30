@@ -6,21 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Video, Clock, Image } from 'lucide-react';
-import { useStoryboardForm } from '@/hooks/useStoryboardForm';
-
-interface Episode {
-  title: string;
-  description: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-  duration: string;
-  number: number;
-  content: string;
-}
+import { StoryboardEpisode } from '@/types/ArticleEditorTypes';
 
 interface StoryboardFieldsProps {
-  episodes: Episode[];
-  onEpisodesChange: (episodes: Episode[]) => void;
+  episodes: StoryboardEpisode[];
+  onEpisodesChange: (episodes: StoryboardEpisode[]) => void;
   onSubmit?: () => void;
   isSubmitting?: boolean;
 }
@@ -31,22 +21,36 @@ const StoryboardFields: React.FC<StoryboardFieldsProps> = ({
   onSubmit,
   isSubmitting = false
 }) => {
-  const { addEpisode, removeEpisode, updateEpisode } = useStoryboardForm();
-
   const handleAddEpisode = () => {
-    const newEpisodes = addEpisode(episodes);
-    onEpisodesChange(newEpisodes);
+    const newEpisode: StoryboardEpisode = {
+      title: `Episode ${episodes.length + 1}`,
+      description: '',
+      videoUrl: '',
+      thumbnailUrl: '',
+      duration: '',
+      number: episodes.length + 1,
+      content: ''
+    };
+    
+    onEpisodesChange([...episodes, newEpisode]);
   };
 
   const handleRemoveEpisode = (index: number) => {
     if (episodes.length <= 1) return; // Keep at least one episode
-    const newEpisodes = removeEpisode(episodes, index);
-    onEpisodesChange(newEpisodes);
+    const newEpisodes = episodes.filter((_, i) => i !== index);
+    // Renumber episodes
+    const renumberedEpisodes = newEpisodes.map((episode, i) => ({
+      ...episode,
+      number: i + 1,
+      title: episode.title.includes('Episode') ? `Episode ${i + 1}` : episode.title
+    }));
+    onEpisodesChange(renumberedEpisodes);
   };
 
-  const handleUpdateEpisode = (index: number, field: keyof Episode, value: string) => {
-    const updates = { [field]: value };
-    const newEpisodes = updateEpisode(episodes, index, updates);
+  const handleUpdateEpisode = (index: number, field: keyof StoryboardEpisode, value: string) => {
+    const newEpisodes = episodes.map((episode, i) => 
+      i === index ? { ...episode, [field]: value } : episode
+    );
     onEpisodesChange(newEpisodes);
   };
 

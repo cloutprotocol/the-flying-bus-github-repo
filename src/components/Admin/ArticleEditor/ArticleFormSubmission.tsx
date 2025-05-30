@@ -1,58 +1,56 @@
 
-import { UseFormReturn } from 'react-hook-form';
+import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
 
 interface ArticleFormSubmissionProps {
-  form: UseFormReturn<any>;
-  content: string;
-  handleSubmit: (data: any) => Promise<any>;
-  draftId?: string;
-  articleId?: string;
+  formData: ArticleFormData;
+  submitForReview: () => Promise<boolean>;
+  validateForm: () => string[];
   categorySlug?: string;
 }
 
 export const useArticleFormSubmission = ({
-  form,
-  content,
-  handleSubmit,
-  draftId,
-  articleId,
+  formData,
+  submitForReview,
+  validateForm,
   categorySlug
 }: ArticleFormSubmissionProps) => {
   
   const { toast } = useToast();
   const { addDebugStep } = useArticleDebug();
 
-  // Form submission handler - data is already properly structured by ArticleForm
-  const onSubmit = async (data: any) => {
+  // Handle submit button click with optimized validation
+  const handleSubmitButtonClick = async (): Promise<void> => {
     try {
-      // Data comes pre-structured from ArticleForm, just add content and metadata
-      const submissionData = {
-        ...data,
-        content,
-        isDirty: form.formState.isDirty,
-        id: draftId || articleId
-      };
+      // Validate first
+      const errors = validateForm();
+      if (errors.length > 0) {
+        toast({
+          title: "Validation failed",
+          description: errors.join('. '),
+          variant: "destructive"
+        });
+        return;
+      }
       
       addDebugStep('Form validation passed', {
-        hasTitle: !!submissionData.title,
-        hasCategoryId: !!submissionData.categoryId,
-        articleType: submissionData.articleType,
-        hasDebateSettings: !!submissionData.debateSettings,
+        hasTitle: !!formData.title,
+        hasCategoryId: !!formData.categoryId,
+        articleType: formData.articleType,
+        hasDebateSettings: !!formData.debateSettings,
         categorySlug
       });
       
-      logger.debug(LogSource.EDITOR, 'Submitting article data (no additional processing)', {
-        dataKeys: Object.keys(submissionData),
-        articleType: submissionData.articleType,
-        hasDebateSettings: !!submissionData.debateSettings,
-        debateQuestion: submissionData.debateSettings?.question?.substring(0, 30) || 'N/A'
+      logger.debug(LogSource.EDITOR, 'Submitting article data', {
+        articleType: formData.articleType,
+        hasDebateSettings: !!formData.debateSettings,
+        debateQuestion: formData.debateSettings?.question?.substring(0, 30) || 'N/A'
       });
       
-      await handleSubmit(submissionData);
+      await submitForReview();
       
     } catch (error) {
       console.error("Form submission error:", error);
@@ -65,18 +63,7 @@ export const useArticleFormSubmission = ({
     }
   };
 
-  // Handle submit button click with optimized validation
-  const handleSubmitButtonClick = async (): Promise<void> => {
-    // Skip validation if form is invalid to reduce processing
-    if (!form.formState.isValid) {
-      return Promise.resolve();
-    }
-    
-    return form.handleSubmit(onSubmit)();
-  };
-
   return {
-    onSubmit,
     handleSubmitButtonClick
   };
 };
