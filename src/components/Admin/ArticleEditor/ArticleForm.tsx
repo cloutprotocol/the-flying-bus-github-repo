@@ -7,7 +7,7 @@ import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
 import { supabase } from '@/integrations/supabase/client';
-import ArticleFormContent from './Layout/ArticleFormContent';
+import SimpleArticleFormContent from './Layout/SimpleArticleFormContent';
 import EnhancedFormActions from './EnhancedFormActions';
 import ArticleEditorDebugPanel from './ArticleEditorDebugPanel';
 
@@ -217,7 +217,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         isNewArticle={isNewArticle}
       />
       
-      <ArticleFormContent 
+      <SimpleArticleFormContent 
         formData={formData}
         onChange={updateField}
         isSubmitting={isSubmitting}
