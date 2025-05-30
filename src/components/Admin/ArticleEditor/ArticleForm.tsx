@@ -31,9 +31,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   categoryName
 }) => {
   const [showRevisions, setShowRevisions] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [isFormReady, setIsFormReady] = useState(false);
-  const { addDebugStep, debugSteps } = useArticleDebug();
+  const { addDebugStep } = useArticleDebug();
   
   console.log('ArticleForm: Rendering with props:', {
     articleId,
@@ -43,49 +42,21 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     categoryName
   });
 
-  // Initialize form with error handling
-  let formData, updateField, isSubmitting, isSaving, hasUnsavedChanges, saveDraft, submitForReview, validateForm;
-  
-  try {
-    const formHook = useOptimizedArticleForm({
-      articleType: articleType as any,
-      categoryId: '', // Will be set by useArticleFormState
-      storyboardEpisodes: articleType === 'storyboard' ? [] : undefined
-    });
-    
-    formData = formHook.formData;
-    updateField = formHook.updateField;
-    isSubmitting = formHook.isSubmitting;
-    isSaving = formHook.isSaving;
-    hasUnsavedChanges = formHook.hasUnsavedChanges;
-    saveDraft = formHook.saveDraft;
-    submitForReview = formHook.submitForReview;
-    validateForm = formHook.validateForm;
-    
-    console.log('ArticleForm: Form hook initialized successfully');
-  } catch (error) {
-    console.error('ArticleForm: Error initializing form hook:', error);
-    setFormError(error instanceof Error ? error.message : 'Failed to initialize form');
-    
-    // Provide fallback values
-    formData = {
-      title: '',
-      content: '',
-      excerpt: '',
-      imageUrl: '',
-      categoryId: '',
-      slug: '',
-      articleType: articleType as any,
-      storyboardEpisodes: []
-    };
-    updateField = () => {};
-    isSubmitting = false;
-    isSaving = false;
-    hasUnsavedChanges = false;
-    saveDraft = async () => false;
-    submitForReview = async () => false;
-    validateForm = () => [];
-  }
+  // Initialize form hook
+  const {
+    formData,
+    updateField,
+    isSubmitting,
+    isSaving,
+    hasUnsavedChanges,
+    saveDraft,
+    submitForReview,
+    validateForm
+  } = useOptimizedArticleForm({
+    articleType: articleType as any,
+    categoryId: '', // Will be set by useArticleFormState
+    storyboardEpisodes: articleType === 'storyboard' ? [] : undefined
+  });
 
   const { revisions, isLoading: revisionsLoading } = useArticleRevisions(
     !isNewArticle ? articleId : undefined
@@ -99,59 +70,33 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     hasPreselectedCategory: !!categoryName
   });
 
-  // Use extracted state management with error handling
-  let effectiveArticleId;
-  try {
-    const stateHook = useArticleFormState({
-      formData,
-      updateField,
-      categorySlug,
-      categoryName,
-      isNewArticle,
-      articleId,
-      articleType
-    });
-    effectiveArticleId = stateHook.effectiveArticleId;
-    console.log('ArticleForm: State hook initialized successfully');
-  } catch (error) {
-    console.error('ArticleForm: Error initializing state hook:', error);
-    effectiveArticleId = articleId;
-  }
+  // Use extracted state management
+  const { effectiveArticleId } = useArticleFormState({
+    formData,
+    updateField,
+    categorySlug,
+    categoryName,
+    isNewArticle,
+    articleId,
+    articleType
+  });
 
   // Use extracted validation logic
-  let validateFormBeforeSubmit;
-  try {
-    const validationHook = useArticleFormValidation(formData);
-    validateFormBeforeSubmit = validationHook.validateFormBeforeSubmit;
-    console.log('ArticleForm: Validation hook initialized successfully');
-  } catch (error) {
-    console.error('ArticleForm: Error initializing validation hook:', error);
-    validateFormBeforeSubmit = () => [];
-  }
+  const { validateFormBeforeSubmit } = useArticleFormValidation(formData);
 
   // Use extracted submission logic
-  let handleSubmitButtonClick;
-  try {
-    const submissionHook = useArticleFormSubmission({
-      formData,
-      submitForReview,
-      validateForm,
-      categorySlug
-    });
-    handleSubmitButtonClick = submissionHook.handleSubmitButtonClick;
-    console.log('ArticleForm: Submission hook initialized successfully');
-  } catch (error) {
-    console.error('ArticleForm: Error initializing submission hook:', error);
-    handleSubmitButtonClick = async () => {};
-  }
+  const { handleSubmitButtonClick } = useArticleFormSubmission({
+    formData,
+    submitForReview,
+    validateForm,
+    categorySlug
+  });
 
-  // Mark form as ready after all hooks are initialized
+  // Mark form as ready after hooks are initialized
   useEffect(() => {
-    if (!formError) {
-      console.log('ArticleForm: All hooks initialized, marking form as ready');
-      setIsFormReady(true);
-    }
-  }, [formError]);
+    console.log('ArticleForm: Marking form as ready');
+    setIsFormReady(true);
+  }, []);
 
   // Wrap saveDraft to return Promise<void>
   const handleSaveDraft = async (): Promise<void> => {
@@ -159,7 +104,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       await saveDraft();
     } catch (error) {
       console.error('ArticleForm: Error saving draft:', error);
-      setFormError(error instanceof Error ? error.message : 'Failed to save draft');
     }
   };
 
@@ -169,32 +113,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       await handleSubmitButtonClick();
     } catch (error) {
       console.error('ArticleForm: Error submitting:', error);
-      setFormError(error instanceof Error ? error.message : 'Failed to submit article');
     }
   };
-
-  // Show error state if there's a form error
-  if (formError) {
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Form Error: {formError}
-          </AlertDescription>
-        </Alert>
-        <button 
-          onClick={() => {
-            setFormError(null);
-            window.location.reload();
-          }}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
 
   // Show loading state while form is initializing
   if (!isFormReady) {
