@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -297,6 +298,8 @@ export const getDraftById = async (
         updated_at,
         created_at,
         article_type,
+        author_id,
+        slug,
         video_articles(video_url),
         debate_articles(question, yes_position, no_position, voting_enabled, voting_ends_at)
       `)
@@ -321,8 +324,10 @@ export const getDraftById = async (
       excerpt: data.excerpt || '',
       imageUrl: data.cover_image || '',
       categoryId: data.category_id || '',
+      slug: data.slug || '',
       articleType: data.article_type as any,
       status: data.status as any,
+      author_id: data.author_id,
       created_at: data.created_at,
       updated_at: data.updated_at,
       videoUrl: data.video_articles && data.video_articles[0] ? data.video_articles[0].video_url : undefined,
