@@ -37,7 +37,9 @@ const ArticlePage = () => {
         articleType: article.articleType,
         isDebate,
         hasDebateSettings: !!debateSettings,
-        debateQuestion: debateSettings?.question?.substring(0, 50) || 'N/A'
+        debateQuestion: debateSettings?.question?.substring(0, 50) || 'N/A',
+        hasYesPosition: !!debateSettings?.yes_position,
+        hasNoPosition: !!debateSettings?.no_position
       });
     }
   }, [article, debateSettings]);
@@ -78,11 +80,12 @@ const ArticlePage = () => {
     );
   }
 
-  // Enhanced debate settings for voting component
+  // Enhanced debate settings for voting component with position arguments
   const enhancedDebateSettings = isDebateArticle(article.articleType) && debateSettings ? {
-    ...debateSettings,
     initialVotes: debateSettings.initialVotes || { yes: 0, no: 0 },
-    question: debateSettings.question || article.title
+    question: debateSettings.question || article.title,
+    yesPosition: debateSettings.yes_position,
+    noPosition: debateSettings.no_position
   } : null;
 
   return (

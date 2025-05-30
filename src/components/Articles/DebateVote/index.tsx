@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import VoteButtons from './VoteButtons';
 import VoteResults from './VoteResults';
 import VoteStatus from './VoteStatus';
+import DebateArguments from './DebateArguments';
 import { useVoting } from './useVoting';
 import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/utils/logger/logger';
@@ -13,6 +14,8 @@ import { LogSource } from '@/utils/logger/types';
 interface DebateVoteProps {
   debateId: string;
   topicTitle: string;
+  yesPosition?: string;
+  noPosition?: string;
   initialVotes?: {
     yes: number;
     no: number;
@@ -21,7 +24,9 @@ interface DebateVoteProps {
 
 const DebateVote = ({ 
   debateId, 
-  topicTitle, 
+  topicTitle,
+  yesPosition,
+  noPosition,
   initialVotes = { yes: 0, no: 0 } 
 }: DebateVoteProps) => {
   const { isLoggedIn } = useAuth();
@@ -42,13 +47,16 @@ const DebateVote = ({
     logger.info(LogSource.VOTING, 'DebateVote component rendered', {
       debateId,
       topicTitle: topicTitle.substring(0, 50),
+      hasArguments: !!(yesPosition || noPosition),
+      yesPositionLength: yesPosition?.length || 0,
+      noPositionLength: noPosition?.length || 0,
       initialVotes,
       isLoggedIn,
       hasVoted,
       userChoice,
       currentVotes: votes
     });
-  }, [debateId, topicTitle, initialVotes, isLoggedIn, hasVoted, userChoice, votes]);
+  }, [debateId, topicTitle, yesPosition, noPosition, initialVotes, isLoggedIn, hasVoted, userChoice, votes]);
 
   const onVote = (choice: 'yes' | 'no') => {
     logger.info(LogSource.VOTING, 'Vote attempt', {
@@ -91,6 +99,8 @@ const DebateVote = ({
       
       <CardContent className="p-6 pt-5">
         <div className="flex flex-col space-y-6">
+          <DebateArguments yesPosition={yesPosition} noPosition={noPosition} />
+          
           <VoteButtons 
             onVote={onVote}
             hasVoted={hasVoted}

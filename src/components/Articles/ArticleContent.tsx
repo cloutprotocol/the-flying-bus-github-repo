@@ -18,6 +18,8 @@ interface ArticleContentProps {
       no: number;
     };
     question?: string;
+    yesPosition?: string;
+    noPosition?: string;
   };
 }
 
@@ -37,6 +39,10 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
         articleType: article.articleType,
         hasDebateSettings: !!debateSettings,
         debateQuestion: debateSettings?.question || 'Using article title',
+        hasYesPosition: !!debateSettings?.yesPosition,
+        hasNoPosition: !!debateSettings?.noPosition,
+        yesPositionLength: debateSettings?.yesPosition?.length || 0,
+        noPositionLength: debateSettings?.noPosition?.length || 0,
         initialVotes: debateSettings?.initialVotes || { yes: 0, no: 0 }
       });
     }
@@ -91,6 +97,8 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
           <DebateVote 
             debateId={article.id} 
             topicTitle={debateSettings?.question || article.title}
+            yesPosition={debateSettings?.yesPosition}
+            noPosition={debateSettings?.noPosition}
             initialVotes={debateSettings?.initialVotes || { yes: 0, no: 0 }} 
           />
         </div>
