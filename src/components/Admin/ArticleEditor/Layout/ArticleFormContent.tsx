@@ -23,7 +23,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
   onChange,
   isSubmitting = false
 }) => {
-  // Create a mock form object that satisfies the component interfaces
+  // Create a complete mock form object that satisfies the UseFormReturn interface
   const mockForm = {
     control: null as any,
     getValues: () => formData,
@@ -31,10 +31,27 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
       onChange(field as keyof ArticleFormData, value);
     },
     watch: (field: string) => formData[field as keyof ArticleFormData],
+    getFieldState: () => ({ invalid: false, isTouched: false, isDirty: false, error: undefined }),
+    setError: () => {},
+    clearErrors: () => {},
+    trigger: () => Promise.resolve(true),
+    reset: () => {},
+    resetField: () => {},
+    setFocus: () => {},
+    unregister: () => {},
+    handleSubmit: (onValid: any) => (e?: any) => {
+      e?.preventDefault();
+      onValid(formData);
+    },
     formState: {
       errors: {},
       isDirty: false,
-      isValid: true
+      isValid: true,
+      isSubmitting: false,
+      isValidating: false,
+      submitCount: 0,
+      touchedFields: {},
+      dirtyFields: {}
     }
   };
 
