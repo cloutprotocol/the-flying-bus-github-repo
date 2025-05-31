@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { DebateArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionService';
-import { ArticleFormData } from '@/types/ArticleEditorTypes';
+import { ArticleFormData, DebateSettings } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -22,6 +21,15 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: DebateArticleFormData): ArticleFormData => {
+    // Convert debate settings to ensure required fields are present
+    const debateSettings: DebateSettings = {
+      question: data.debateSettings?.question || '',
+      yesPosition: data.debateSettings?.yesPosition || '',
+      noPosition: data.debateSettings?.noPosition || '',
+      votingEnabled: data.debateSettings?.votingEnabled ?? true,
+      voting_ends_at: data.debateSettings?.voting_ends_at || null
+    };
+
     return {
       id: articleId,
       title: data.title,
@@ -35,7 +43,7 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,
-      debateSettings: data.debateSettings
+      debateSettings
     };
   };
 

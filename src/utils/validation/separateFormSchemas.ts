@@ -39,15 +39,15 @@ export const debateArticleSchema = baseFieldsSchema.extend({
   })
 });
 
-// Storyboard Episode Schema
+// Storyboard Episode Schema - make required fields actually required
 const storyboardEpisodeSchema = z.object({
   title: z.string().min(1, 'Episode title is required'),
-  description: z.string().optional(),
-  videoUrl: z.string().url().optional(),
-  thumbnailUrl: z.string().url().optional(),
-  duration: z.string().optional(),
+  description: z.string().optional().default(''),
+  videoUrl: z.string().url().optional().default(''),
+  thumbnailUrl: z.string().url().optional().default(''),
+  duration: z.string().optional().default(''),
   number: z.number().int().positive(),
-  content: z.string().optional()
+  content: z.string().optional().default('')
 });
 
 // Storyboard Article Schema - adds episodes

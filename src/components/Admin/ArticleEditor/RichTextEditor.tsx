@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -12,12 +11,14 @@ interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ 
   value, 
   onChange, 
-  placeholder = 'Start writing...' 
+  placeholder = 'Start writing...',
+  disabled = false
 }) => {
   const [view, setView] = useState<'write' | 'preview'>('write');
   const [editorContent, setEditorContent] = useState(value || '');
@@ -54,7 +55,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Define the Quill modules and formats
   const modules = useMemo(() => ({
-    toolbar: [
+    toolbar: disabled ? false : [
       [{ 'header': [1, 2, 3, false] }],
       ['bold', 'italic', 'underline'],
       [{ 'align': [] }],
@@ -63,7 +64,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       ['blockquote', 'code-block'],
       ['clean']
     ],
-  }), []);
+  }), [disabled]);
 
   const formats = [
     'header',
@@ -79,7 +80,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <div className="bg-muted/40 border-b px-3 py-2 flex items-center justify-between">
         <Tabs value={view} onValueChange={(v) => setView(v as 'write' | 'preview')} className="ml-auto">
           <TabsList>
-            <TabsTrigger value="write">Write</TabsTrigger>
+            <TabsTrigger value="write" disabled={disabled}>Write</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -94,6 +95,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             placeholder={placeholder}
             modules={modules}
             formats={formats}
+            readOnly={disabled}
             className="h-full min-h-[300px] border-none"
           />
         ) : (

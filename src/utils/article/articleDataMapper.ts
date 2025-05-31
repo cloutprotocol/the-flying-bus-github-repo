@@ -19,6 +19,7 @@ export interface DatabaseArticleData {
   debate_settings?: any;
   storyboard_episodes?: any[];
   author_id: string;
+  [key: string]: any; // Index signature for JSON compatibility
 }
 
 export function mapFormDataToDatabase(

@@ -12,7 +12,7 @@ export interface DebateSettings {
   noPosition: string;
   votingEnabled: boolean;
   voting_ends_at: string | null;
-  [key: string]: any; // Add index signature for JSON compatibility
+  [key: string]: any;
 }
 
 export interface StoryboardEpisode {
@@ -60,7 +60,7 @@ export interface ArticleRevision {
   created_at: string;
   content: string;
   revision_note?: string;
-  editorName?: string; // Add this for compatibility
+  editorName?: string;
 }
 
 export interface ArticleDraft {

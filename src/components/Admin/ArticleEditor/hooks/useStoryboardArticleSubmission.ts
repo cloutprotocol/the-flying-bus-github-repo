@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { StoryboardArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionService';
-import { ArticleFormData } from '@/types/ArticleEditorTypes';
+import { ArticleFormData, StoryboardEpisode } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -22,6 +21,17 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: StoryboardArticleFormData): ArticleFormData => {
+    // Convert episodes to ensure required fields are present
+    const episodes: StoryboardEpisode[] = data.storyboardEpisodes?.map(episode => ({
+      title: episode.title || 'Untitled Episode',
+      description: episode.description || '',
+      videoUrl: episode.videoUrl || '',
+      thumbnailUrl: episode.thumbnailUrl || '',
+      duration: episode.duration || '',
+      number: episode.number || 1,
+      content: episode.content || ''
+    })) || [];
+
     return {
       id: articleId,
       title: data.title,
@@ -35,7 +45,7 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,
-      storyboardEpisodes: data.storyboardEpisodes
+      storyboardEpisodes: episodes
     };
   };
 
