@@ -31,59 +31,89 @@ const ArticleFormContainer: React.FC<ArticleFormContainerProps> = ({
     categoryName
   });
 
-  // Initialize form logic with proper typing
-  const form = useArticleFormLogic({ articleType });
-  const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
+  try {
+    // Initialize form logic with error handling
+    const form = useArticleFormLogic({ articleType });
+    
+    if (!form) {
+      console.error('ArticleFormContainer: Failed to initialize form');
+      return (
+        <div className="p-6 border border-red-200 rounded-lg bg-red-50">
+          <p className="text-red-600">Failed to initialize article form. Please try refreshing the page.</p>
+        </div>
+      );
+    }
 
-  // Initialize submission logic
-  const { isSaving, handleSaveDraft, handleSubmit: onSubmit, convertToArticleFormData } = useArticleFormSubmission({
-    form,
-    articleId
-  });
+    const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
 
-  // Initialize category lookup
-  useCategoryLookup({
-    form,
-    isNewArticle,
-    categorySlug,
-    categoryName
-  });
+    // Initialize submission logic
+    const { isSaving, handleSaveDraft, handleSubmit: onSubmit, convertToArticleFormData } = useArticleFormSubmission({
+      form,
+      articleId
+    });
 
-  return (
-    <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <ArticleEditorDebugPanel
-          formData={convertToArticleFormData(form.getValues())}
-          isSubmitting={isSubmitting}
-          isSaving={isSaving}
-          hasUnsavedChanges={isDirty}
-          effectiveArticleId={articleId}
-          categorySlug={categorySlug}
-          categoryName={categoryName}
-          isNewArticle={isNewArticle}
-        />
-        
-        <ArticleFormContent 
-          form={form}
-          isSubmitting={isSubmitting}
-          preselectedCategoryName={categoryName}
-        />
-        
-        <EnhancedFormActions 
-          onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(onSubmit)}
-          onViewRevisions={undefined}
-          isSubmitting={isSubmitting}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          saveStatus={isDirty ? 'idle' : 'saved'}
-          hasRevisions={false}
-          form={form}
-          content={watch('content')}
-        />
-      </form>
-    </Form>
-  );
+    // Initialize category lookup
+    useCategoryLookup({
+      form,
+      isNewArticle,
+      categorySlug,
+      categoryName
+    });
+
+    console.log('ArticleFormContainer: All hooks initialized successfully');
+
+    return (
+      <Form {...form}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <ArticleEditorDebugPanel
+            formData={convertToArticleFormData(form.getValues())}
+            isSubmitting={isSubmitting}
+            isSaving={isSaving}
+            hasUnsavedChanges={isDirty}
+            effectiveArticleId={articleId}
+            categorySlug={categorySlug}
+            categoryName={categoryName}
+            isNewArticle={isNewArticle}
+          />
+          
+          <ArticleFormContent 
+            form={form}
+            isSubmitting={isSubmitting}
+            preselectedCategoryName={categoryName}
+          />
+          
+          <EnhancedFormActions 
+            onSaveDraft={handleSaveDraft}
+            onSubmit={handleSubmit(onSubmit)}
+            onViewRevisions={undefined}
+            isSubmitting={isSubmitting}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            saveStatus={isDirty ? 'idle' : 'saved'}
+            hasRevisions={false}
+            form={form}
+            content={watch('content')}
+          />
+        </form>
+      </Form>
+    );
+  } catch (error) {
+    console.error('ArticleFormContainer: Exception during initialization:', error);
+    return (
+      <div className="p-6 border border-red-200 rounded-lg bg-red-50">
+        <h3 className="font-medium text-red-600 mb-2">Form Initialization Error</h3>
+        <p className="text-red-600 text-sm mb-4">
+          There was an error setting up the article form. This might be due to a validation or configuration issue.
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
 };
 
 export default ArticleFormContainer;

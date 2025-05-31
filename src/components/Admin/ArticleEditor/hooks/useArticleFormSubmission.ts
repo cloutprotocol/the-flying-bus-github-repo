@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
+import { ArticleFormSchemaType, articleFormSchema } from '@/utils/validation/articleFormSchema';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
 
@@ -20,11 +20,40 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = React.useState(false);
 
+  // Validate form data using Zod schema before conversion
+  const validateFormData = (data: ArticleFormSchemaType): boolean => {
+    try {
+      console.log('Validating form data before submission:', data);
+      const result = articleFormSchema.safeParse(data);
+      
+      if (!result.success) {
+        console.error('Form validation failed:', result.error.format());
+        toast({
+          title: "Validation Error",
+          description: "Please check all required fields are filled correctly.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      console.log('Form validation passed');
+      return true;
+    } catch (error) {
+      console.error('Exception during validation:', error);
+      toast({
+        title: "Validation Error", 
+        description: "There was an error validating your form data.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   // Convert form data to clean database format with proper field mapping
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
     console.log('Converting form data for article type:', data.articleType, data);
     
-    // Validate required fields before conversion
+    // Manual validation for required fields
     const missingFields = [];
     if (!data.title?.trim()) missingFields.push('title');
     if (!data.content?.trim() && data.articleType !== 'debate') missingFields.push('content');
@@ -42,8 +71,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       title: data.title.trim(),
       content: data.content?.trim() || '',
       excerpt: data.excerpt?.trim() || '',
-      imageUrl: data.imageUrl.trim(), // This will be mapped to cover_image in the service
-      categoryId: data.categoryId.trim(), // This will be mapped to category_id in the service
+      imageUrl: data.imageUrl.trim(),
+      categoryId: data.categoryId.trim(),
       slug: data.slug?.trim() || '',
       articleType: data.articleType,
       status: data.status,
@@ -65,7 +94,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       case 'debate':
         return {
           ...baseData,
-          content: data.content?.trim() || '', // Debate articles can have optional content
+          content: data.content?.trim() || '',
           debateSettings: data.debateSettings ? {
             question: data.debateSettings.question.trim(),
             yesPosition: data.debateSettings.yesPosition.trim(),
@@ -90,13 +119,12 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         };
       
       default: // 'standard' article type (headliners)
-        // Standard articles only get base fields, no additional type-specific fields
         console.log('Converting standard article with base data only');
         return baseData;
     }
   };
 
-  // Save draft function
+  // Save draft function with validation
   const handleSaveDraft = async (): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -109,10 +137,18 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
 
     setIsSaving(true);
     try {
-      const formData = convertToArticleFormData(form.getValues());
-      console.log('Saving draft with converted data:', formData);
+      const formData = form.getValues();
+      console.log('Saving draft with form data:', formData);
       
-      const result = await saveDraftOptimized(user.id, formData);
+      // Validate before converting
+      if (!validateFormData(formData)) {
+        return;
+      }
+      
+      const convertedData = convertToArticleFormData(formData);
+      console.log('Saving draft with converted data:', convertedData);
+      
+      const result = await saveDraftOptimized(user.id, convertedData);
       
       if (result.success) {
         toast({
@@ -134,7 +170,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Submit function with better error handling
+  // Submit function with enhanced validation
   const handleSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -145,9 +181,14 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       return;
     }
 
-    console.log('Starting article submission with raw form data:', data);
+    console.log('Starting article submission with form data:', data);
 
     try {
+      // Validate using Zod schema before submission
+      if (!validateFormData(data)) {
+        return;
+      }
+      
       const formData = convertToArticleFormData(data);
       console.log('Submitting article with converted data:', formData);
       
