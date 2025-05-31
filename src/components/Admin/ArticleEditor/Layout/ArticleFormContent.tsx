@@ -1,9 +1,12 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 import RichTextEditor from '../RichTextEditor';
 import CategorySelector from '../CategorySelector';
 import MetadataFields from '../MetadataFields';
@@ -16,15 +19,21 @@ import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 interface ArticleFormContentProps {
   form: UseFormReturn<ArticleFormSchemaType>;
   isSubmitting?: boolean;
+  preselectedCategoryName?: string;
 }
 
 const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
   form,
-  isSubmitting = false
+  isSubmitting = false,
+  preselectedCategoryName
 }) => {
   const { watch } = form;
   const articleType = watch('articleType');
   const storyboardEpisodes = watch('storyboardEpisodes') || [];
+  const categoryId = watch('categoryId');
+
+  // Check if category is pre-selected (either by having a categoryId or preselectedCategoryName)
+  const isCategoryPreselected = !!(categoryId || preselectedCategoryName);
 
   return (
     <div className="space-y-6">
@@ -86,7 +95,20 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
           <MediaSelector form={form} />
         </div>
 
-        <CategorySelector form={form} />
+        {/* Category Selection - Show selector or pre-selected category info */}
+        {isCategoryPreselected ? (
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Category <strong>{preselectedCategoryName || 'Selected Category'}</strong> has been pre-selected.
+              </AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          <CategorySelector form={form} />
+        )}
       </div>
 
       {/* Content Section - Different for each article type */}
@@ -97,7 +119,7 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
             name="content"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Series Description</FormLabel>
+                <FormLabel>Series Description *</FormLabel>
                 <FormControl>
                   <RichTextEditor
                     value={field.value}
