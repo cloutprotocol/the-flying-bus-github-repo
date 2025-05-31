@@ -26,7 +26,8 @@ export class UnifiedSubmissionService {
         articleType: formData.articleType,
         hasId: !!formData.id,
         title: formData.title?.substring(0, 30),
-        userId
+        userId,
+        categoryId: formData.categoryId
       });
 
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
@@ -34,6 +35,15 @@ export class UnifiedSubmissionService {
         hasId: !!formData.id,
         title: formData.title?.substring(0, 30)
       });
+
+      // Validate required fields before processing
+      if (!formData.title?.trim()) {
+        return { success: false, error: 'Title is required' };
+      }
+      
+      if (!formData.categoryId) {
+        return { success: false, error: 'Category is required' };
+      }
 
       // Map and validate form data
       const mappedData = mapFormDataToDatabase(formData, userId);
@@ -48,7 +58,10 @@ export class UnifiedSubmissionService {
         };
       }
 
-      console.log('Mapped data for submission:', mappedData);
+      console.log('Mapped data for submission:', {
+        ...mappedData,
+        content: mappedData.content?.substring(0, 50) + '...'
+      });
 
       // Use the correct database function name from Supabase
       const { data, error } = await supabase.rpc('submit_article_optimized', {
@@ -71,6 +84,13 @@ export class UnifiedSubmissionService {
           return {
             success: false,
             error: 'Invalid article status or type. Please check your submission.'
+          };
+        }
+        
+        if (error.code === '23503') {
+          return {
+            success: false,
+            error: 'Invalid category selected. Please choose a valid category.'
           };
         }
         
@@ -124,7 +144,8 @@ export class UnifiedSubmissionService {
       console.log('UnifiedSubmissionService.saveDraft called with:', {
         articleType: formData.articleType,
         hasId: !!formData.id,
-        title: formData.title?.substring(0, 30)
+        title: formData.title?.substring(0, 30),
+        categoryId: formData.categoryId
       });
 
       logger.info(LogSource.ARTICLE, 'Saving article draft', {
@@ -132,11 +153,19 @@ export class UnifiedSubmissionService {
         hasId: !!formData.id
       });
 
+      // Basic validation for drafts
+      if (!formData.title?.trim()) {
+        return { success: false, error: 'Title is required' };
+      }
+
       const mappedData = mapFormDataToDatabase(formData, userId);
       // Override status to draft for save operations
-      mappedData.status = ARTICLE_STATUS.DRAFT;
+      mappedData.status = ARTICLE_STATUS?.DRAFT || 'draft';
 
-      console.log('Mapped data for draft save:', mappedData);
+      console.log('Mapped data for draft save:', {
+        ...mappedData,
+        content: mappedData.content?.substring(0, 50) + '...'
+      });
 
       const { data, error } = await supabase.rpc('save_draft_optimized', {
         p_user_id: userId,

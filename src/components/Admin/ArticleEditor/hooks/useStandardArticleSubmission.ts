@@ -22,22 +22,24 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: StandardArticleFormData): ArticleFormData => {
+    console.log('Converting form data:', data);
+    
     // Convert form status to ArticleFormData status
     const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
     
     return {
       id: articleId,
-      title: data.title,
-      content: data.content,
+      title: data.title || '',
+      content: data.content || '',
       excerpt: data.excerpt || '',
       imageUrl: data.imageUrl || '',
-      categoryId: data.categoryId,
+      categoryId: data.categoryId || '',
       slug: data.slug || '',
       articleType: 'standard',
       status: convertedStatus as any,
       publishDate: data.publishDate,
-      shouldHighlight: data.shouldHighlight,
-      allowVoting: data.allowVoting
+      shouldHighlight: data.shouldHighlight || false,
+      allowVoting: data.allowVoting || false
     };
   };
 
@@ -57,8 +59,11 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       const convertedData = convertToArticleFormData(formData);
       
       logger.info(LogSource.ARTICLE, 'Saving standard article draft', {
-        articleType: convertedData.articleType
+        articleType: convertedData.articleType,
+        title: convertedData.title
       });
+      
+      console.log('Calling UnifiedSubmissionService.saveDraft with:', convertedData);
       
       const result = await UnifiedSubmissionService.saveDraft(convertedData, user.id);
       
@@ -67,11 +72,17 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
           title: "Draft saved",
           description: "Your changes have been saved successfully.",
         });
+        
+        // Update form with the returned article ID if this was a new article
+        if (result.articleId && !articleId) {
+          form.setValue('id' as any, result.articleId);
+        }
       } else {
         throw new Error(result.error || 'Failed to save draft');
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Save draft error', error);
+      console.error('Draft save error:', error);
       toast({
         title: "Save failed",
         description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
@@ -92,12 +103,17 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       return;
     }
 
+    console.log('handleSubmit called with data:', data);
     logger.info(LogSource.ARTICLE, 'Starting standard article submission');
 
     try {
-      const formData = convertToArticleFormData(data);
+      const convertedData = convertToArticleFormData(data);
       
-      const result = await UnifiedSubmissionService.submitForReview(formData, user.id);
+      console.log('Calling UnifiedSubmissionService.submitForReview with:', convertedData);
+      
+      const result = await UnifiedSubmissionService.submitForReview(convertedData, user.id);
+      
+      console.log('Submission result:', result);
       
       if (result.success) {
         toast({
@@ -110,11 +126,13 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Submit error', error);
+      console.error('Submission error:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
         variant: "destructive"
       });
+      throw error; // Re-throw so the form can handle it
     }
   };
 

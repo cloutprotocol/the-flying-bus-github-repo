@@ -50,7 +50,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     }
   });
 
-  const { formState: { isDirty, isSubmitting } } = form;
+  const { formState: { isDirty, isSubmitting, errors } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useStandardArticleSubmission({
     form,
     articleId
@@ -92,29 +92,55 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     );
   }
 
-  // Simple submit handler that just gets the current form data
-  const handleFormSubmit = async () => {
-    console.log('StandardArticleForm.handleFormSubmit called');
-    const formData = form.getValues();
+  // Proper form submission handler using React Hook Form's handleSubmit
+  const handleFormSubmit = form.handleSubmit(async (data: StandardArticleFormData) => {
+    console.log('StandardArticleForm.handleFormSubmit called with validated data:', {
+      title: data.title,
+      categoryId: data.categoryId,
+      articleType: data.articleType,
+      hasContent: !!data.content
+    });
     
-    // Validate that we have a categoryId before submitting
-    if (!formData.categoryId) {
+    // Additional validation for required fields
+    if (!data.categoryId) {
       console.error('Cannot submit article without categoryId');
+      form.setError('categoryId', { 
+        type: 'required', 
+        message: 'Category is required' 
+      });
       return;
     }
     
-    console.log('Submitting standard article with data:', {
-      title: formData.title,
-      categoryId: formData.categoryId,
-      articleType: formData.articleType
-    });
+    if (!data.title.trim()) {
+      console.error('Cannot submit article without title');
+      form.setError('title', { 
+        type: 'required', 
+        message: 'Title is required' 
+      });
+      return;
+    }
     
-    await onSubmit(formData);
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      console.error('Error in form submission:', error);
+      // The submission hook should handle error display
+    }
+  });
+
+  // Simple save draft handler
+  const handleSaveDraftClick = async () => {
+    console.log('Save draft clicked');
+    try {
+      await handleSaveDraft();
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
   };
 
   return (
     <Form {...form}>
-      <form className="space-y-6">
+      <form onSubmit={handleFormSubmit} className="space-y-6">
         <StandardFormContent 
           form={form}
           isSubmitting={isSubmitting}
@@ -123,13 +149,28 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
         />
         
         <SimpleFormActions 
-          onSaveDraft={handleSaveDraft}
+          onSaveDraft={handleSaveDraftClick}
           onSubmit={handleFormSubmit}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
           disabled={isNewArticle && !categoryData?.id}
         />
+        
+        {/* Show validation errors */}
+        {Object.keys(errors).length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please fix the following errors:
+              <ul className="mt-2 ml-4 list-disc">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field}>{error?.message}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
       </form>
     </Form>
   );

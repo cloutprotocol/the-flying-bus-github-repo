@@ -6,7 +6,7 @@ import { Save, Send, Loader2 } from 'lucide-react';
 
 interface SimpleFormActionsProps {
   onSaveDraft: () => Promise<void>;
-  onSubmit: () => Promise<void>;
+  onSubmit: (e?: React.FormEvent) => Promise<void>;
   isSubmitting: boolean;
   isDirty: boolean;
   isSaving: boolean;
@@ -21,16 +21,18 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
   isSaving,
   disabled = false
 }) => {
-  const handleSubmitClick = async () => {
-    console.log('Submit button clicked');
+  const handleSubmitClick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submit button clicked - calling onSubmit');
     try {
-      await onSubmit();
+      await onSubmit(e);
     } catch (error) {
       console.error('Submit error in SimpleFormActions:', error);
     }
   };
 
-  const handleSaveDraftClick = async () => {
+  const handleSaveDraftClick = async (e: React.FormEvent) => {
+    e.preventDefault();
     console.log('Save draft button clicked');
     try {
       await onSaveDraft();
@@ -62,7 +64,7 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
           </Button>
           
           <Button
-            type="button"
+            type="submit"
             onClick={handleSubmitClick}
             disabled={isSubmitting || isSaving || disabled}
             className="flex items-center gap-2"
