@@ -1,6 +1,6 @@
 
 -- This file contains SQL functions for optimized database operations
--- To use these functions, they need to be executed against the database
+-- Updated to handle proper field mapping and status values
 
 -- Function to save and submit an article in a single transaction
 CREATE OR REPLACE FUNCTION public.submit_article_optimized(
@@ -32,7 +32,7 @@ BEGIN
   -- Extract data from the input once to avoid repeated JSON parsing
   v_article_id := (p_article_data->>'id')::UUID;
   v_author_id := COALESCE((p_article_data->>'author_id')::UUID, p_user_id);
-  v_article_type := p_article_data->>'articleType';
+  v_article_type := COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', 'standard');
   v_article_title := p_article_data->>'title';
   v_slug := p_article_data->>'slug';
   
@@ -75,21 +75,22 @@ BEGIN
         RETURN;
       END IF;
       
-      -- OPTIMIZATION: Update article inline instead of calling another function
+      -- OPTIMIZATION: Update article inline with proper field mapping
       UPDATE articles
       SET
         title = COALESCE(p_article_data->>'title', title),
         content = COALESCE(p_article_data->>'content', content),
         excerpt = COALESCE(p_article_data->>'excerpt', excerpt),
-        cover_image = COALESCE(p_article_data->>'imageUrl', cover_image),
-        category_id = COALESCE((p_article_data->>'categoryId')::UUID, category_id),
+        cover_image = COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl', cover_image),
+        category_id = COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID, category_id),
         status = 'pending',
+        article_type = COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', article_type),
         updated_at = now()
       WHERE id = v_article_id
       RETURNING id INTO v_result_id;
       
     ELSE
-      -- OPTIMIZATION: Direct insert for new articles instead of calling another function
+      -- OPTIMIZATION: Direct insert for new articles with proper field mapping
       INSERT INTO articles (
         title,
         content,
@@ -104,11 +105,11 @@ BEGIN
         COALESCE(v_article_title, 'Untitled Article'),
         COALESCE(p_article_data->>'content', ''),
         p_article_data->>'excerpt',
-        p_article_data->>'imageUrl',
-        (p_article_data->>'categoryId')::UUID,
+        COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl'),
+        COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID),
         v_author_id,
         'pending',
-        COALESCE(v_article_type, 'standard'),
+        v_article_type,
         COALESCE(v_slug, 'article-' || floor(extract(epoch from now()))::text)
       )
       RETURNING id INTO v_result_id;
@@ -163,7 +164,7 @@ BEGIN
 END;
 $$;
 
--- Function to save an article draft efficiently with duplicate detection
+-- Function to save an article draft efficiently with proper field mapping
 CREATE OR REPLACE FUNCTION public.save_draft_optimized(
   p_user_id UUID,
   p_article_data JSONB
@@ -189,7 +190,7 @@ BEGIN
   -- Extract data from the input once to avoid repeated parsing
   v_article_id := (p_article_data->>'id')::UUID;
   v_author_id := COALESCE((p_article_data->>'author_id')::UUID, p_user_id);
-  v_article_type := p_article_data->>'articleType';
+  v_article_type := COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', 'standard');
   v_article_title := p_article_data->>'title';
   
   -- OPTIMIZATION: Check for duplicate drafts if no ID is provided in a single query
@@ -212,7 +213,7 @@ BEGIN
   
   -- Handle insert or update based on whether article exists
   IF v_article_id IS NULL THEN
-    -- Insert new article
+    -- Insert new article with proper field mapping
     INSERT INTO articles (
       title,
       content,
@@ -227,23 +228,24 @@ BEGIN
       COALESCE(v_article_title, 'Untitled Draft'),
       COALESCE(p_article_data->>'content', ''),
       p_article_data->>'excerpt',
-      p_article_data->>'imageUrl',
-      (p_article_data->>'categoryId')::UUID,
+      COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl'),
+      COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID),
       v_author_id,
       'draft',
-      COALESCE(v_article_type, 'standard'),
+      v_article_type,
       COALESCE(p_article_data->>'slug', 'draft-' || floor(extract(epoch from now()))::text)
     )
     RETURNING id INTO v_result_id;
   ELSE
-    -- Update existing article
+    -- Update existing article with proper field mapping
     UPDATE articles
     SET
       title = COALESCE(p_article_data->>'title', title),
       content = COALESCE(p_article_data->>'content', content),
       excerpt = COALESCE(p_article_data->>'excerpt', excerpt),
-      cover_image = COALESCE(p_article_data->>'imageUrl', cover_image),
-      category_id = COALESCE((p_article_data->>'categoryId')::UUID, category_id),
+      cover_image = COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl', cover_image),
+      category_id = COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID, category_id),
+      article_type = COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', article_type),
       updated_at = now()
     WHERE id = v_article_id
     RETURNING id INTO v_result_id;

@@ -6,8 +6,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { ArticleFormSchemaType, articleFormSchema } from '@/utils/validation/articleFormSchema';
-import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
-import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
+import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionService';
+import { mapFormDataToDatabase } from '@/utils/article/articleDataMapper';
+import { logger } from '@/utils/logger/logger';
+import { LogSource } from '@/utils/logger/types';
 
 interface UseArticleFormSubmissionProps {
   form: UseFormReturn<ArticleFormSchemaType>;
@@ -23,11 +25,18 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
   // Validate form data using Zod schema before conversion
   const validateFormData = (data: ArticleFormSchemaType): boolean => {
     try {
-      console.log('Validating form data before submission:', data);
+      logger.debug(LogSource.ARTICLE, 'Validating form data before submission', {
+        hasTitle: !!data.title,
+        hasContent: !!data.content,
+        articleType: data.articleType
+      });
+      
       const result = articleFormSchema.safeParse(data);
       
       if (!result.success) {
-        console.error('Form validation failed:', result.error.format());
+        logger.error(LogSource.ARTICLE, 'Form validation failed', { 
+          errors: result.error.format() 
+        });
         toast({
           title: "Validation Error",
           description: "Please check all required fields are filled correctly.",
@@ -36,10 +45,10 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         return false;
       }
       
-      console.log('Form validation passed');
+      logger.debug(LogSource.ARTICLE, 'Form validation passed');
       return true;
     } catch (error) {
-      console.error('Exception during validation:', error);
+      logger.error(LogSource.ARTICLE, 'Exception during validation', error);
       toast({
         title: "Validation Error", 
         description: "There was an error validating your form data.",
@@ -49,12 +58,14 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Convert form data to clean database format
+  // Convert form data to clean database format using the new mapper
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
-    console.log('Converting form data for article type:', data.articleType, data);
+    logger.debug(LogSource.ARTICLE, 'Converting form data', {
+      articleType: data.articleType,
+      hasId: !!articleId
+    });
     
-    // Start with base data that all article types need
-    const baseData = {
+    return {
       id: articleId,
       title: data.title?.trim() || '',
       content: data.content?.trim() || '',
@@ -67,49 +78,13 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,
+      videoUrl: data.videoUrl?.trim() || '',
+      debateSettings: data.debateSettings,
+      storyboardEpisodes: data.storyboardEpisodes
     };
-
-    // Add type-specific fields
-    switch (data.articleType) {
-      case 'video':
-        return {
-          ...baseData,
-          videoUrl: data.videoUrl?.trim() || '',
-        };
-      
-      case 'debate':
-        return {
-          ...baseData,
-          content: data.content?.trim() || '',
-          debateSettings: data.debateSettings ? {
-            question: data.debateSettings.question?.trim() || '',
-            yesPosition: data.debateSettings.yesPosition?.trim() || '',
-            noPosition: data.debateSettings.noPosition?.trim() || '',
-            votingEnabled: data.debateSettings.votingEnabled,
-            voting_ends_at: data.debateSettings.voting_ends_at
-          } : undefined,
-        };
-      
-      case 'storyboard':
-        return {
-          ...baseData,
-          storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
-            title: episode.title?.trim() || '',
-            description: episode.description?.trim() || '',
-            videoUrl: episode.videoUrl?.trim() || '',
-            thumbnailUrl: episode.thumbnailUrl?.trim() || '',
-            duration: episode.duration?.trim() || '',
-            number: episode.number,
-            content: episode.content?.trim() || ''
-          }))
-        };
-      
-      default: // 'standard' article type
-        return baseData;
-    }
   };
 
-  // Save draft function
+  // Save draft function using unified service
   const handleSaveDraft = async (): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -124,9 +99,12 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     try {
       const formData = form.getValues();
       const convertedData = convertToArticleFormData(formData);
-      console.log('Saving draft with converted data:', convertedData);
       
-      const result = await saveDraftOptimized(user.id, convertedData);
+      logger.info(LogSource.ARTICLE, 'Saving draft with unified service', {
+        articleType: convertedData.articleType
+      });
+      
+      const result = await UnifiedSubmissionService.saveDraft(convertedData, user.id);
       
       if (result.success) {
         toast({
@@ -137,7 +115,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         throw new Error(result.error || 'Failed to save draft');
       }
     } catch (error) {
-      console.error('Save draft error:', error);
+      logger.error(LogSource.ARTICLE, 'Save draft error', error);
       toast({
         title: "Save failed",
         description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
@@ -148,7 +126,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Submit function with proper validation
+  // Submit function using unified service
   const handleSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -159,7 +137,10 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       return;
     }
 
-    console.log('Starting article submission with form data:', data);
+    logger.info(LogSource.ARTICLE, 'Starting article submission with unified service', {
+      articleType: data.articleType,
+      hasId: !!articleId
+    });
 
     try {
       // Validate using Zod schema before submission
@@ -168,9 +149,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       }
       
       const formData = convertToArticleFormData(data);
-      console.log('Submitting article with converted data:', formData);
       
-      const result = await submitArticleOptimized(user.id, formData, false);
+      const result = await UnifiedSubmissionService.submitForReview(formData, user.id);
       
       if (result.success) {
         toast({
@@ -179,11 +159,11 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         });
         navigate('/admin/my-articles');
       } else {
-        console.error('Submission failed with result:', result);
+        logger.error(LogSource.ARTICLE, 'Submission failed with result', { error: result.error });
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {
-      console.error('Submit error:', error);
+      logger.error(LogSource.ARTICLE, 'Submit error', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
