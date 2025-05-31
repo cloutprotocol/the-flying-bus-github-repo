@@ -38,21 +38,21 @@ BEGIN
   
   -- Start a transaction for atomic operations
   BEGIN
-    -- OPTIMIZATION: Combine permission and existence check in a single query
+    -- OPTIMIZATION: Combine permission and existence check in a single query with proper table alias
     IF v_article_id IS NOT NULL THEN
       SELECT 
-        EXISTS(SELECT 1 FROM articles WHERE id = v_article_id),
-        (author_id = p_user_id),
-        status
+        true,
+        (a.author_id = p_user_id),
+        a.status
       INTO 
         v_article_exists,
         v_is_author,
         v_article_status
-      FROM articles 
-      WHERE id = v_article_id;
+      FROM articles a
+      WHERE a.id = v_article_id;
       
       -- Verify article exists
-      IF NOT v_article_exists THEN
+      IF NOT FOUND THEN
         v_end_time := clock_timestamp();
         v_duration_ms := EXTRACT(MILLISECONDS FROM (v_end_time - v_start_time))::INTEGER;
         RETURN QUERY SELECT false, 'Article not found', NULL::UUID, v_duration_ms;
@@ -193,16 +193,16 @@ BEGIN
   v_article_type := COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', 'standard');
   v_article_title := p_article_data->>'title';
   
-  -- OPTIMIZATION: Check for duplicate drafts if no ID is provided in a single query
+  -- OPTIMIZATION: Check for duplicate drafts if no ID is provided in a single query with proper table alias
   IF v_article_id IS NULL AND v_article_title IS NOT NULL AND v_author_id IS NOT NULL THEN
     -- Try to find existing draft with same title and author
-    SELECT id INTO v_existing_article_id
-    FROM articles
+    SELECT a.id INTO v_existing_article_id
+    FROM articles a
     WHERE 
-      title = v_article_title 
-      AND author_id = v_author_id
-      AND status = 'draft'
-    ORDER BY created_at DESC
+      a.title = v_article_title 
+      AND a.author_id = v_author_id
+      AND a.status = 'draft'
+    ORDER BY a.created_at DESC
     LIMIT 1;
     
     -- Use existing article id if found to prevent duplicates
