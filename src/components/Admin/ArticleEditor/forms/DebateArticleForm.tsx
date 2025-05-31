@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form } from '@/components/ui/form';
@@ -30,9 +30,6 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
     isNewArticle ? categoryName : undefined
   );
 
-  // Don't initialize the form until we have category data for new articles
-  const shouldInitializeForm = !isNewArticle || (isNewArticle && categoryData);
-
   const form = useForm<DebateArticleFormData>({
     resolver: zodResolver(debateArticleSchema),
     defaultValues: {
@@ -40,7 +37,7 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
       content: '',
       excerpt: '',
       imageUrl: '',
-      categoryId: isNewArticle && categoryData ? categoryData.id : '',
+      categoryId: '', // Empty initially, will be set via useEffect
       slug: '',
       articleType: 'debate',
       status: 'draft',
@@ -57,11 +54,23 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
     }
   });
 
-  const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
+  const { formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useDebateArticleSubmission({
     form,
     articleId
   });
+
+  // Update form with category data after resolution (matching reference document pattern)
+  useEffect(() => {
+    if (isNewArticle && categoryData?.id) {
+      console.log('Setting categoryId in debate form:', {
+        categoryId: categoryData.id,
+        categoryName: categoryData.name
+      });
+      form.setValue('categoryId', categoryData.id);
+      form.trigger('categoryId'); // Clear validation errors
+    }
+  }, [categoryData, isNewArticle, form]);
 
   // Show loading state while resolving category for new articles
   if (isNewArticle && isCategoryLoading) {
@@ -69,7 +78,7 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Preparing article form...</p>
+          <p className="text-muted-foreground">Preparing debate form...</p>
         </div>
       </div>
     );
@@ -87,8 +96,8 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
     );
   }
 
-  // Don't render form until we have all required data
-  if (!shouldInitializeForm) {
+  // Don't render form until we have category data for new articles
+  if (isNewArticle && !categoryData) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -99,27 +108,42 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
     );
   }
 
-  // Enhanced submit handler with validation
-  const handleFormSubmit = async (data: DebateArticleFormData) => {
-    // Validate that we have a categoryId before submitting
-    if (!data.categoryId) {
-      console.error('Cannot submit debate article without categoryId');
-      return;
-    }
-    
-    console.log('Submitting debate article with data:', {
+  // Form submission with React Hook Form's handleSubmit for validation (matching reference document pattern)
+  const handleFormSubmit = form.handleSubmit(async (data: DebateArticleFormData) => {
+    console.log('Debate form submission with validated data:', {
       title: data.title,
       categoryId: data.categoryId,
       articleType: data.articleType,
       debateSettings: data.debateSettings
     });
     
-    await onSubmit(data);
+    // Additional validation for required fields
+    if (!data.categoryId) {
+      form.setError('categoryId', { type: 'required', message: 'Category is required' });
+      return;
+    }
+    
+    if (!data.title.trim()) {
+      form.setError('title', { type: 'required', message: 'Title is required' });
+      return;
+    }
+    
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      console.error('Error in debate form submission:', error);
+      // The submission hook handles error display
+    }
+  });
+
+  const handleSaveDraftClick = async () => {
+    console.log('Save draft clicked, current categoryId:', form.getValues('categoryId'));
+    await handleSaveDraft();
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={handleFormSubmit} className="space-y-6">
         <DebateFormContent 
           form={form}
           isSubmitting={isSubmitting}
@@ -128,8 +152,8 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
         />
         
         <SimpleFormActions 
-          onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(handleFormSubmit)}
+          onSaveDraft={handleSaveDraftClick}
+          onSubmit={handleFormSubmit}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}

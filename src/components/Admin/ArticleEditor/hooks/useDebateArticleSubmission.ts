@@ -9,6 +9,7 @@ import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionS
 import { ArticleFormData, DebateSettings } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { generateSubmissionSlug } from '@/utils/article/slugGenerator';
 
 interface UseDebateArticleSubmissionProps {
   form: UseFormReturn<DebateArticleFormData>;
@@ -22,8 +23,13 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: DebateArticleFormData): ArticleFormData => {
+    console.log('Converting debate form data:', data);
+    
     // Convert form status to ArticleFormData status
     const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    
+    // Always generate a fresh slug for submission to avoid duplicates (matching reference document pattern)
+    const submissionSlug = generateSubmissionSlug(data.title || '');
     
     // Convert debate settings to ensure required fields are present
     const debateSettings: DebateSettings = {
@@ -36,17 +42,17 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
 
     return {
       id: articleId,
-      title: data.title,
+      title: data.title || '',
       content: data.content || '',
       excerpt: data.excerpt || '',
       imageUrl: data.imageUrl || '',
-      categoryId: data.categoryId,
-      slug: data.slug || '',
+      categoryId: data.categoryId || '',
+      slug: submissionSlug, // Use fresh generated slug
       articleType: 'debate',
       status: convertedStatus as any,
       publishDate: data.publishDate,
-      shouldHighlight: data.shouldHighlight,
-      allowVoting: data.allowVoting,
+      shouldHighlight: data.shouldHighlight || false,
+      allowVoting: data.allowVoting || false,
       debateSettings
     };
   };
@@ -66,7 +72,13 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       const formData = form.getValues();
       const convertedData = convertToArticleFormData(formData);
       
-      logger.info(LogSource.ARTICLE, 'Saving debate article draft');
+      logger.info(LogSource.ARTICLE, 'Saving debate article draft', {
+        articleType: convertedData.articleType,
+        title: convertedData.title,
+        slug: convertedData.slug
+      });
+      
+      console.log('Calling UnifiedSubmissionService.saveDraft with slug:', convertedData.slug);
       
       const result = await UnifiedSubmissionService.saveDraft(convertedData, user.id);
       
@@ -75,11 +87,17 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
           title: "Draft saved",
           description: "Your changes have been saved successfully.",
         });
+        
+        // Update form with the returned article ID if this was a new article
+        if (result.articleId && !articleId) {
+          form.setValue('id' as any, result.articleId);
+        }
       } else {
         throw new Error(result.error || 'Failed to save draft');
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Save draft error', error);
+      console.error('Draft save error:', error);
       toast({
         title: "Save failed",
         description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
@@ -100,12 +118,17 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       return;
     }
 
+    console.log('handleSubmit called with data:', data);
     logger.info(LogSource.ARTICLE, 'Starting debate article submission');
 
     try {
-      const formData = convertToArticleFormData(data);
+      const convertedData = convertToArticleFormData(data);
       
-      const result = await UnifiedSubmissionService.submitForReview(formData, user.id);
+      console.log('Calling UnifiedSubmissionService.submitForReview with fresh slug:', convertedData.slug);
+      
+      const result = await UnifiedSubmissionService.submitForReview(convertedData, user.id);
+      
+      console.log('Submission result:', result);
       
       if (result.success) {
         toast({
@@ -118,11 +141,13 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Submit error', error);
+      console.error('Submission error:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
         variant: "destructive"
       });
+      throw error; // Re-throw so the form can handle it
     }
   };
 
