@@ -3,16 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getCategoryIcon } from '@/utils/getCategoryIcon';
-import { UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface CategorySelectorProps {
-  form: UseFormReturn<ArticleFormSchemaType>;
+  form: any; // Accept any form type since we have multiple now
   preselectedSlug?: string;
   preselectedName?: string;
 }
@@ -28,13 +26,6 @@ const SLUG_MAPPING: Record<string, string> = {
   'in-the-neighborhood': 'neighborhood',
   'spice': 'spice-it-up',
   'school': 'school-news'
-};
-
-// Reverse mapping from database slugs to route slugs
-const REVERSE_SLUG_MAPPING: Record<string, string> = {
-  'neighborhood': 'in-the-neighborhood',
-  'spice-it-up': 'spice',
-  'school-news': 'school'
 };
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ 
