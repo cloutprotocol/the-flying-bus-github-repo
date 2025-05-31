@@ -1,55 +1,22 @@
 
 import { useForm } from 'react-hook-form';
-// Remove zodResolver temporarily to isolate the issue
-// import { zodResolver } from '@hookform/resolvers/zod';
-// import { articleFormSchema, ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
-
-// Create a simplified type for now
-interface ArticleFormSchemaType {
-  title: string;
-  content: string;
-  excerpt?: string;
-  imageUrl: string;
-  categoryId: string;
-  slug?: string;
-  status: 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
-  publishDate?: string | null;
-  shouldHighlight: boolean;
-  allowVoting: boolean;
-  articleType: 'standard' | 'video' | 'debate' | 'storyboard';
-  videoUrl?: string;
-  debateSettings?: {
-    question: string;
-    yesPosition: string;
-    noPosition: string;
-    votingEnabled: boolean;
-    voting_ends_at?: string | null;
-  };
-  storyboardEpisodes?: Array<{
-    title: string;
-    description: string;
-    videoUrl: string;
-    thumbnailUrl: string;
-    duration: string;
-    number: number;
-    content: string;
-  }>;
-}
+import { zodResolver } from '@hookform/resolvers/zod';
+import { articleFormSchema, ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface UseArticleFormLogicProps {
   articleType: string;
 }
 
 export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) => {
-  // Create clean, type-specific default values
+  // Create clean, type-specific default values that match the Zod discriminated union
   const getDefaultValues = (type: string): ArticleFormSchemaType => {
-    // Base defaults that all articles need
+    // Base defaults that all articles need (required fields with proper values)
     const baseDefaults = {
-      title: '',
-      content: '',
+      title: '', // Required field
+      content: '', // Required field for most types
       excerpt: '',
-      imageUrl: '',
-      categoryId: '',
+      imageUrl: '', // Required field
+      categoryId: '', // Required field
       slug: '',
       status: 'draft' as const,
       publishDate: null,
@@ -57,24 +24,24 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
       allowVoting: false,
     };
 
-    // Return type-specific defaults with only the fields that type needs
+    // Return type-specific defaults with discriminated union structure
     switch (type) {
       case 'video':
         return {
           ...baseDefaults,
           articleType: 'video' as const,
-          videoUrl: '',
+          videoUrl: '', // Required for video type
         };
       
       case 'debate':
         return {
           ...baseDefaults,
           articleType: 'debate' as const,
-          content: '', // Content is optional for debates but provide default
+          content: '', // Optional for debates, but provide default
           debateSettings: {
-            question: '',
-            yesPosition: '',
-            noPosition: '',
+            question: '', // Required for debate type
+            yesPosition: '', // Required for debate type
+            noPosition: '', // Required for debate type
             votingEnabled: true,
             voting_ends_at: null
           }
@@ -103,10 +70,9 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
     }
   };
 
-  // Initialize form with minimal validation for now
+  // Initialize form with Zod validation and proper typing
   const form = useForm<ArticleFormSchemaType>({
-    // Remove zodResolver temporarily
-    // resolver: zodResolver(articleFormSchema),
+    resolver: zodResolver(articleFormSchema),
     defaultValues: getDefaultValues(articleType),
     mode: 'onSubmit',
     reValidateMode: 'onChange'
@@ -116,6 +82,3 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
 
   return form;
 };
-
-// Export the type for other components
-export type { ArticleFormSchemaType };

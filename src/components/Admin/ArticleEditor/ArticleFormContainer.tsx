@@ -7,7 +7,6 @@ import ArticleEditorDebugPanel from './ArticleEditorDebugPanel';
 import { useArticleFormLogic } from './hooks/useArticleFormLogic';
 import { useArticleFormSubmission } from './hooks/useArticleFormSubmission';
 import { useCategoryLookup } from './hooks/useCategoryLookup';
-import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface ArticleFormContainerProps {
   articleId?: string;

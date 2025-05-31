@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { ArticleFormSchemaType } from './useArticleFormLogic';
+import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
 
@@ -27,7 +27,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     // Validate required fields before conversion
     const missingFields = [];
     if (!data.title?.trim()) missingFields.push('title');
-    if (!data.content?.trim()) missingFields.push('content');
+    if (!data.content?.trim() && data.articleType !== 'debate') missingFields.push('content');
     if (!data.imageUrl?.trim()) missingFields.push('imageUrl');
     if (!data.categoryId?.trim()) missingFields.push('categoryId');
     
@@ -40,7 +40,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     const baseData = {
       id: articleId,
       title: data.title.trim(),
-      content: data.content.trim(),
+      content: data.content?.trim() || '',
       excerpt: data.excerpt?.trim() || '',
       imageUrl: data.imageUrl.trim(), // This will be mapped to cover_image in the service
       categoryId: data.categoryId.trim(), // This will be mapped to category_id in the service
