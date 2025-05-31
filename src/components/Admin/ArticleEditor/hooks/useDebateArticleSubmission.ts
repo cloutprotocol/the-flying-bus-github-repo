@@ -28,7 +28,7 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
     // Convert form status to ArticleFormData status
     const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
     
-    // Always generate a fresh slug for submission to avoid duplicates (matching reference document pattern)
+    // Always generate a fresh slug for submission to avoid duplicates
     const submissionSlug = generateSubmissionSlug(data.title || '');
     
     // Convert debate settings to ensure required fields are present

@@ -18,7 +18,7 @@ export interface SubmissionResult {
  */
 export class UnifiedSubmissionService {
   /**
-   * Submit article for review using the correct database function
+   * Submit article for review using the updated optimized stored procedure
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
@@ -45,7 +45,7 @@ export class UnifiedSubmissionService {
         return { success: false, error: 'Category is required' };
       }
 
-      // Map and validate form data
+      // Map and validate form data with updated field mapping
       const mappedData = mapFormDataToDatabase(formData, userId);
       const validation = validateMappedData(mappedData);
 
@@ -63,7 +63,7 @@ export class UnifiedSubmissionService {
         content: mappedData.content?.substring(0, 50) + '...'
       });
 
-      // Use the correct database function name from Supabase
+      // Use the updated database function with proper field mapping
       const { data, error } = await supabase.rpc('submit_article_optimized', {
         p_user_id: userId,
         p_article_data: mappedData,
@@ -100,7 +100,7 @@ export class UnifiedSubmissionService {
         };
       }
 
-      // Handle the response from the database function
+      // Handle the response from the updated database function
       const result = Array.isArray(data) ? data[0] : data;
       
       console.log('Processed result:', result);
@@ -137,7 +137,7 @@ export class UnifiedSubmissionService {
   }
 
   /**
-   * Save article as draft using the correct database function
+   * Save article as draft using the updated optimized stored procedure
    */
   static async saveDraft(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
