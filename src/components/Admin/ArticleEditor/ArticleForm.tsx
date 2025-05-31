@@ -23,6 +23,13 @@ interface ArticleFormProps {
   categoryName?: string;
 }
 
+// Map route slugs to database slugs for category lookup
+const SLUG_MAPPING: Record<string, string> = {
+  'in-the-neighborhood': 'neighborhood',
+  'spice': 'spice-it-up',
+  'school': 'school-news'
+};
+
 const ArticleForm: React.FC<ArticleFormProps> = ({ 
   articleId, 
   articleType = 'standard',
@@ -82,24 +89,46 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           let query = supabase.from('categories').select('id, name, slug');
           
           if (categorySlug) {
-            query = query.eq('slug', categorySlug);
+            // First try direct slug match
+            const directQuery = query.eq('slug', categorySlug);
+            const { data: directData, error: directError } = await directQuery.maybeSingle();
+            
+            if (directData && !directError) {
+              console.log('ArticleForm: Found category with direct slug:', directData);
+              setValue('categoryId', directData.id);
+              return;
+            }
+            
+            // Try mapped slug if direct match fails
+            const mappedSlug = SLUG_MAPPING[categorySlug];
+            if (mappedSlug) {
+              console.log('ArticleForm: Trying mapped slug:', { originalSlug: categorySlug, mappedSlug });
+              const mappedQuery = supabase.from('categories').select('id, name, slug').eq('slug', mappedSlug);
+              const { data: mappedData, error: mappedError } = await mappedQuery.maybeSingle();
+              
+              if (mappedData && !mappedError) {
+                console.log('ArticleForm: Found category with mapped slug:', mappedData);
+                setValue('categoryId', mappedData.id);
+                return;
+              }
+            }
           } else if (categoryName) {
             query = query.eq('name', categoryName);
+            const { data, error } = await query.maybeSingle();
+            
+            if (data && !error) {
+              console.log('ArticleForm: Found category by name:', data);
+              setValue('categoryId', data.id);
+              return;
+            }
           }
           
-          const { data, error } = await query.maybeSingle();
-          
-          if (data && !error) {
-            console.log('ArticleForm: Found category:', data);
-            setValue('categoryId', data.id);
-          } else {
-            console.warn('ArticleForm: Category not found');
-            toast({
-              title: "Category not found",
-              description: `Could not find category "${categorySlug || categoryName}". Please select a category manually.`,
-              variant: "destructive"
-            });
-          }
+          console.warn('ArticleForm: Category not found');
+          toast({
+            title: "Category not found",
+            description: `Could not find category "${categorySlug || categoryName}". Please select a category manually.`,
+            variant: "destructive"
+          });
         } catch (error) {
           console.error('ArticleForm: Category lookup error:', error);
         }
@@ -121,6 +150,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       slug: data.slug || '',
       articleType: data.articleType,
       videoUrl: data.videoUrl,
+      status: data.status,
+      publishDate: data.publishDate,
+      shouldHighlight: data.shouldHighlight,
+      allowVoting: data.allowVoting,
       debateSettings: data.debateSettings ? {
         question: data.debateSettings.question,
         yesPosition: data.debateSettings.yesPosition,

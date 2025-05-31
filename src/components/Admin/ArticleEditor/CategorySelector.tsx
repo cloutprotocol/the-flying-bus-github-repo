@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -20,6 +21,20 @@ interface Category {
   name: string;
   slug?: string;
 }
+
+// Map route slugs to database slugs
+const SLUG_MAPPING: Record<string, string> = {
+  'in-the-neighborhood': 'neighborhood',
+  'spice': 'spice-it-up',
+  'school': 'school-news'
+};
+
+// Reverse mapping from database slugs to route slugs
+const REVERSE_SLUG_MAPPING: Record<string, string> = {
+  'neighborhood': 'in-the-neighborhood',
+  'spice-it-up': 'spice',
+  'school-news': 'school'
+};
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ 
   form, 
@@ -57,9 +72,21 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           if (preselectedSlug || preselectedName) {
             let matchedCategory = null;
             
-            // First try by slug (more reliable)
+            // First try direct slug match
             if (preselectedSlug) {
               matchedCategory = data.find(cat => cat.slug === preselectedSlug);
+            }
+            
+            // Try mapped slug if direct match fails
+            if (!matchedCategory && preselectedSlug) {
+              const mappedSlug = SLUG_MAPPING[preselectedSlug];
+              if (mappedSlug) {
+                matchedCategory = data.find(cat => cat.slug === mappedSlug);
+                logger.info(LogSource.EDITOR, 'Using slug mapping', {
+                  originalSlug: preselectedSlug,
+                  mappedSlug: mappedSlug
+                });
+              }
             }
             
             // Fallback to name match
@@ -73,12 +100,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
               
               logger.info(LogSource.EDITOR, 'Category preselected in selector', {
                 categoryId: matchedCategory.id,
-                categoryName: matchedCategory.name
+                categoryName: matchedCategory.name,
+                categorySlug: matchedCategory.slug
               });
             } else {
               logger.warn(LogSource.EDITOR, 'No matching category found in selector', {
                 preselectedSlug,
-                preselectedName
+                preselectedName,
+                availableCategories: data.map(cat => ({ name: cat.name, slug: cat.slug }))
               });
             }
           }
