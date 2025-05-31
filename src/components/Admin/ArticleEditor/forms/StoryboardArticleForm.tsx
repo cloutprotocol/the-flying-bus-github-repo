@@ -6,7 +6,7 @@ import { Form } from '@/components/ui/form';
 import { storyboardArticleSchema, StoryboardArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { useStoryboardArticleSubmission } from '../hooks/useStoryboardArticleSubmission';
 import StoryboardFormContent from './sections/StoryboardFormContent';
-import EnhancedFormActions from '../EnhancedFormActions';
+import SimpleFormActions from '../SimpleFormActions';
 
 interface StoryboardArticleFormProps {
   articleId?: string;
@@ -47,7 +47,7 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
     }
   });
 
-  const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
+  const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useStoryboardArticleSubmission({
     form,
     articleId
@@ -62,17 +62,12 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
           preselectedCategoryName={categoryName}
         />
         
-        <EnhancedFormActions 
+        <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit(onSubmit)}
-          onViewRevisions={undefined}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
-          saveStatus={isDirty ? 'idle' : 'saved'}
-          hasRevisions={false}
-          form={form}
-          content={watch('content')}
         />
       </form>
     </Form>

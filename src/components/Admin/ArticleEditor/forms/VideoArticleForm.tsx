@@ -6,7 +6,7 @@ import { Form } from '@/components/ui/form';
 import { videoArticleSchema, VideoArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { useVideoArticleSubmission } from '../hooks/useVideoArticleSubmission';
 import VideoFormContent from './sections/VideoFormContent';
-import EnhancedFormActions from '../EnhancedFormActions';
+import SimpleFormActions from '../SimpleFormActions';
 
 interface VideoArticleFormProps {
   articleId?: string;
@@ -39,7 +39,7 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
     }
   });
 
-  const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
+  const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useVideoArticleSubmission({
     form,
     articleId
@@ -54,17 +54,12 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
           preselectedCategoryName={categoryName}
         />
         
-        <EnhancedFormActions 
+        <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit(onSubmit)}
-          onViewRevisions={undefined}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
-          saveStatus={isDirty ? 'idle' : 'saved'}
-          hasRevisions={false}
-          form={form}
-          content={watch('content')}
         />
       </form>
     </Form>

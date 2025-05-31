@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 
 interface MetadataFieldsProps {
-  form: any; // Accept any form type since we have multiple now
+  form: any; // Generic form type to work with all form types
 }
 
 const MetadataFields: React.FC<MetadataFieldsProps> = ({ form }) => {

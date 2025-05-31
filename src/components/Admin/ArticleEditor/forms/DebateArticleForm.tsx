@@ -6,7 +6,7 @@ import { Form } from '@/components/ui/form';
 import { debateArticleSchema, DebateArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { useDebateArticleSubmission } from '../hooks/useDebateArticleSubmission';
 import DebateFormContent from './sections/DebateFormContent';
-import EnhancedFormActions from '../EnhancedFormActions';
+import SimpleFormActions from '../SimpleFormActions';
 
 interface DebateArticleFormProps {
   articleId?: string;
@@ -45,7 +45,7 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
     }
   });
 
-  const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
+  const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useDebateArticleSubmission({
     form,
     articleId
@@ -60,17 +60,12 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
           preselectedCategoryName={categoryName}
         />
         
-        <EnhancedFormActions 
+        <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
           onSubmit={handleSubmit(onSubmit)}
-          onViewRevisions={undefined}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
-          saveStatus={isDirty ? 'idle' : 'saved'}
-          hasRevisions={false}
-          form={form}
-          content={watch('content')}
         />
       </form>
     </Form>
