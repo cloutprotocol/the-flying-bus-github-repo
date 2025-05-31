@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,9 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: DebateArticleFormData): ArticleFormData => {
+    // Convert form status to ArticleFormData status
+    const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    
     // Convert debate settings to ensure required fields are present
     const debateSettings: DebateSettings = {
       question: data.debateSettings?.question || '',
@@ -39,7 +43,7 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       categoryId: data.categoryId,
       slug: data.slug || '',
       articleType: 'debate',
-      status: data.status,
+      status: convertedStatus as any,
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,

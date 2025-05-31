@@ -22,6 +22,9 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: StandardArticleFormData): ArticleFormData => {
+    // Convert form status to ArticleFormData status
+    const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    
     return {
       id: articleId,
       title: data.title,
@@ -31,7 +34,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       categoryId: data.categoryId,
       slug: data.slug || '',
       articleType: 'standard',
-      status: data.status,
+      status: convertedStatus as any,
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting

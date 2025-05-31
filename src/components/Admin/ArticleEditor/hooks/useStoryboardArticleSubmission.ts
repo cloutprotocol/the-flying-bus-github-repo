@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,9 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: StoryboardArticleFormData): ArticleFormData => {
+    // Convert form status to ArticleFormData status
+    const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    
     // Convert episodes to ensure required fields are present
     const episodes: StoryboardEpisode[] = data.storyboardEpisodes?.map(episode => ({
       title: episode.title || 'Untitled Episode',
@@ -41,7 +45,7 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
       categoryId: data.categoryId,
       slug: data.slug || '',
       articleType: 'storyboard',
-      status: data.status,
+      status: convertedStatus as any,
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,

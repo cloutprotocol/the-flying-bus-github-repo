@@ -22,6 +22,9 @@ export const useVideoArticleSubmission = ({ form, articleId }: UseVideoArticleSu
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: VideoArticleFormData): ArticleFormData => {
+    // Convert form status to ArticleFormData status
+    const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    
     return {
       id: articleId,
       title: data.title,
@@ -32,7 +35,7 @@ export const useVideoArticleSubmission = ({ form, articleId }: UseVideoArticleSu
       slug: data.slug || '',
       articleType: 'video',
       videoUrl: data.videoUrl,
-      status: data.status,
+      status: convertedStatus as any,
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting
