@@ -15,6 +15,7 @@ export interface MappedArticleData {
   videoUrl?: string;
   debateSettings?: any;
   storyboardEpisodes?: any[];
+  [key: string]: any; // Add index signature for Supabase Json compatibility
 }
 
 export interface ValidationResult {
