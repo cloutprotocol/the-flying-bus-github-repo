@@ -21,8 +21,11 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
   const [isSaving, setIsSaving] = React.useState(false);
 
   // Convert form data to ArticleFormData format for services
+  // Only include fields relevant to the specific article type
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
-    return {
+    console.log('Converting form data for article type:', data.articleType, data);
+    
+    const baseData = {
       id: articleId,
       title: data.title,
       content: data.content,
@@ -31,28 +34,49 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       categoryId: data.categoryId,
       slug: data.slug || '',
       articleType: data.articleType,
-      videoUrl: data.videoUrl,
       status: data.status,
       publishDate: data.publishDate,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,
-      debateSettings: data.debateSettings ? {
-        question: data.debateSettings.question,
-        yesPosition: data.debateSettings.yesPosition,
-        noPosition: data.debateSettings.noPosition,
-        votingEnabled: data.debateSettings.votingEnabled,
-        voting_ends_at: data.debateSettings.voting_ends_at
-      } : undefined,
-      storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
-        title: episode.title,
-        description: episode.description,
-        videoUrl: episode.videoUrl,
-        thumbnailUrl: episode.thumbnailUrl,
-        duration: episode.duration,
-        number: episode.number,
-        content: episode.content
-      }))
     };
+
+    // Add type-specific fields only when relevant
+    switch (data.articleType) {
+      case 'video':
+        return {
+          ...baseData,
+          videoUrl: data.videoUrl,
+        };
+      
+      case 'debate':
+        return {
+          ...baseData,
+          debateSettings: data.debateSettings ? {
+            question: data.debateSettings.question,
+            yesPosition: data.debateSettings.yesPosition,
+            noPosition: data.debateSettings.noPosition,
+            votingEnabled: data.debateSettings.votingEnabled,
+            voting_ends_at: data.debateSettings.voting_ends_at
+          } : undefined,
+        };
+      
+      case 'storyboard':
+        return {
+          ...baseData,
+          storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
+            title: episode.title,
+            description: episode.description,
+            videoUrl: episode.videoUrl,
+            thumbnailUrl: episode.thumbnailUrl,
+            duration: episode.duration,
+            number: episode.number,
+            content: episode.content
+          }))
+        };
+      
+      default: // 'standard'
+        return baseData;
+    }
   };
 
   // Save draft function
@@ -69,6 +93,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     setIsSaving(true);
     try {
       const formData = convertToArticleFormData(form.getValues());
+      console.log('Saving draft with converted data:', formData);
+      
       const result = await saveDraftOptimized(user.id, formData);
       
       if (result.success) {
@@ -104,6 +130,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
 
     try {
       const formData = convertToArticleFormData(data);
+      console.log('Submitting article with converted data:', formData);
+      
       const result = await submitArticleOptimized(user.id, formData, false);
       
       if (result.success) {

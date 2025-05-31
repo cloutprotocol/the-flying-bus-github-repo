@@ -14,57 +14,23 @@ const baseArticleSchema = z.object({
   allowVoting: z.boolean().default(false),
 });
 
-// Standard article schema
+// Standard article schema - only includes basic fields
 const standardArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('standard'),
   content: z.string().min(1, 'Content is required'),
-  videoUrl: z.string().optional(),
-  debateSettings: z.object({
-    question: z.string(),
-    yesPosition: z.string(),
-    noPosition: z.string(),
-    votingEnabled: z.boolean(),
-    voting_ends_at: z.string().nullable()
-  }).optional(),
-  storyboardEpisodes: z.array(z.object({
-    title: z.string().min(1, 'Episode title is required'),
-    description: z.string().min(1, 'Episode description is required'),
-    videoUrl: z.string().min(1, 'Episode video URL is required'),
-    thumbnailUrl: z.string().min(1, 'Episode thumbnail URL is required'),
-    duration: z.string().min(1, 'Episode duration is required'),
-    number: z.number().min(1),
-    content: z.string().min(1, 'Episode content is required')
-  })).optional()
 });
 
-// Video article schema
+// Video article schema - adds videoUrl requirement
 const videoArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('video'),
   content: z.string().min(1, 'Content is required'),
   videoUrl: z.string().min(1, 'Video URL is required'),
-  debateSettings: z.object({
-    question: z.string(),
-    yesPosition: z.string(),
-    noPosition: z.string(),
-    votingEnabled: z.boolean(),
-    voting_ends_at: z.string().nullable()
-  }).optional(),
-  storyboardEpisodes: z.array(z.object({
-    title: z.string().min(1, 'Episode title is required'),
-    description: z.string().min(1, 'Episode description is required'),
-    videoUrl: z.string().min(1, 'Episode video URL is required'),
-    thumbnailUrl: z.string().min(1, 'Episode thumbnail URL is required'),
-    duration: z.string().min(1, 'Episode duration is required'),
-    number: z.number().min(1),
-    content: z.string().min(1, 'Episode content is required')
-  })).optional()
 });
 
-// Debate article schema
+// Debate article schema - requires debate settings, content optional
 const debateArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('debate'),
   content: z.string().optional(), // Content is optional for debates
-  videoUrl: z.string().optional(),
   debateSettings: z.object({
     question: z.string().min(1, 'Debate question is required'),
     yesPosition: z.string().min(1, 'Yes position is required'),
@@ -72,29 +38,12 @@ const debateArticleSchema = baseArticleSchema.extend({
     votingEnabled: z.boolean(),
     voting_ends_at: z.string().nullable()
   }),
-  storyboardEpisodes: z.array(z.object({
-    title: z.string().min(1, 'Episode title is required'),
-    description: z.string().min(1, 'Episode description is required'),
-    videoUrl: z.string().min(1, 'Episode video URL is required'),
-    thumbnailUrl: z.string().min(1, 'Episode thumbnail URL is required'),
-    duration: z.string().min(1, 'Episode duration is required'),
-    number: z.number().min(1),
-    content: z.string().min(1, 'Episode content is required')
-  })).optional()
 });
 
-// Storyboard article schema
+// Storyboard article schema - requires episodes
 const storyboardArticleSchema = baseArticleSchema.extend({
   articleType: z.literal('storyboard'),
   content: z.string().min(1, 'Series description is required'),
-  videoUrl: z.string().optional(),
-  debateSettings: z.object({
-    question: z.string(),
-    yesPosition: z.string(),
-    noPosition: z.string(),
-    votingEnabled: z.boolean(),
-    voting_ends_at: z.string().nullable()
-  }).optional(),
   storyboardEpisodes: z.array(z.object({
     title: z.string().min(1, 'Episode title is required'),
     description: z.string().min(1, 'Episode description is required'),
@@ -106,7 +55,7 @@ const storyboardArticleSchema = baseArticleSchema.extend({
   })).min(1, 'At least one episode is required for storyboard articles')
 });
 
-// Main discriminated union schema
+// Main discriminated union schema - each type only has its relevant fields
 export const articleFormSchema = z.discriminatedUnion('articleType', [
   standardArticleSchema,
   videoArticleSchema,
