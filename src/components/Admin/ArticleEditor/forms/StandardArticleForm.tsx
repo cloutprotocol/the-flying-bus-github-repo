@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form } from '@/components/ui/form';
@@ -30,9 +30,6 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     isNewArticle ? categoryName : undefined
   );
 
-  // Don't initialize the form until we have category data for new articles
-  const shouldInitializeForm = !isNewArticle || (isNewArticle && categoryData);
-
   const form = useForm<StandardArticleFormData>({
     resolver: zodResolver(standardArticleSchema),
     defaultValues: {
@@ -40,7 +37,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
       content: '',
       excerpt: '',
       imageUrl: '',
-      categoryId: isNewArticle && categoryData ? categoryData.id : '',
+      categoryId: '',
       slug: '',
       articleType: 'standard',
       status: 'draft',
@@ -49,6 +46,21 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
       allowVoting: false
     }
   });
+
+  // Update form with resolved category data
+  useEffect(() => {
+    if (isNewArticle && categoryData?.id) {
+      console.log('StandardArticleForm: Setting categoryId in form:', {
+        categoryId: categoryData.id,
+        categoryName: categoryData.name
+      });
+      
+      form.setValue('categoryId', categoryData.id);
+      
+      // Trigger validation to clear any existing errors
+      form.trigger('categoryId');
+    }
+  }, [categoryData, isNewArticle, form]);
 
   const { formState: { isDirty, isSubmitting, errors } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useStandardArticleSubmission({
@@ -80,8 +92,8 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     );
   }
 
-  // Don't render form until we have all required data
-  if (!shouldInitializeForm) {
+  // Don't render form until we have category data for new articles
+  if (isNewArticle && !categoryData) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -130,7 +142,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
 
   // Simple save draft handler
   const handleSaveDraftClick = async () => {
-    console.log('Save draft clicked');
+    console.log('Save draft clicked, current categoryId:', form.getValues('categoryId'));
     try {
       await handleSaveDraft();
     } catch (error) {
