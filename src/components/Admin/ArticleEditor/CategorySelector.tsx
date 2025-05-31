@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -114,7 +113,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           <FormControl>
             <RadioGroup
               onValueChange={field.onChange}
-              defaultValue={field.value}
+              value={field.value}
               className="grid grid-cols-1 gap-2"
             >
               {loading ? (

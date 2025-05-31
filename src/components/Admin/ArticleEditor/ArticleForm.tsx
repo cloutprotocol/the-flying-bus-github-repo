@@ -45,6 +45,13 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       categoryId: '',
       slug: '',
       articleType: articleType as any,
+      debateSettings: {
+        question: '',
+        yesPosition: '',
+        noPosition: '',
+        votingEnabled: true,
+        voting_ends_at: null
+      },
       storyboardEpisodes: []
     }
   });
@@ -110,7 +117,13 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       slug: data.slug || '',
       articleType: data.articleType,
       videoUrl: data.videoUrl,
-      debateSettings: data.debateSettings,
+      debateSettings: data.debateSettings ? {
+        question: data.debateSettings.question,
+        yesPosition: data.debateSettings.yesPosition,
+        noPosition: data.debateSettings.noPosition,
+        votingEnabled: data.debateSettings.votingEnabled,
+        voting_ends_at: data.debateSettings.voting_ends_at
+      } : undefined,
       storyboardEpisodes: data.storyboardEpisodes || []
     };
   };

@@ -21,7 +21,7 @@ const DebateFormSection: React.FC<DebateFormSectionProps> = ({ form }) => {
       <CardContent className="space-y-6">
         <FormField
           control={form.control}
-          name="question"
+          name="debateSettings.question"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Debate Question</FormLabel>
@@ -48,7 +48,7 @@ const DebateFormSection: React.FC<DebateFormSectionProps> = ({ form }) => {
           <TabsContent value="yes" className="mt-4">
             <FormField
               control={form.control}
-              name="yesPosition"
+              name="debateSettings.yesPosition"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Arguments Supporting "Yes"</FormLabel>
@@ -71,7 +71,7 @@ const DebateFormSection: React.FC<DebateFormSectionProps> = ({ form }) => {
           <TabsContent value="no" className="mt-4">
             <FormField
               control={form.control}
-              name="noPosition"
+              name="debateSettings.noPosition"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Arguments Supporting "No"</FormLabel>
@@ -95,7 +95,7 @@ const DebateFormSection: React.FC<DebateFormSectionProps> = ({ form }) => {
         <div className="flex items-center space-x-2">
           <FormField
             control={form.control}
-            name="votingEnabled"
+            name="debateSettings.votingEnabled"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
