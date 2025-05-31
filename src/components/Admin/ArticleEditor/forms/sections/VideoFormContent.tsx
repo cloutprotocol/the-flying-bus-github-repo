@@ -14,16 +14,18 @@ interface VideoFormContentProps {
   form: UseFormReturn<VideoArticleFormData>;
   isSubmitting: boolean;
   isNewArticle?: boolean;
-  preselectedCategorySlug?: string;
-  preselectedCategoryName?: string;
+  resolvedCategoryData?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
 const VideoFormContent: React.FC<VideoFormContentProps> = ({
   form,
   isSubmitting,
   isNewArticle = false,
-  preselectedCategorySlug,
-  preselectedCategoryName
+  resolvedCategoryData
 }) => {
   return (
     <div className="space-y-6">
@@ -44,8 +46,7 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
       <CategorySelector 
         form={form}
         isNewArticle={isNewArticle}
-        preselectedSlug={preselectedCategorySlug}
-        preselectedName={preselectedCategoryName}
+        resolvedCategoryData={resolvedCategoryData}
       />
 
       <MediaSelector form={form} />

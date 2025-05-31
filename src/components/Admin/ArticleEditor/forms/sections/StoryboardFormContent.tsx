@@ -15,16 +15,18 @@ interface StoryboardFormContentProps {
   form: UseFormReturn<StoryboardArticleFormData>;
   isSubmitting: boolean;
   isNewArticle?: boolean;
-  preselectedCategorySlug?: string;
-  preselectedCategoryName?: string;
+  resolvedCategoryData?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
 const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
   form,
   isSubmitting,
   isNewArticle = false,
-  preselectedCategorySlug,
-  preselectedCategoryName
+  resolvedCategoryData
 }) => {
   return (
     <div className="space-y-6">
@@ -45,8 +47,7 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
       <CategorySelector 
         form={form}
         isNewArticle={isNewArticle}
-        preselectedSlug={preselectedCategorySlug}
-        preselectedName={preselectedCategoryName}
+        resolvedCategoryData={resolvedCategoryData}
       />
 
       <MediaSelector form={form} />
