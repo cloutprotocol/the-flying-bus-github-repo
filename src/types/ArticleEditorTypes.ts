@@ -23,6 +23,7 @@ export interface StoryboardEpisode {
   duration: string;
   number: number;
   content: string;
+  [key: string]: any; // Added for Supabase Json compatibility
 }
 
 export interface ArticleFormData {
