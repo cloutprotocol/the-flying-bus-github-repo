@@ -8,8 +8,9 @@ interface UseArticleFormLogicProps {
 }
 
 export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) => {
-  // Create type-specific default values based on article type
+  // Create clean, type-specific default values
   const getDefaultValues = (type: string): ArticleFormSchemaType => {
+    // Base defaults that all articles need
     const baseDefaults = {
       title: '',
       content: '',
@@ -17,13 +18,13 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
       imageUrl: '',
       categoryId: '',
       slug: '',
-      articleType: type as any,
       status: 'draft' as const,
       publishDate: null,
       shouldHighlight: false,
       allowVoting: false,
     };
 
+    // Return type-specific defaults with only the fields that type needs
     switch (type) {
       case 'video':
         return {
@@ -36,7 +37,7 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
         return {
           ...baseDefaults,
           articleType: 'debate' as const,
-          content: '', // Content is optional for debates but we'll provide default
+          content: '', // Content is optional for debates but provide default
           debateSettings: {
             question: '',
             yesPosition: '',
@@ -61,7 +62,7 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
           }]
         };
       
-      default: // 'standard' and any other types
+      default: // 'standard' type (headliners, etc.)
         return {
           ...baseDefaults,
           articleType: 'standard' as const,
@@ -69,11 +70,16 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
     }
   };
 
-  // Initialize form with React Hook Form including type-specific default values
+  // Initialize form with clean, type-specific defaults
   const form = useForm<ArticleFormSchemaType>({
     resolver: zodResolver(articleFormSchema),
-    defaultValues: getDefaultValues(articleType)
+    defaultValues: getDefaultValues(articleType),
+    // Set validation mode to reduce excessive validation calls
+    mode: 'onSubmit',
+    reValidateMode: 'onChange'
   });
+
+  console.log('Form initialized for article type:', articleType, 'with defaults:', form.getValues());
 
   return form;
 };

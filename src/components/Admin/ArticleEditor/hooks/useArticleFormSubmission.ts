@@ -20,18 +20,18 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = React.useState(false);
 
-  // Convert form data to ArticleFormData format for services
-  // Only include fields relevant to the specific article type
+  // Convert form data to clean database format with proper field mapping
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
     console.log('Converting form data for article type:', data.articleType, data);
     
+    // Start with base data that all article types need
     const baseData = {
       id: articleId,
       title: data.title,
-      content: data.content,
+      content: data.content || '',
       excerpt: data.excerpt || '',
-      imageUrl: data.imageUrl,
-      categoryId: data.categoryId,
+      imageUrl: data.imageUrl, // Keep as imageUrl for service layer mapping
+      categoryId: data.categoryId, // Keep as categoryId for service layer mapping
       slug: data.slug || '',
       articleType: data.articleType,
       status: data.status,
@@ -40,7 +40,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       allowVoting: data.allowVoting,
     };
 
-    // Add type-specific fields only when relevant
+    // Only add type-specific fields for the appropriate article type
+    // This ensures the data structure matches what the validation expects
     switch (data.articleType) {
       case 'video':
         return {
@@ -51,6 +52,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       case 'debate':
         return {
           ...baseData,
+          content: data.content || '', // Debate articles can have optional content
           debateSettings: data.debateSettings ? {
             question: data.debateSettings.question,
             yesPosition: data.debateSettings.yesPosition,
@@ -74,7 +76,8 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
           }))
         };
       
-      default: // 'standard'
+      default: // 'standard' article type
+        // Standard articles only get base fields, no additional type-specific fields
         return baseData;
     }
   };
@@ -117,7 +120,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Submit function
+  // Submit function - now uses the cleaned conversion
   const handleSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -130,7 +133,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
 
     try {
       const formData = convertToArticleFormData(data);
-      console.log('Submitting article with converted data:', formData);
+      console.log('Submitting article with clean converted data:', formData);
       
       const result = await submitArticleOptimized(user.id, formData, false);
       

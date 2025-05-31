@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from '@/utils/errors/types';
-import { validateArticle } from '@/utils/validation/articleValidation';
 import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
@@ -39,39 +38,32 @@ export const submitForReview = async (
       articleData.slug = generateClientSideSlug(articleData.title);
     }
     
-    // Prepare article data - data comes pre-structured from ArticleForm
+    // Prepare article data with proper field mapping for database
     const preparedData = {
       ...articleData,
-      author_id: userId
+      author_id: userId,
+      // Map frontend field names to database field names
+      imageUrl: articleData.imageUrl || articleData.cover_image,
+      categoryId: articleData.categoryId || articleData.category_id
     };
     
-    logger.debug(LogSource.DATABASE, 'Submitting article with pre-structured data', {
+    logger.debug(LogSource.DATABASE, 'Submitting article with mapped data', {
       userId,
-      articleDataKeys: Object.keys(preparedData),
-      saveDraft,
       title: preparedData.title?.substring(0, 30),
+      articleType: preparedData.articleType,
       articleId: preparedData.id,
       contentLength: preparedData.content?.length || 0,
       hasDebateSettings: !!preparedData.debateSettings,
-      debateQuestion: preparedData.debateSettings?.question?.substring(0, 30) || 'N/A'
+      hasStoryboardEpisodes: !!preparedData.storyboardEpisodes,
+      categoryId: preparedData.categoryId,
+      imageUrl: preparedData.imageUrl?.substring(0, 50) || 'N/A'
     });
     
-    // First run client-side validation to catch obvious issues
-    const validationResult = validateArticle(preparedData, true);
-    if (!validationResult.isValid) {
-      const errorMsg = `Validation error before submission: ${validationResult.errors.join(', ')}`;
-      logger.error(LogSource.DATABASE, errorMsg);
-      return {
-        success: false,
-        error: new ApiError(errorMsg, ApiErrorType.VALIDATION)
-      };
-    }
-    
-    // Call the new optimized stored procedure for validation and submission
+    // Call the optimized stored procedure for validation and submission
     logger.info(LogSource.DATABASE, 'Calling submit_article_optimized function', {
       hasId: !!preparedData.id,
       title: preparedData.title?.substring(0, 30),
-      hasDebateSettings: !!preparedData.debateSettings
+      articleType: preparedData.articleType
     });
     
     const { data, error } = await supabase.rpc('submit_article_optimized', {
@@ -119,6 +111,10 @@ export const submitForReview = async (
     // Check if submission was successful
     if (!result.success) {
       const errorMessage = result.error_message || 'Submission failed';
+      logger.error(LogSource.DATABASE, 'Database validation failed', { 
+        errorMessage,
+        submittedData: preparedData 
+      });
       return {
         success: false,
         error: new ApiError(errorMessage, ApiErrorType.VALIDATION)
@@ -138,7 +134,7 @@ export const submitForReview = async (
 
     logger.info(LogSource.DATABASE, 'Article submitted successfully', { 
       submissionId,
-      articleId: preparedData.id
+      originalArticleId: preparedData.id
     });
 
     return { 
