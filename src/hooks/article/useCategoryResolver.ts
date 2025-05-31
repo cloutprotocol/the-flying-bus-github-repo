@@ -26,7 +26,16 @@ export const useCategoryResolver = (
 
   useEffect(() => {
     const resolveCategory = async () => {
-      if (!categorySlug) {
+      // Defensive check: if no category info provided, don't attempt resolution
+      if (!categorySlug && !categoryName) {
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+
+      // If only categoryName but no slug, that's unusual but not an error
+      if (!categorySlug && categoryName) {
+        logger.warn(LogSource.EDITOR, 'Category name provided without slug', { categoryName });
         setIsLoading(false);
         return;
       }

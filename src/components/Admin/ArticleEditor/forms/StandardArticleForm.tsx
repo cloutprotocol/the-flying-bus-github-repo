@@ -113,23 +113,25 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <StandardFormContent 
-        form={form}
-        isSubmitting={isSubmitting}
-        isNewArticle={isNewArticle}
-        resolvedCategoryData={isNewArticle ? categoryData : undefined}
-      />
-      
-      <SimpleFormActions 
-        onSaveDraft={handleSaveDraft}
-        onSubmit={handleFormSubmit}
-        isSubmitting={isSubmitting}
-        isDirty={isDirty}
-        isSaving={isSaving}
-        disabled={isNewArticle && !categoryData?.id}
-      />
-    </div>
+    <Form {...form}>
+      <form className="space-y-6">
+        <StandardFormContent 
+          form={form}
+          isSubmitting={isSubmitting}
+          isNewArticle={isNewArticle}
+          resolvedCategoryData={isNewArticle ? categoryData : undefined}
+        />
+        
+        <SimpleFormActions 
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleFormSubmit}
+          isSubmitting={isSubmitting}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          disabled={isNewArticle && !categoryData?.id}
+        />
+      </form>
+    </Form>
   );
 };
 

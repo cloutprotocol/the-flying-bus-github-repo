@@ -8,6 +8,7 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 interface CategorySelectorProps {
   form: any;
@@ -71,7 +72,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   if (isNewArticle && resolvedCategoryData) {
     return (
       <div className="space-y-3">
-        <FormLabel>Category</FormLabel>
+        <Label>Category</Label>
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
