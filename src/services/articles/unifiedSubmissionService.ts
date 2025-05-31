@@ -14,11 +14,11 @@ export interface SubmissionResult {
 
 /**
  * Unified Article Submission Service
- * Consolidates all submission logic with proper error handling and validation
+ * Uses proven database functions to avoid ambiguous column errors
  */
 export class UnifiedSubmissionService {
   /**
-   * Submit article for review using the updated optimized stored procedure
+   * Submit article for review using the proven submit_article_with_validation function
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
@@ -63,8 +63,8 @@ export class UnifiedSubmissionService {
         content: mappedData.content?.substring(0, 50) + '...'
       });
 
-      // Use the updated database function with proper field mapping
-      const { data, error } = await supabase.rpc('submit_article_optimized', {
+      // Use the proven submit_article_with_validation function
+      const { data, error } = await supabase.rpc('submit_article_with_validation', {
         p_user_id: userId,
         p_article_data: mappedData,
         p_save_draft: true
@@ -100,7 +100,7 @@ export class UnifiedSubmissionService {
         };
       }
 
-      // Handle the response from the updated database function
+      // Handle the response from submit_article_with_validation function
       const result = Array.isArray(data) ? data[0] : data;
       
       console.log('Processed result:', result);
@@ -137,7 +137,7 @@ export class UnifiedSubmissionService {
   }
 
   /**
-   * Save article as draft using the updated optimized stored procedure
+   * Save article as draft using the proven save_article_draft function
    */
   static async saveDraft(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
@@ -167,12 +167,12 @@ export class UnifiedSubmissionService {
         content: mappedData.content?.substring(0, 50) + '...'
       });
 
-      const { data, error } = await supabase.rpc('save_draft_optimized', {
-        p_user_id: userId,
+      // Use the proven save_article_draft function (returns UUID directly)
+      const { data: articleId, error } = await supabase.rpc('save_article_draft', {
         p_article_data: mappedData
       });
 
-      console.log('Draft save response:', { data, error });
+      console.log('Draft save response:', { articleId, error });
 
       if (error) {
         console.error('Draft save failed:', error);
@@ -183,24 +183,22 @@ export class UnifiedSubmissionService {
         };
       }
 
-      const result = Array.isArray(data) ? data[0] : data;
-      
-      if (!result?.success) {
-        console.error('Draft save validation failed:', result?.error_message);
+      if (!articleId) {
+        console.error('Draft save returned no article ID');
         return {
           success: false,
-          error: result?.error_message || 'Failed to save draft'
+          error: 'Failed to save draft - no article ID returned'
         };
       }
 
-      console.log('Draft saved successfully:', result.article_id);
+      console.log('Draft saved successfully:', articleId);
       logger.info(LogSource.ARTICLE, 'Draft saved successfully', { 
-        articleId: result.article_id 
+        articleId 
       });
 
       return {
         success: true,
-        articleId: result.article_id
+        articleId
       };
 
     } catch (error) {
