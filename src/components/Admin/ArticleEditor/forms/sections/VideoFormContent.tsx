@@ -13,12 +13,16 @@ import MetadataFields from '../../MetadataFields';
 interface VideoFormContentProps {
   form: UseFormReturn<VideoArticleFormData>;
   isSubmitting: boolean;
+  isNewArticle?: boolean;
+  preselectedCategorySlug?: string;
   preselectedCategoryName?: string;
 }
 
 const VideoFormContent: React.FC<VideoFormContentProps> = ({
   form,
   isSubmitting,
+  isNewArticle = false,
+  preselectedCategorySlug,
   preselectedCategoryName
 }) => {
   return (
@@ -38,7 +42,9 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
       />
 
       <CategorySelector 
-        form={form} 
+        form={form}
+        isNewArticle={isNewArticle}
+        preselectedSlug={preselectedCategorySlug}
         preselectedName={preselectedCategoryName}
       />
 

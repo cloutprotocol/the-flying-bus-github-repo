@@ -59,6 +59,8 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
         <StoryboardFormContent 
           form={form}
           isSubmitting={isSubmitting}
+          isNewArticle={isNewArticle}
+          preselectedCategorySlug={categorySlug}
           preselectedCategoryName={categoryName}
         />
         

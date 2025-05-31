@@ -52,7 +52,7 @@ const articleTypes: ArticleType[] = [
     description: 'Local community stories and neighborhood news',
     icon: <Users className="h-6 w-6" />,
     articleType: 'standard',
-    categorySlug: 'in-the-neighborhood'
+    categorySlug: 'neighborhood'
   },
   {
     id: 'learning',

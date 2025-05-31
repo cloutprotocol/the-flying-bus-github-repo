@@ -14,12 +14,16 @@ import StoryboardFields from '../../StoryboardFields';
 interface StoryboardFormContentProps {
   form: UseFormReturn<StoryboardArticleFormData>;
   isSubmitting: boolean;
+  isNewArticle?: boolean;
+  preselectedCategorySlug?: string;
   preselectedCategoryName?: string;
 }
 
 const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
   form,
   isSubmitting,
+  isNewArticle = false,
+  preselectedCategorySlug,
   preselectedCategoryName
 }) => {
   return (
@@ -39,7 +43,9 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
       />
 
       <CategorySelector 
-        form={form} 
+        form={form}
+        isNewArticle={isNewArticle}
+        preselectedSlug={preselectedCategorySlug}
         preselectedName={preselectedCategoryName}
       />
 

@@ -13,12 +13,16 @@ import MetadataFields from '../../MetadataFields';
 interface DebateFormContentProps {
   form: UseFormReturn<DebateArticleFormData>;
   isSubmitting: boolean;
+  isNewArticle?: boolean;
+  preselectedCategorySlug?: string;
   preselectedCategoryName?: string;
 }
 
 const DebateFormContent: React.FC<DebateFormContentProps> = ({
   form,
   isSubmitting,
+  isNewArticle = false,
+  preselectedCategorySlug,
   preselectedCategoryName
 }) => {
   return (
@@ -38,7 +42,9 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
       />
 
       <CategorySelector 
-        form={form} 
+        form={form}
+        isNewArticle={isNewArticle}
+        preselectedSlug={preselectedCategorySlug}
         preselectedName={preselectedCategoryName}
       />
 

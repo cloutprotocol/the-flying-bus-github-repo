@@ -50,6 +50,8 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
         <StandardFormContent 
           form={form}
           isSubmitting={isSubmitting}
+          isNewArticle={isNewArticle}
+          preselectedCategorySlug={categorySlug}
           preselectedCategoryName={categoryName}
         />
         

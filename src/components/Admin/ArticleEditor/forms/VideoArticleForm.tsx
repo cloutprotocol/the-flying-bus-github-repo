@@ -51,6 +51,8 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
         <VideoFormContent 
           form={form}
           isSubmitting={isSubmitting}
+          isNewArticle={isNewArticle}
+          preselectedCategorySlug={categorySlug}
           preselectedCategoryName={categoryName}
         />
         

@@ -13,12 +13,16 @@ import MetadataFields from '../../MetadataFields';
 interface StandardFormContentProps {
   form: UseFormReturn<StandardArticleFormData>;
   isSubmitting: boolean;
+  isNewArticle?: boolean;
+  preselectedCategorySlug?: string;
   preselectedCategoryName?: string;
 }
 
 const StandardFormContent: React.FC<StandardFormContentProps> = ({
   form,
   isSubmitting,
+  isNewArticle = false,
+  preselectedCategorySlug,
   preselectedCategoryName
 }) => {
   return (
@@ -38,7 +42,9 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
       />
 
       <CategorySelector 
-        form={form} 
+        form={form}
+        isNewArticle={isNewArticle}
+        preselectedSlug={preselectedCategorySlug}
         preselectedName={preselectedCategoryName}
       />
 

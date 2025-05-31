@@ -8,9 +8,11 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { getCategoryBySlug } from '@/utils/category/categoryIdMapper';
 
 interface CategorySelectorProps {
-  form: any; // Accept any form type since we have multiple now
+  form: any;
+  isNewArticle?: boolean;
   preselectedSlug?: string;
   preselectedName?: string;
 }
@@ -21,15 +23,9 @@ interface Category {
   slug?: string;
 }
 
-// Map route slugs to database slugs
-const SLUG_MAPPING: Record<string, string> = {
-  'in-the-neighborhood': 'neighborhood',
-  'spice': 'spice-it-up',
-  'school': 'school-news'
-};
-
 const CategorySelector: React.FC<CategorySelectorProps> = ({ 
   form, 
+  isNewArticle = false,
   preselectedSlug, 
   preselectedName 
 }) => {
@@ -54,53 +50,19 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         if (data) {
           setCategories(data);
           
-          logger.debug(LogSource.EDITOR, 'Categories fetched for selector', {
-            count: data.length,
-            preselectedSlug,
-            preselectedName
-          });
-          
-          // Try to find and set preselected category
-          if (preselectedSlug || preselectedName) {
-            let matchedCategory = null;
-            
-            // First try direct slug match
-            if (preselectedSlug) {
-              matchedCategory = data.find(cat => cat.slug === preselectedSlug);
-            }
-            
-            // Try mapped slug if direct match fails
-            if (!matchedCategory && preselectedSlug) {
-              const mappedSlug = SLUG_MAPPING[preselectedSlug];
-              if (mappedSlug) {
-                matchedCategory = data.find(cat => cat.slug === mappedSlug);
-                logger.info(LogSource.EDITOR, 'Using slug mapping', {
-                  originalSlug: preselectedSlug,
-                  mappedSlug: mappedSlug
-                });
-              }
-            }
-            
-            // Fallback to name match
-            if (!matchedCategory && preselectedName) {
-              matchedCategory = data.find(cat => cat.name === preselectedName);
-            }
-            
-            if (matchedCategory) {
-              form.setValue('categoryId', matchedCategory.id);
-              setPreselectedCategory(matchedCategory);
-              
-              logger.info(LogSource.EDITOR, 'Category preselected in selector', {
-                categoryId: matchedCategory.id,
-                categoryName: matchedCategory.name,
-                categorySlug: matchedCategory.slug
+          // For new articles, pre-select the category from the modal
+          if (isNewArticle && preselectedSlug) {
+            const category = await getCategoryBySlug(preselectedSlug);
+            if (category) {
+              form.setValue('categoryId', category.id);
+              setPreselectedCategory(category);
+              logger.info(LogSource.EDITOR, 'Category pre-selected for new article', {
+                categoryId: category.id,
+                categoryName: category.name,
+                categorySlug: category.slug
               });
             } else {
-              logger.warn(LogSource.EDITOR, 'No matching category found in selector', {
-                preselectedSlug,
-                preselectedName,
-                availableCategories: data.map(cat => ({ name: cat.name, slug: cat.slug }))
-              });
+              logger.warn(LogSource.EDITOR, 'Category not found for slug', { preselectedSlug });
             }
           }
         }
@@ -112,8 +74,27 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     };
 
     fetchCategories();
-  }, [preselectedSlug, preselectedName, form]);
+  }, [preselectedSlug, preselectedName, form, isNewArticle]);
 
+  // For new articles, just show the selected category
+  if (isNewArticle && preselectedCategory) {
+    return (
+      <div className="space-y-3">
+        <FormLabel>Category</FormLabel>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <div className="flex items-center gap-2">
+              <span>{getCategoryIcon(preselectedCategory.name)}</span>
+              <strong>{preselectedCategory.name}</strong> has been selected for this article.
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // For existing articles, show the full selector
   return (
     <FormField
       control={form.control}
@@ -121,15 +102,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       render={({ field }) => (
         <FormItem className="space-y-3">
           <FormLabel>Category</FormLabel>
-          
-          {preselectedCategory && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Category <strong>{preselectedCategory.name}</strong> has been pre-selected from your choice.
-              </AlertDescription>
-            </Alert>
-          )}
           
           <FormControl>
             <RadioGroup
@@ -149,11 +121,6 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                     >
                       <span className="mr-2">{getCategoryIcon(category.name)}</span>
                       {category.name}
-                      {preselectedCategory?.id === category.id && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          Pre-selected
-                        </span>
-                      )}
                     </label>
                   </div>
                 ))

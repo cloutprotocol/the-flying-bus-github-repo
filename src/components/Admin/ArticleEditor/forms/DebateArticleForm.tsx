@@ -57,6 +57,8 @@ const DebateArticleForm: React.FC<DebateArticleFormProps> = ({
         <DebateFormContent 
           form={form}
           isSubmitting={isSubmitting}
+          isNewArticle={isNewArticle}
+          preselectedCategorySlug={categorySlug}
           preselectedCategoryName={categoryName}
         />
         
