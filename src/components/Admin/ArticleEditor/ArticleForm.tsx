@@ -1,5 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -7,9 +9,11 @@ import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
 import { supabase } from '@/integrations/supabase/client';
+import { articleFormSchema, ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 import ArticleFormContent from './Layout/ArticleFormContent';
 import EnhancedFormActions from './EnhancedFormActions';
 import ArticleEditorDebugPanel from './ArticleEditorDebugPanel';
+import { Form } from '@/components/ui/form';
 
 interface ArticleFormProps {
   articleId?: string;
@@ -30,21 +34,23 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Simple form state
-  const [formData, setFormData] = useState<ArticleFormData>({
-    title: '',
-    content: '',
-    excerpt: '',
-    imageUrl: '',
-    categoryId: '',
-    slug: '',
-    articleType: articleType as any,
-    storyboardEpisodes: []
+  // Initialize form with React Hook Form
+  const form = useForm<ArticleFormSchemaType>({
+    resolver: zodResolver(articleFormSchema),
+    defaultValues: {
+      title: '',
+      content: '',
+      excerpt: '',
+      imageUrl: '',
+      categoryId: '',
+      slug: '',
+      articleType: articleType as any,
+      storyboardEpisodes: []
+    }
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const { handleSubmit, watch, setValue, formState: { isDirty, isSubmitting } } = form;
+  const [isSaving, setIsSaving] = React.useState(false);
 
   console.log('ArticleForm: Rendering with props:', {
     articleId,
@@ -52,12 +58,12 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     isNewArticle,
     categorySlug,
     categoryName,
-    formData
+    formData: form.getValues()
   });
 
-  // Simple category lookup on mount
+  // Category lookup on mount
   useEffect(() => {
-    if (isNewArticle && (categorySlug || categoryName) && !formData.categoryId) {
+    if (isNewArticle && (categorySlug || categoryName) && !form.getValues('categoryId')) {
       const lookupCategory = async () => {
         try {
           console.log('ArticleForm: Looking up category:', { categorySlug, categoryName });
@@ -74,7 +80,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           
           if (data && !error) {
             console.log('ArticleForm: Found category:', data);
-            setFormData(prev => ({ ...prev, categoryId: data.id }));
+            setValue('categoryId', data.id);
           } else {
             console.warn('ArticleForm: Category not found');
             toast({
@@ -90,35 +96,26 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       
       lookupCategory();
     }
-  }, [categorySlug, categoryName, isNewArticle, formData.categoryId, toast]);
+  }, [categorySlug, categoryName, isNewArticle, form, setValue, toast]);
 
-  // Simple field update function
-  const updateField = (field: keyof ArticleFormData, value: any) => {
-    console.log('ArticleForm: Updating field:', field, value);
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
+  // Convert form data to ArticleFormData format for services
+  const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
+    return {
+      id: articleId,
+      title: data.title,
+      content: data.content,
+      excerpt: data.excerpt || '',
+      imageUrl: data.imageUrl,
+      categoryId: data.categoryId,
+      slug: data.slug || '',
+      articleType: data.articleType,
+      videoUrl: data.videoUrl,
+      debateSettings: data.debateSettings,
+      storyboardEpisodes: data.storyboardEpisodes || []
+    };
   };
 
-  // Simple validation
-  const validateForm = (): string[] => {
-    const errors: string[] = [];
-    
-    if (!formData.title.trim()) {
-      errors.push('Title is required');
-    }
-    
-    if (!formData.categoryId) {
-      errors.push('Category is required');
-    }
-    
-    if (!formData.content.trim()) {
-      errors.push('Content is required');
-    }
-    
-    return errors;
-  };
-
-  // Simple save draft function
+  // Save draft function
   const handleSaveDraft = async (): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -131,13 +128,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
     setIsSaving(true);
     try {
+      const formData = convertToArticleFormData(form.getValues());
       const result = await saveDraftOptimized(user.id, formData);
       
       if (result.success) {
-        if (result.articleId && !formData.id) {
-          setFormData(prev => ({ ...prev, id: result.articleId }));
+        if (result.articleId && !articleId) {
+          // Update the article ID if this was a new article
+          // Note: We can't directly update the articleId prop, but we can store it internally
         }
-        setHasUnsavedChanges(false);
         toast({
           title: "Draft saved",
           description: "Your changes have been saved successfully.",
@@ -157,8 +155,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     }
   };
 
-  // Simple submit function
-  const handleSubmit = async (): Promise<void> => {
+  // Submit function
+  const onSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
         title: "Authentication required",
@@ -168,22 +166,11 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       return;
     }
 
-    const errors = validateForm();
-    if (errors.length > 0) {
-      toast({
-        title: "Validation failed",
-        description: errors.join('. '),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
+      const formData = convertToArticleFormData(data);
       const result = await submitArticleOptimized(user.id, formData, false);
       
       if (result.success) {
-        setHasUnsavedChanges(false);
         toast({
           title: "Submission successful",
           description: "Your article has been submitted for review!",
@@ -199,43 +186,42 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <ArticleEditorDebugPanel
-        formData={formData}
-        isSubmitting={isSubmitting}
-        isSaving={isSaving}
-        hasUnsavedChanges={hasUnsavedChanges}
-        effectiveArticleId={articleId || formData.id}
-        categorySlug={categorySlug}
-        categoryName={categoryName}
-        isNewArticle={isNewArticle}
-      />
-      
-      <ArticleFormContent 
-        formData={formData}
-        onChange={updateField}
-        isSubmitting={isSubmitting}
-      />
-      
-      <EnhancedFormActions 
-        onSaveDraft={handleSaveDraft}
-        onSubmit={handleSubmit}
-        onViewRevisions={undefined}
-        isSubmitting={isSubmitting}
-        isDirty={hasUnsavedChanges}
-        isSaving={isSaving}
-        saveStatus={hasUnsavedChanges ? 'idle' : 'saved'}
-        hasRevisions={false}
-        form={null}
-        content={formData.content}
-      />
-    </div>
+    <Form {...form}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <ArticleEditorDebugPanel
+          formData={convertToArticleFormData(form.getValues())}
+          isSubmitting={isSubmitting}
+          isSaving={isSaving}
+          hasUnsavedChanges={isDirty}
+          effectiveArticleId={articleId}
+          categorySlug={categorySlug}
+          categoryName={categoryName}
+          isNewArticle={isNewArticle}
+        />
+        
+        <ArticleFormContent 
+          form={form}
+          isSubmitting={isSubmitting}
+        />
+        
+        <EnhancedFormActions 
+          onSaveDraft={handleSaveDraft}
+          onSubmit={handleSubmit(onSubmit)}
+          onViewRevisions={undefined}
+          isSubmitting={isSubmitting}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          saveStatus={isDirty ? 'idle' : 'saved'}
+          hasRevisions={false}
+          form={form}
+          content={watch('content')}
+        />
+      </form>
+    </Form>
   );
 };
 

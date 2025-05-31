@@ -10,6 +10,7 @@ import {
 import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { useToast } from '@/hooks/use-toast';
 import ArticleSubmitDialog from './ArticleSubmitDialog';
+import { UseFormReturn } from 'react-hook-form';
 
 interface EnhancedFormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -21,7 +22,7 @@ interface EnhancedFormActionsProps {
   saveStatus: DraftSaveStatus;
   hasRevisions: boolean;
   disableSubmit?: boolean;
-  form?: any;
+  form?: UseFormReturn<any>;
   content?: string;
 }
 
@@ -68,49 +69,16 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
   const validateFormFields = (): boolean => {
     if (!form) return true;
     
-    // Validate title
-    const title = form.getValues?.('title');
-    if (!title || title.trim() === '') {
-      toast({
-        title: "Validation Error",
-        description: "Article title is required",
-        variant: "destructive"
-      });
-      form.setError?.('title', { type: 'required', message: 'Title is required' });
-      return false;
-    }
+    // Trigger form validation
+    const isValid = form.formState.isValid;
     
-    // Validate category
-    const categoryId = form.getValues?.('categoryId');
-    if (!categoryId) {
+    if (!isValid) {
+      // Form validation will handle showing errors
       toast({
         title: "Validation Error",
-        description: "Please select a category",
+        description: "Please fix the errors in the form before submitting.",
         variant: "destructive"
       });
-      form.setError?.('categoryId', { type: 'required', message: 'Category is required' });
-      return false;
-    }
-    
-    // Validate content
-    if (!content || content.trim() === '') {
-      toast({
-        title: "Validation Error",
-        description: "Article content is required",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
-    // Validate image URL
-    const imageUrl = form.getValues?.('imageUrl');
-    if (!imageUrl || imageUrl.trim() === '') {
-      toast({
-        title: "Validation Error",
-        description: "A featured image is required",
-        variant: "destructive"
-      });
-      form.setError?.('imageUrl', { type: 'required', message: 'Featured image is required' });
       return false;
     }
     
@@ -201,9 +169,9 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
       <ArticleSubmitDialog
         open={showSubmitDialog}
         onOpenChange={setShowSubmitDialog}
-        onConfirm={async () => {  // Fix: Make this function async and return the Promise
+        onConfirm={async () => {
           setShowSubmitDialog(false);
-          return handleSubmit();  // Return the Promise from handleSubmit
+          return handleSubmit();
         }}
         isDirty={isDirty}
       />

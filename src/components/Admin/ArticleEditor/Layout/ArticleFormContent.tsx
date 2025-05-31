@@ -1,8 +1,10 @@
 
 import React from 'react';
+import { UseFormReturn } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import RichTextEditor from '../RichTextEditor';
 import CategorySelector from '../CategorySelector';
 import MetadataFields from '../MetadataFields';
@@ -10,169 +12,177 @@ import VideoFormSection from '../VideoFormSection';
 import DebateFormSection from '../DebateFormSection';
 import StoryboardFields from '../StoryboardFields';
 import MediaSelector from '../MediaSelector/MediaSelector';
-import { ArticleFormData } from '@/types/ArticleEditorTypes';
+import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface ArticleFormContentProps {
-  formData: ArticleFormData;
-  onChange: (field: keyof ArticleFormData, value: any) => void;
+  form: UseFormReturn<ArticleFormSchemaType>;
   isSubmitting?: boolean;
 }
 
 const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
-  formData,
-  onChange,
+  form,
   isSubmitting = false
 }) => {
-  // Create a complete mock form object that satisfies the UseFormReturn interface
-  const mockForm = {
-    control: null as any,
-    getValues: ((field?: any) => {
-      if (field) {
-        return formData[field as keyof ArticleFormData];
-      }
-      return formData;
-    }) as any,
-    setValue: (field: string, value: any) => {
-      onChange(field as keyof ArticleFormData, value);
-    },
-    watch: ((field?: string) => {
-      if (field) {
-        return formData[field as keyof ArticleFormData];
-      }
-      return formData;
-    }) as any,
-    register: (() => ({ name: '', onBlur: () => {}, onChange: () => {}, ref: () => {} })) as any,
-    getFieldState: (() => ({ invalid: false, isTouched: false, isDirty: false, error: undefined })) as any,
-    setError: (() => {}) as any,
-    clearErrors: (() => {}) as any,
-    trigger: (() => Promise.resolve(true)) as any,
-    reset: (() => {}) as any,
-    resetField: (() => {}) as any,
-    setFocus: (() => {}) as any,
-    unregister: (() => {}) as any,
-    handleSubmit: ((onValid: any) => (e?: any) => {
-      e?.preventDefault();
-      onValid(formData);
-    }) as any,
-    formState: {
-      errors: {},
-      isDirty: false,
-      isValid: true,
-      isSubmitting: false,
-      isValidating: false,
-      submitCount: 0,
-      touchedFields: {},
-      dirtyFields: {}
-    }
-  } as any;
+  const { watch } = form;
+  const articleType = watch('articleType');
+  const storyboardEpisodes = watch('storyboardEpisodes') || [];
 
   return (
     <div className="space-y-6">
       {/* Basic Article Information */}
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">
-            {formData.articleType === 'storyboard' ? 'Series Title' : 'Title'} *
-          </Label>
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => onChange('title', e.target.value)}
-            placeholder={
-              formData.articleType === 'storyboard' 
-                ? "Enter your storyboard series title" 
-                : "Enter your article title"
-            }
-            disabled={isSubmitting}
-            required
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {articleType === 'storyboard' ? 'Series Title' : 'Title'} *
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder={
+                    articleType === 'storyboard' 
+                      ? "Enter your storyboard series title" 
+                      : "Enter your article title"
+                  }
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="excerpt">
-            {formData.articleType === 'storyboard' ? 'Series Summary' : 'Excerpt'}
-          </Label>
-          <Textarea
-            id="excerpt"
-            value={formData.excerpt}
-            onChange={(e) => onChange('excerpt', e.target.value)}
-            placeholder={
-              formData.articleType === 'storyboard'
-                ? "Brief summary of your storyboard series"
-                : "Brief summary or excerpt of your article"
-            }
-            rows={3}
-            disabled={isSubmitting}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="excerpt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                {articleType === 'storyboard' ? 'Series Summary' : 'Excerpt'}
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder={
+                    articleType === 'storyboard'
+                      ? "Brief summary of your storyboard series"
+                      : "Brief summary or excerpt of your article"
+                  }
+                  rows={3}
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="space-y-2">
           <Label>
-            {formData.articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'}
+            {articleType === 'storyboard' ? 'Series Cover Image' : 'Cover Image'} *
           </Label>
-          <MediaSelector form={mockForm} />
+          <MediaSelector form={form} />
         </div>
 
-        <CategorySelector form={mockForm} />
+        <CategorySelector form={form} />
       </div>
 
       {/* Content Section - Different for each article type */}
-      {formData.articleType === 'storyboard' ? (
+      {articleType === 'storyboard' ? (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="content">Series Description</Label>
-            <RichTextEditor
-              value={formData.content}
-              onChange={(value) => onChange('content', value)}
-              placeholder="Detailed description of your storyboard series..."
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Series Description</FormLabel>
+                <FormControl>
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Detailed description of your storyboard series..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
           <StoryboardFields
-            episodes={formData.storyboardEpisodes || []}
-            onEpisodesChange={(episodes) => onChange('storyboardEpisodes', episodes)}
+            episodes={storyboardEpisodes}
+            onEpisodesChange={(episodes) => form.setValue('storyboardEpisodes', episodes)}
             isSubmitting={isSubmitting}
           />
         </div>
-      ) : formData.articleType === 'video' ? (
+      ) : articleType === 'video' ? (
         <div className="space-y-4">
-          <VideoFormSection form={mockForm} />
+          <VideoFormSection form={form} />
           
-          <div className="space-y-2">
-            <Label htmlFor="content">Content</Label>
-            <RichTextEditor
-              value={formData.content}
-              onChange={(value) => onChange('content', value)}
-              placeholder="Write your article content here..."
-            />
-          </div>
-        </div>
-      ) : formData.articleType === 'debate' ? (
-        <div className="space-y-4">
-          <DebateFormSection form={mockForm} />
-          
-          <div className="space-y-2">
-            <Label htmlFor="content">Additional Context</Label>
-            <RichTextEditor
-              value={formData.content}
-              onChange={(value) => onChange('content', value)}
-              placeholder="Provide additional context for the debate..."
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Label htmlFor="content">Content *</Label>
-          <RichTextEditor
-            value={formData.content}
-            onChange={(value) => onChange('content', value)}
-            placeholder="Write your article content here..."
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Content *</FormLabel>
+                <FormControl>
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Write your article content here..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
+      ) : articleType === 'debate' ? (
+        <div className="space-y-4">
+          <DebateFormSection form={form} />
+          
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Additional Context</FormLabel>
+                <FormControl>
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Provide additional context for the debate..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      ) : (
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Content *</FormLabel>
+              <FormControl>
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Write your article content here..."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       )}
 
       {/* Metadata Fields */}
-      <MetadataFields form={mockForm} articleType={formData.articleType} />
+      <MetadataFields form={form} articleType={articleType} />
     </div>
   );
 };
