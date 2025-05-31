@@ -18,13 +18,13 @@ export const articleFormSchema = z.object({
     voting_ends_at: z.string().nullable()
   }).optional(),
   storyboardEpisodes: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    videoUrl: z.string(),
-    thumbnailUrl: z.string(),
-    duration: z.string(),
-    number: z.number(),
-    content: z.string()
+    title: z.string().min(1, 'Episode title is required'),
+    description: z.string().min(1, 'Episode description is required'),
+    videoUrl: z.string().min(1, 'Episode video URL is required'),
+    thumbnailUrl: z.string().min(1, 'Episode thumbnail URL is required'),
+    duration: z.string().min(1, 'Episode duration is required'),
+    number: z.number().min(1),
+    content: z.string().min(1, 'Episode content is required')
   })).optional()
 });
 

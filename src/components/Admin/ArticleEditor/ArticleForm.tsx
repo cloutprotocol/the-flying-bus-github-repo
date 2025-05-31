@@ -124,7 +124,15 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         votingEnabled: data.debateSettings.votingEnabled,
         voting_ends_at: data.debateSettings.voting_ends_at
       } : undefined,
-      storyboardEpisodes: data.storyboardEpisodes || []
+      storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
+        title: episode.title,
+        description: episode.description,
+        videoUrl: episode.videoUrl,
+        thumbnailUrl: episode.thumbnailUrl,
+        duration: episode.duration,
+        number: episode.number,
+        content: episode.content
+      }))
     };
   };
 

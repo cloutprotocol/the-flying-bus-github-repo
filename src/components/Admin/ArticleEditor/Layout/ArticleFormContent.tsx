@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
@@ -112,7 +111,15 @@ const ArticleFormContent: React.FC<ArticleFormContentProps> = ({
           />
           
           <StoryboardFields
-            episodes={storyboardEpisodes}
+            episodes={storyboardEpisodes.map(episode => ({
+              title: episode.title || '',
+              description: episode.description || '',
+              videoUrl: episode.videoUrl || '',
+              thumbnailUrl: episode.thumbnailUrl || '',
+              duration: episode.duration || '',
+              number: episode.number || 1,
+              content: episode.content || ''
+            }))}
             onEpisodesChange={(episodes) => form.setValue('storyboardEpisodes', episodes)}
             isSubmitting={isSubmitting}
           />
