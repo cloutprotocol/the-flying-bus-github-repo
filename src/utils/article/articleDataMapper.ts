@@ -1,108 +1,71 @@
 
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { ARTICLE_STATUS } from '@/constants/articleConstants';
 
-export interface DatabaseArticleData {
+export interface MappedArticleData {
   id?: string;
   title: string;
   content: string;
   excerpt?: string;
-  image_url?: string;
-  category_id: string;
+  imageUrl?: string;
+  categoryId: string;
   slug?: string;
-  article_type: string;
-  video_url?: string;
+  articleType: string;
   status: string;
-  publish_date?: string | null;
-  should_highlight?: boolean;
-  allow_voting?: boolean;
-  debate_settings?: any;
-  storyboard_episodes?: any[];
   author_id: string;
-  [key: string]: any; // Index signature for JSON compatibility
+  videoUrl?: string;
+  debateSettings?: any;
+  storyboardEpisodes?: any[];
 }
 
-export function mapFormDataToDatabase(
-  formData: ArticleFormData, 
-  userId: string
-): DatabaseArticleData {
-  const baseData: DatabaseArticleData = {
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+export const mapFormDataToDatabase = (formData: ArticleFormData, userId: string): MappedArticleData => {
+  return {
     id: formData.id,
     title: formData.title,
     content: formData.content,
-    excerpt: formData.excerpt || '',
-    image_url: formData.imageUrl || '',
-    category_id: formData.categoryId,
-    slug: formData.slug || '',
-    article_type: formData.articleType,
-    status: formData.status || ARTICLE_STATUS.DRAFT,
-    publish_date: formData.publishDate || null,
-    should_highlight: formData.shouldHighlight || false,
-    allow_voting: formData.allowVoting || false,
-    author_id: userId
+    excerpt: formData.excerpt,
+    imageUrl: formData.imageUrl,
+    categoryId: formData.categoryId,
+    slug: formData.slug,
+    articleType: formData.articleType,
+    status: formData.status || 'draft',
+    author_id: userId,
+    videoUrl: formData.videoUrl,
+    debateSettings: formData.debateSettings,
+    storyboardEpisodes: formData.storyboardEpisodes
   };
+};
 
-  // Add type-specific fields
-  if (formData.articleType === 'video' && formData.videoUrl) {
-    baseData.video_url = formData.videoUrl;
-  }
-
-  if (formData.articleType === 'debate' && formData.debateSettings) {
-    baseData.debate_settings = formData.debateSettings;
-  }
-
-  if (formData.articleType === 'storyboard' && formData.storyboardEpisodes) {
-    baseData.storyboard_episodes = formData.storyboardEpisodes;
-  }
-
-  return baseData;
-}
-
-export function validateMappedData(data: DatabaseArticleData): { isValid: boolean; errors: string[] } {
+export const validateMappedData = (data: MappedArticleData): ValidationResult => {
   const errors: string[] = [];
 
   if (!data.title?.trim()) {
     errors.push('Title is required');
   }
 
-  if (!data.category_id?.trim()) {
+  if (!data.categoryId) {
     errors.push('Category is required');
   }
 
-  if (!data.author_id?.trim()) {
+  if (!data.author_id) {
     errors.push('Author ID is required');
   }
 
-  // Content validation based on article type
-  if (data.article_type !== 'debate' && !data.content?.trim()) {
-    errors.push('Content is required');
-  }
-
-  // Type-specific validations
-  if (data.article_type === 'video' && !data.video_url?.trim()) {
+  // Article type specific validation
+  if (data.articleType === 'video' && !data.videoUrl) {
     errors.push('Video URL is required for video articles');
   }
 
-  if (data.article_type === 'debate') {
-    if (!data.debate_settings?.question?.trim()) {
-      errors.push('Debate question is required');
-    }
-    if (!data.debate_settings?.yesPosition?.trim()) {
-      errors.push('Yes position is required');
-    }
-    if (!data.debate_settings?.noPosition?.trim()) {
-      errors.push('No position is required');
-    }
-  }
-
-  if (data.article_type === 'storyboard') {
-    if (!data.storyboard_episodes || data.storyboard_episodes.length === 0) {
-      errors.push('At least one episode is required for storyboard articles');
-    }
+  if (data.articleType === 'debate' && !data.debateSettings?.question) {
+    errors.push('Debate question is required for debate articles');
   }
 
   return {
     isValid: errors.length === 0,
     errors
   };
-}
+};

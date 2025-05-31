@@ -21,6 +21,24 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
   isSaving,
   disabled = false
 }) => {
+  const handleSubmitClick = async () => {
+    console.log('Submit button clicked');
+    try {
+      await onSubmit();
+    } catch (error) {
+      console.error('Submit error in SimpleFormActions:', error);
+    }
+  };
+
+  const handleSaveDraftClick = async () => {
+    console.log('Save draft button clicked');
+    try {
+      await onSaveDraft();
+    } catch (error) {
+      console.error('Save draft error in SimpleFormActions:', error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -31,7 +49,7 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onSaveDraft}
+            onClick={handleSaveDraftClick}
             disabled={isSaving || isSubmitting || disabled}
             className="flex items-center gap-2"
           >
@@ -44,8 +62,8 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
           </Button>
           
           <Button
-            type="submit"
-            onClick={onSubmit}
+            type="button"
+            onClick={handleSubmitClick}
             disabled={isSubmitting || isSaving || disabled}
             className="flex items-center gap-2"
           >

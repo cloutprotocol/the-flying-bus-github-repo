@@ -50,7 +50,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     }
   });
 
-  const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
+  const { formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useStandardArticleSubmission({
     form,
     articleId
@@ -92,43 +92,44 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     );
   }
 
-  // Enhanced submit handler with validation
-  const handleFormSubmit = async (data: StandardArticleFormData) => {
+  // Simple submit handler that just gets the current form data
+  const handleFormSubmit = async () => {
+    console.log('StandardArticleForm.handleFormSubmit called');
+    const formData = form.getValues();
+    
     // Validate that we have a categoryId before submitting
-    if (!data.categoryId) {
+    if (!formData.categoryId) {
       console.error('Cannot submit article without categoryId');
       return;
     }
     
     console.log('Submitting standard article with data:', {
-      title: data.title,
-      categoryId: data.categoryId,
-      articleType: data.articleType
+      title: formData.title,
+      categoryId: formData.categoryId,
+      articleType: formData.articleType
     });
     
-    await onSubmit(data);
+    await onSubmit(formData);
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-        <StandardFormContent 
-          form={form}
-          isSubmitting={isSubmitting}
-          isNewArticle={isNewArticle}
-          resolvedCategoryData={isNewArticle ? categoryData : undefined}
-        />
-        
-        <SimpleFormActions 
-          onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(handleFormSubmit)}
-          isSubmitting={isSubmitting}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          disabled={isNewArticle && !categoryData?.id}
-        />
-      </form>
-    </Form>
+    <div className="space-y-6">
+      <StandardFormContent 
+        form={form}
+        isSubmitting={isSubmitting}
+        isNewArticle={isNewArticle}
+        resolvedCategoryData={isNewArticle ? categoryData : undefined}
+      />
+      
+      <SimpleFormActions 
+        onSaveDraft={handleSaveDraft}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isSubmitting}
+        isDirty={isDirty}
+        isSaving={isSaving}
+        disabled={isNewArticle && !categoryData?.id}
+      />
+    </div>
   );
 };
 

@@ -18,10 +18,17 @@ export interface SubmissionResult {
  */
 export class UnifiedSubmissionService {
   /**
-   * Submit article for review using optimized database function
+   * Submit article for review using the correct database function
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
+      console.log('UnifiedSubmissionService.submitForReview called with:', {
+        articleType: formData.articleType,
+        hasId: !!formData.id,
+        title: formData.title?.substring(0, 30),
+        userId
+      });
+
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
         articleType: formData.articleType,
         hasId: !!formData.id,
@@ -33,6 +40,7 @@ export class UnifiedSubmissionService {
       const validation = validateMappedData(mappedData);
 
       if (!validation.isValid) {
+        console.error('Validation failed:', validation.errors);
         logger.error(LogSource.ARTICLE, 'Validation failed', { errors: validation.errors });
         return {
           success: false,
@@ -40,14 +48,19 @@ export class UnifiedSubmissionService {
         };
       }
 
-      // Use the optimized database function for submission
+      console.log('Mapped data for submission:', mappedData);
+
+      // Use the correct database function name from Supabase
       const { data, error } = await supabase.rpc('submit_article_optimized', {
         p_user_id: userId,
         p_article_data: mappedData,
         p_save_draft: true
       });
 
+      console.log('Database response:', { data, error });
+
       if (error) {
+        console.error('Database submission failed:', error);
         logger.error(LogSource.ARTICLE, 'Database submission failed', { 
           error: error.message,
           code: error.code 
@@ -70,7 +83,10 @@ export class UnifiedSubmissionService {
       // Handle the response from the database function
       const result = Array.isArray(data) ? data[0] : data;
       
+      console.log('Processed result:', result);
+      
       if (!result?.success) {
+        console.error('Submission validation failed:', result?.error_message);
         logger.error(LogSource.ARTICLE, 'Submission validation failed', { 
           errorMessage: result?.error_message 
         });
@@ -80,6 +96,7 @@ export class UnifiedSubmissionService {
         };
       }
 
+      console.log('Article submitted successfully:', result.article_id);
       logger.info(LogSource.ARTICLE, 'Article submitted successfully', { 
         articleId: result.article_id 
       });
@@ -90,6 +107,7 @@ export class UnifiedSubmissionService {
       };
 
     } catch (error) {
+      console.error('Unexpected submission error:', error);
       logger.error(LogSource.ARTICLE, 'Unexpected submission error', error);
       return {
         success: false,
@@ -99,10 +117,16 @@ export class UnifiedSubmissionService {
   }
 
   /**
-   * Save article as draft using optimized database function
+   * Save article as draft using the correct database function
    */
   static async saveDraft(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
+      console.log('UnifiedSubmissionService.saveDraft called with:', {
+        articleType: formData.articleType,
+        hasId: !!formData.id,
+        title: formData.title?.substring(0, 30)
+      });
+
       logger.info(LogSource.ARTICLE, 'Saving article draft', {
         articleType: formData.articleType,
         hasId: !!formData.id
@@ -112,12 +136,17 @@ export class UnifiedSubmissionService {
       // Override status to draft for save operations
       mappedData.status = ARTICLE_STATUS.DRAFT;
 
+      console.log('Mapped data for draft save:', mappedData);
+
       const { data, error } = await supabase.rpc('save_draft_optimized', {
         p_user_id: userId,
         p_article_data: mappedData
       });
 
+      console.log('Draft save response:', { data, error });
+
       if (error) {
+        console.error('Draft save failed:', error);
         logger.error(LogSource.ARTICLE, 'Draft save failed', { error: error.message });
         return {
           success: false,
@@ -128,12 +157,14 @@ export class UnifiedSubmissionService {
       const result = Array.isArray(data) ? data[0] : data;
       
       if (!result?.success) {
+        console.error('Draft save validation failed:', result?.error_message);
         return {
           success: false,
           error: result?.error_message || 'Failed to save draft'
         };
       }
 
+      console.log('Draft saved successfully:', result.article_id);
       logger.info(LogSource.ARTICLE, 'Draft saved successfully', { 
         articleId: result.article_id 
       });
@@ -144,6 +175,7 @@ export class UnifiedSubmissionService {
       };
 
     } catch (error) {
+      console.error('Unexpected draft save error:', error);
       logger.error(LogSource.ARTICLE, 'Unexpected draft save error', error);
       return {
         success: false,
