@@ -35,6 +35,10 @@ export interface ArticleFormData {
   slug: string;
   articleType: 'standard' | 'video' | 'debate' | 'storyboard';
   videoUrl?: string;
+  status?: 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
+  publishDate?: string | null;
+  shouldHighlight?: boolean;
+  allowVoting?: boolean;
   debateSettings?: DebateSettings;
   storyboardEpisodes?: StoryboardEpisode[];
 }

@@ -10,6 +10,11 @@ export const articleFormSchema = z.object({
   slug: z.string().optional(),
   articleType: z.enum(['standard', 'video', 'debate', 'storyboard']),
   videoUrl: z.string().optional(),
+  // Add missing form fields that components are trying to access
+  status: z.enum(['draft', 'pending', 'published', 'rejected', 'archived']).default('draft'),
+  publishDate: z.string().nullable().optional(),
+  shouldHighlight: z.boolean().default(false),
+  allowVoting: z.boolean().default(false),
   debateSettings: z.object({
     question: z.string(),
     yesPosition: z.string(),

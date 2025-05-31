@@ -34,7 +34,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Initialize form with React Hook Form
+  // Initialize form with React Hook Form including all required default values
   const form = useForm<ArticleFormSchemaType>({
     resolver: zodResolver(articleFormSchema),
     defaultValues: {
@@ -45,6 +45,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       categoryId: '',
       slug: '',
       articleType: articleType as any,
+      status: 'draft',
+      publishDate: null,
+      shouldHighlight: false,
+      allowVoting: false,
       debateSettings: {
         question: '',
         yesPosition: '',
