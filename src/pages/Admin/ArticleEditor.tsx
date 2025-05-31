@@ -18,15 +18,11 @@ const ArticleEditor = () => {
   const { toast } = useToast();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [initializationError, setInitializationError] = useState<string | null>(null);
   
   const isNewArticle = !articleId;
-  
-  // Safely extract location state with defaults
-  const locationState = location.state || {};
-  const articleType = locationState.articleType || 'standard';
-  const categorySlug = locationState.categorySlug;
-  const categoryName = locationState.categoryName;
+  const articleType = location.state?.articleType || 'standard';
+  const categorySlug = location.state?.categorySlug;
+  const categoryName = location.state?.categoryName;
 
   useEffect(() => {
     console.log('ArticleEditor: Component mounting with props:', {
@@ -35,14 +31,8 @@ const ArticleEditor = () => {
       articleType,
       categorySlug,
       categoryName,
-      locationState
+      locationState: location.state
     });
-
-    // Validate required data for new articles
-    if (isNewArticle && !categorySlug && !categoryName) {
-      console.warn('ArticleEditor: New article without category information');
-      setInitializationError('Missing category information for new article');
-    }
 
     const checkAuth = async () => {
       try {
@@ -75,7 +65,7 @@ const ArticleEditor = () => {
     };
     
     checkAuth();
-  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId, categorySlug, categoryName]);
+  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId, categorySlug]);
 
   const handleNavigation = (path: string | number) => {
     if (typeof path === 'number') {
@@ -130,33 +120,6 @@ const ArticleEditor = () => {
           <Button onClick={() => navigate('/login')}>
             Go to Login
           </Button>
-        </div>
-      </AdminPortalLayout>
-    );
-  }
-
-  // Show initialization error for new articles without proper category data
-  if (initializationError) {
-    return (
-      <AdminPortalLayout>
-        <div className="space-y-6">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {initializationError}
-            </AlertDescription>
-          </Alert>
-          <div className="flex gap-2">
-            <Button onClick={() => navigate('/admin/my-articles')}>
-              Go to My Articles
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/admin/articles/new')}
-            >
-              Try Again
-            </Button>
-          </div>
         </div>
       </AdminPortalLayout>
     );
