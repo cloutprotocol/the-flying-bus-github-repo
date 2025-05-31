@@ -1,7 +1,40 @@
 
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { articleFormSchema, ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
+// Remove zodResolver temporarily to isolate the issue
+// import { zodResolver } from '@hookform/resolvers/zod';
+// import { articleFormSchema, ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
+
+// Create a simplified type for now
+interface ArticleFormSchemaType {
+  title: string;
+  content: string;
+  excerpt?: string;
+  imageUrl: string;
+  categoryId: string;
+  slug?: string;
+  status: 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
+  publishDate?: string | null;
+  shouldHighlight: boolean;
+  allowVoting: boolean;
+  articleType: 'standard' | 'video' | 'debate' | 'storyboard';
+  videoUrl?: string;
+  debateSettings?: {
+    question: string;
+    yesPosition: string;
+    noPosition: string;
+    votingEnabled: boolean;
+    voting_ends_at?: string | null;
+  };
+  storyboardEpisodes?: Array<{
+    title: string;
+    description: string;
+    videoUrl: string;
+    thumbnailUrl: string;
+    duration: string;
+    number: number;
+    content: string;
+  }>;
+}
 
 interface UseArticleFormLogicProps {
   articleType: string;
@@ -70,11 +103,11 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
     }
   };
 
-  // Initialize form with clean, type-specific defaults
+  // Initialize form with minimal validation for now
   const form = useForm<ArticleFormSchemaType>({
-    resolver: zodResolver(articleFormSchema),
+    // Remove zodResolver temporarily
+    // resolver: zodResolver(articleFormSchema),
     defaultValues: getDefaultValues(articleType),
-    // Set validation mode to reduce excessive validation calls
     mode: 'onSubmit',
     reValidateMode: 'onChange'
   });
@@ -83,3 +116,6 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
 
   return form;
 };
+
+// Export the type for other components
+export type { ArticleFormSchemaType };

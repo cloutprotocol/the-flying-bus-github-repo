@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
+import { ArticleFormSchemaType } from './useArticleFormLogic';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
 
@@ -24,15 +24,27 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
     console.log('Converting form data for article type:', data.articleType, data);
     
+    // Validate required fields before conversion
+    const missingFields = [];
+    if (!data.title?.trim()) missingFields.push('title');
+    if (!data.content?.trim()) missingFields.push('content');
+    if (!data.imageUrl?.trim()) missingFields.push('imageUrl');
+    if (!data.categoryId?.trim()) missingFields.push('categoryId');
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+    
     // Start with base data that all article types need
     const baseData = {
       id: articleId,
-      title: data.title,
-      content: data.content || '',
-      excerpt: data.excerpt || '',
-      imageUrl: data.imageUrl, // Keep as imageUrl for service layer mapping
-      categoryId: data.categoryId, // Keep as categoryId for service layer mapping
-      slug: data.slug || '',
+      title: data.title.trim(),
+      content: data.content.trim(),
+      excerpt: data.excerpt?.trim() || '',
+      imageUrl: data.imageUrl.trim(), // This will be mapped to cover_image in the service
+      categoryId: data.categoryId.trim(), // This will be mapped to category_id in the service
+      slug: data.slug?.trim() || '',
       articleType: data.articleType,
       status: data.status,
       publishDate: data.publishDate,
@@ -40,23 +52,24 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       allowVoting: data.allowVoting,
     };
 
+    console.log('Base data after conversion:', baseData);
+
     // Only add type-specific fields for the appropriate article type
-    // This ensures the data structure matches what the validation expects
     switch (data.articleType) {
       case 'video':
         return {
           ...baseData,
-          videoUrl: data.videoUrl,
+          videoUrl: data.videoUrl?.trim() || '',
         };
       
       case 'debate':
         return {
           ...baseData,
-          content: data.content || '', // Debate articles can have optional content
+          content: data.content?.trim() || '', // Debate articles can have optional content
           debateSettings: data.debateSettings ? {
-            question: data.debateSettings.question,
-            yesPosition: data.debateSettings.yesPosition,
-            noPosition: data.debateSettings.noPosition,
+            question: data.debateSettings.question.trim(),
+            yesPosition: data.debateSettings.yesPosition.trim(),
+            noPosition: data.debateSettings.noPosition.trim(),
             votingEnabled: data.debateSettings.votingEnabled,
             voting_ends_at: data.debateSettings.voting_ends_at
           } : undefined,
@@ -66,18 +79,19 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         return {
           ...baseData,
           storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
-            title: episode.title,
-            description: episode.description,
-            videoUrl: episode.videoUrl,
-            thumbnailUrl: episode.thumbnailUrl,
-            duration: episode.duration,
+            title: episode.title.trim(),
+            description: episode.description.trim(),
+            videoUrl: episode.videoUrl.trim(),
+            thumbnailUrl: episode.thumbnailUrl.trim(),
+            duration: episode.duration.trim(),
             number: episode.number,
-            content: episode.content
+            content: episode.content.trim()
           }))
         };
       
-      default: // 'standard' article type
+      default: // 'standard' article type (headliners)
         // Standard articles only get base fields, no additional type-specific fields
+        console.log('Converting standard article with base data only');
         return baseData;
     }
   };
@@ -120,7 +134,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Submit function - now uses the cleaned conversion
+  // Submit function with better error handling
   const handleSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -131,9 +145,11 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       return;
     }
 
+    console.log('Starting article submission with raw form data:', data);
+
     try {
       const formData = convertToArticleFormData(data);
-      console.log('Submitting article with clean converted data:', formData);
+      console.log('Submitting article with converted data:', formData);
       
       const result = await submitArticleOptimized(user.id, formData, false);
       
@@ -144,6 +160,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         });
         navigate('/admin/my-articles');
       } else {
+        console.error('Submission failed with result:', result);
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {

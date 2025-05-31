@@ -69,19 +69,25 @@ const EnhancedFormActions: React.FC<EnhancedFormActionsProps> = ({
   const validateFormFields = (): boolean => {
     if (!form) return true;
     
-    // Trigger form validation
-    const isValid = form.formState.isValid;
+    // Simple validation - check for required fields
+    const formData = form.getValues();
+    const missingFields = [];
     
-    if (!isValid) {
-      // Form validation will handle showing errors
+    if (!formData.title?.trim()) missingFields.push('Title');
+    if (!formData.content?.trim()) missingFields.push('Content');
+    if (!formData.imageUrl?.trim()) missingFields.push('Featured Image');
+    if (!formData.categoryId?.trim()) missingFields.push('Category');
+    
+    if (missingFields.length > 0) {
       toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form before submitting.",
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(', ')}`,
         variant: "destructive"
       });
       return false;
     }
     
+    console.log('Form validation passed for data:', formData);
     return true;
   };
   
