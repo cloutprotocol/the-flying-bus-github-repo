@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { StandardArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -9,6 +9,7 @@ import CategorySelector from '../../CategorySelector';
 import RichTextEditor from '../../RichTextEditor';
 import MediaSelector from '../../MediaSelector';
 import MetadataFields from '../../MetadataFields';
+import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 interface StandardFormContentProps {
   form: UseFormReturn<StandardArticleFormData>;
@@ -27,6 +28,17 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
   isNewArticle = false,
   resolvedCategoryData
 }) => {
+  const titleValue = form.watch('title');
+
+  // Auto-generate slug when title changes
+  useEffect(() => {
+    if (titleValue && titleValue.trim()) {
+      const newSlug = generateClientSideSlug(titleValue);
+      form.setValue('slug', newSlug);
+      console.log('Auto-generated slug:', newSlug);
+    }
+  }, [titleValue, form]);
+
   return (
     <div className="space-y-6">
       <FormField

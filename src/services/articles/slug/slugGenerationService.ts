@@ -1,18 +1,20 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 /**
  * Generate a unique slug for an article
- * Optimized version that minimizes database operations
+ * Always generates fresh slugs to avoid database constraint violations
  */
 export const generateUniqueSlug = async (title: string | undefined, articleId?: string): Promise<string> => {
   // If title is undefined or empty, use a timestamp-based fallback
   if (!title || title.trim() === '') {
-    return `draft-${Date.now()}`;
+    return `draft-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
   }
   
-  // Check if article already has a slug (avoid unnecessary slug generation)
+  // For existing articles, we could keep the existing slug if needed
+  // But for now, always generate fresh to avoid duplicates
   if (articleId) {
     const { data: existingArticle, error } = await supabase
       .from('articles')
@@ -20,21 +22,14 @@ export const generateUniqueSlug = async (title: string | undefined, articleId?: 
       .eq('id', articleId)
       .maybeSingle();
       
-    // If article already has a slug and no error occurred, we can keep it
-    if (!error && existingArticle?.slug) {
-      return existingArticle.slug;
-    }
+    // If this is an update and article has existing slug, we might want to keep it
+    // But to be safe, let's generate fresh for now
+    logger.info(LogSource.ARTICLE, 'Generating fresh slug for existing article', {
+      articleId,
+      hasExistingSlug: !!existingArticle?.slug
+    });
   }
 
-  // Create base slug from title - moved to client-side to reduce server load
-  const baseSlug = title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-    
-  // Add timestamp to ensure uniqueness without needing additional DB queries
-  const timestamp = Date.now().toString().slice(-8);
-  return `${baseSlug}-${timestamp}`;
+  // Always use client-side generation for consistency and to avoid DB queries
+  return generateClientSideSlug(title);
 };

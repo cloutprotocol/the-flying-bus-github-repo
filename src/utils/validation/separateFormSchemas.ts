@@ -8,7 +8,7 @@ const baseArticleSchema = z.object({
   excerpt: z.string().optional(),
   imageUrl: z.string().url('Please provide a valid image URL').optional().or(z.literal('')),
   categoryId: z.string().min(1, 'Category is required'),
-  slug: z.string().optional(),
+  slug: z.string().optional(), // Auto-generated, not user-editable
   articleType: z.enum(['standard', 'video', 'debate', 'storyboard']),
   status: z.enum(['draft', 'pending_review', 'published', 'rejected', 'archived']).optional(),
   publishDate: z.string().nullable().optional(),

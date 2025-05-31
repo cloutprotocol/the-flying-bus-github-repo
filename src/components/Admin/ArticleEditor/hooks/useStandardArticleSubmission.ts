@@ -9,6 +9,7 @@ import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionS
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { generateSubmissionSlug } from '@/utils/article/slugGenerator';
 
 interface UseStandardArticleSubmissionProps {
   form: UseFormReturn<StandardArticleFormData>;
@@ -27,6 +28,9 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
     // Convert form status to ArticleFormData status
     const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
     
+    // Always generate a fresh slug for submission to avoid duplicates
+    const submissionSlug = generateSubmissionSlug(data.title || '');
+    
     return {
       id: articleId,
       title: data.title || '',
@@ -34,7 +38,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       excerpt: data.excerpt || '',
       imageUrl: data.imageUrl || '',
       categoryId: data.categoryId || '',
-      slug: data.slug || '',
+      slug: submissionSlug, // Use fresh generated slug
       articleType: 'standard',
       status: convertedStatus as any,
       publishDate: data.publishDate,
@@ -60,10 +64,11 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       
       logger.info(LogSource.ARTICLE, 'Saving standard article draft', {
         articleType: convertedData.articleType,
-        title: convertedData.title
+        title: convertedData.title,
+        slug: convertedData.slug
       });
       
-      console.log('Calling UnifiedSubmissionService.saveDraft with:', convertedData);
+      console.log('Calling UnifiedSubmissionService.saveDraft with slug:', convertedData.slug);
       
       const result = await UnifiedSubmissionService.saveDraft(convertedData, user.id);
       
@@ -109,7 +114,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
     try {
       const convertedData = convertToArticleFormData(data);
       
-      console.log('Calling UnifiedSubmissionService.submitForReview with:', convertedData);
+      console.log('Calling UnifiedSubmissionService.submitForReview with fresh slug:', convertedData.slug);
       
       const result = await UnifiedSubmissionService.submitForReview(convertedData, user.id);
       
