@@ -1,13 +1,8 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Save, 
-  SendHorizonal,
-  Loader2
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import ArticleSubmitDialog from './ArticleSubmitDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Save, Send, Loader2 } from 'lucide-react';
 
 interface SimpleFormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -15,6 +10,7 @@ interface SimpleFormActionsProps {
   isSubmitting: boolean;
   isDirty: boolean;
   isSaving: boolean;
+  disabled?: boolean;
 }
 
 const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
@@ -22,98 +18,59 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
   onSubmit,
   isSubmitting,
   isDirty,
-  isSaving
+  isSaving,
+  disabled = false
 }) => {
-  const { toast } = useToast();
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  
-  const handleSave = async () => {
-    try {
-      await onSaveDraft();
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save draft. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-  
-  const handleSubmit = async () => {
-    try {
-      await onSubmit();
-    } catch (error) {
-      console.error('Error submitting article:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to submit article. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-  
-  const handleSubmitClick = () => {
-    if (isDirty) {
-      setShowSubmitDialog(true);
-    } else {
-      handleSubmit();
-    }
-  };
-  
   return (
-    <>
-      <div className="flex flex-wrap justify-end items-center gap-3 pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSave}
-          disabled={isSubmitting || isSaving}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Draft
-            </>
-          )}
-        </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Actions</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSaveDraft}
+            disabled={isSaving || isSubmitting || disabled}
+            className="flex items-center gap-2"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {isSaving ? 'Saving...' : 'Save Draft'}
+          </Button>
+          
+          <Button
+            type="submit"
+            onClick={onSubmit}
+            disabled={isSubmitting || isSaving || disabled}
+            className="flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+          </Button>
+        </div>
         
-        <Button
-          type="button"
-          onClick={handleSubmitClick}
-          disabled={isSubmitting}
-          size="sm"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            <>
-              <SendHorizonal className="mr-2 h-4 w-4" />
-              Submit for Review
-            </>
-          )}
-        </Button>
-      </div>
-      
-      <ArticleSubmitDialog
-        open={showSubmitDialog}
-        onOpenChange={setShowSubmitDialog}
-        onConfirm={async () => {
-          setShowSubmitDialog(false);
-          return handleSubmit();
-        }}
-        isDirty={isDirty}
-      />
-    </>
+        {isDirty && !isSaving && (
+          <p className="text-sm text-muted-foreground mt-2">
+            You have unsaved changes
+          </p>
+        )}
+        
+        {disabled && (
+          <p className="text-sm text-destructive mt-2">
+            Category must be loaded before submission
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

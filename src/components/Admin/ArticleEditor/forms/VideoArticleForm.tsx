@@ -30,6 +30,9 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
     isNewArticle ? categoryName : undefined
   );
 
+  // Don't initialize the form until we have category data for new articles
+  const shouldInitializeForm = !isNewArticle || (isNewArticle && categoryData);
+
   const form = useForm<VideoArticleFormData>({
     resolver: zodResolver(videoArticleSchema),
     defaultValues: {
@@ -47,13 +50,6 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
       allowVoting: false
     }
   });
-
-  // Update categoryId when category data is resolved
-  React.useEffect(() => {
-    if (isNewArticle && categoryData && !form.getValues('categoryId')) {
-      form.setValue('categoryId', categoryData.id);
-    }
-  }, [categoryData, isNewArticle, form]);
 
   const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useVideoArticleSubmission({
@@ -85,9 +81,39 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
     );
   }
 
+  // Don't render form until we have all required data
+  if (!shouldInitializeForm) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Enhanced submit handler with validation
+  const handleFormSubmit = async (data: VideoArticleFormData) => {
+    // Validate that we have a categoryId before submitting
+    if (!data.categoryId) {
+      console.error('Cannot submit video article without categoryId');
+      return;
+    }
+    
+    console.log('Submitting video article with data:', {
+      title: data.title,
+      categoryId: data.categoryId,
+      articleType: data.articleType,
+      videoUrl: data.videoUrl
+    });
+    
+    await onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
         <VideoFormContent 
           form={form}
           isSubmitting={isSubmitting}
@@ -97,10 +123,11 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
         
         <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(handleFormSubmit)}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
+          disabled={isNewArticle && !categoryData?.id}
         />
       </form>
     </Form>
