@@ -9,9 +9,10 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface CategorySelectorProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<ArticleFormSchemaType>;
   preselectedSlug?: string;
   preselectedName?: string;
 }

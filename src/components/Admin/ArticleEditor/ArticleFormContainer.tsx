@@ -7,6 +7,7 @@ import ArticleEditorDebugPanel from './ArticleEditorDebugPanel';
 import { useArticleFormLogic } from './hooks/useArticleFormLogic';
 import { useArticleFormSubmission } from './hooks/useArticleFormSubmission';
 import { useCategoryLookup } from './hooks/useCategoryLookup';
+import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface ArticleFormContainerProps {
   articleId?: string;
@@ -31,7 +32,7 @@ const ArticleFormContainer: React.FC<ArticleFormContainerProps> = ({
     categoryName
   });
 
-  // Initialize form logic
+  // Initialize form logic with proper typing
   const form = useArticleFormLogic({ articleType });
   const { handleSubmit, watch, formState: { isDirty, isSubmitting } } = form;
 

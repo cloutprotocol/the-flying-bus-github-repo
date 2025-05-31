@@ -11,6 +11,7 @@ import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
 import { useToast } from '@/hooks/use-toast';
 import ArticleSubmitDialog from './ArticleSubmitDialog';
 import { UseFormReturn } from 'react-hook-form';
+import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
 interface EnhancedFormActionsProps {
   onSaveDraft: () => Promise<void>;
@@ -22,7 +23,7 @@ interface EnhancedFormActionsProps {
   saveStatus: DraftSaveStatus;
   hasRevisions: boolean;
   disableSubmit?: boolean;
-  form?: UseFormReturn<any>;
+  form?: UseFormReturn<ArticleFormSchemaType>;
   content?: string;
 }
 
