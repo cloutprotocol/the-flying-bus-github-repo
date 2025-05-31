@@ -10,17 +10,17 @@ interface UseArticleFormLogicProps {
 export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) => {
   console.log('useArticleFormLogic: Initializing for article type:', articleType);
 
-  // Create clean, type-specific default values that match the Zod discriminated union EXACTLY
+  // Create clean, simple default values for form initialization
   const getDefaultValues = (type: string): ArticleFormSchemaType => {
     console.log('getDefaultValues: Creating defaults for type:', type);
     
-    // Base defaults that all articles need (required fields with proper non-empty values)
+    // Base defaults - simple empty strings that users will fill
     const baseDefaults = {
-      title: '', // Will be filled by user
-      content: '', // Will be filled by user  
+      title: '',
+      content: '',  
       excerpt: '',
-      imageUrl: '', // Will be filled by user
-      categoryId: '', // Will be set by category lookup
+      imageUrl: '',
+      categoryId: '',
       slug: '',
       status: 'draft' as const,
       publishDate: null,
@@ -28,37 +28,31 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
       allowVoting: false,
     };
 
-    console.log('Base defaults created:', baseDefaults);
-
-    // Return type-specific defaults with discriminated union structure
-    let defaults: ArticleFormSchemaType;
-    
+    // Return type-specific defaults with clean structure
     switch (type) {
       case 'video':
-        defaults = {
+        return {
           ...baseDefaults,
           articleType: 'video' as const,
-          videoUrl: '', // Required for video type
+          videoUrl: '',
         };
-        break;
       
       case 'debate':
-        defaults = {
+        return {
           ...baseDefaults,
           articleType: 'debate' as const,
-          content: '', // Optional for debates
+          content: '', // Optional for debates but we'll start with empty
           debateSettings: {
-            question: '', // Will be filled by user
-            yesPosition: '', // Will be filled by user
-            noPosition: '', // Will be filled by user
+            question: '',
+            yesPosition: '',
+            noPosition: '',
             votingEnabled: true,
             voting_ends_at: null
           }
         };
-        break;
       
       case 'storyboard':
-        defaults = {
+        return {
           ...baseDefaults,
           articleType: 'storyboard' as const,
           storyboardEpisodes: [{
@@ -71,47 +65,27 @@ export const useArticleFormLogic = ({ articleType }: UseArticleFormLogicProps) =
             content: ''
           }]
         };
-        break;
       
-      default: // 'standard' type (headliners, etc.)
-        defaults = {
+      default: // 'standard' type
+        return {
           ...baseDefaults,
           articleType: 'standard' as const,
         };
-        break;
     }
-
-    console.log('Final defaults for type', type, ':', defaults);
-    return defaults;
   };
 
   // Get default values for this article type
   const defaultValues = getDefaultValues(articleType);
   
-  // Validate that our default values conform to the schema
-  try {
-    const validationResult = articleFormSchema.safeParse(defaultValues);
-    if (!validationResult.success) {
-      console.warn('Default values validation failed:', validationResult.error);
-      console.warn('Will proceed without Zod resolver to prevent initialization errors');
-    } else {
-      console.log('Default values validation passed');
-    }
-  } catch (error) {
-    console.error('Error validating default values:', error);
-  }
-
-  // Initialize form with conditional Zod validation - disable during initialization to prevent errors
+  // Initialize form with Zod resolver - it will handle validation properly
   const form = useForm<ArticleFormSchemaType>({
-    // Temporarily disable Zod resolver during initialization to prevent validation conflicts
-    // resolver: zodResolver(articleFormSchema),
+    resolver: zodResolver(articleFormSchema),
     defaultValues: defaultValues,
-    mode: 'onSubmit', // Only validate when user submits
+    mode: 'onSubmit', // Only validate on submit to avoid premature validation
     reValidateMode: 'onChange'
   });
 
   console.log('Form initialized successfully for article type:', articleType);
-  console.log('Form values after initialization:', form.getValues());
 
   return form;
 };

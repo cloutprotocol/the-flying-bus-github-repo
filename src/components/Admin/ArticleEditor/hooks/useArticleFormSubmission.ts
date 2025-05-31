@@ -49,30 +49,18 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Convert form data to clean database format with proper field mapping
+  // Convert form data to clean database format
   const convertToArticleFormData = (data: ArticleFormSchemaType): ArticleFormData => {
     console.log('Converting form data for article type:', data.articleType, data);
-    
-    // Manual validation for required fields
-    const missingFields = [];
-    if (!data.title?.trim()) missingFields.push('title');
-    if (!data.content?.trim() && data.articleType !== 'debate') missingFields.push('content');
-    if (!data.imageUrl?.trim()) missingFields.push('imageUrl');
-    if (!data.categoryId?.trim()) missingFields.push('categoryId');
-    
-    if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields);
-      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-    }
     
     // Start with base data that all article types need
     const baseData = {
       id: articleId,
-      title: data.title.trim(),
+      title: data.title?.trim() || '',
       content: data.content?.trim() || '',
       excerpt: data.excerpt?.trim() || '',
-      imageUrl: data.imageUrl.trim(),
-      categoryId: data.categoryId.trim(),
+      imageUrl: data.imageUrl?.trim() || '',
+      categoryId: data.categoryId?.trim() || '',
       slug: data.slug?.trim() || '',
       articleType: data.articleType,
       status: data.status,
@@ -81,9 +69,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
       allowVoting: data.allowVoting,
     };
 
-    console.log('Base data after conversion:', baseData);
-
-    // Only add type-specific fields for the appropriate article type
+    // Add type-specific fields
     switch (data.articleType) {
       case 'video':
         return {
@@ -96,9 +82,9 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
           ...baseData,
           content: data.content?.trim() || '',
           debateSettings: data.debateSettings ? {
-            question: data.debateSettings.question.trim(),
-            yesPosition: data.debateSettings.yesPosition.trim(),
-            noPosition: data.debateSettings.noPosition.trim(),
+            question: data.debateSettings.question?.trim() || '',
+            yesPosition: data.debateSettings.yesPosition?.trim() || '',
+            noPosition: data.debateSettings.noPosition?.trim() || '',
             votingEnabled: data.debateSettings.votingEnabled,
             voting_ends_at: data.debateSettings.voting_ends_at
           } : undefined,
@@ -108,23 +94,22 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         return {
           ...baseData,
           storyboardEpisodes: (data.storyboardEpisodes || []).map(episode => ({
-            title: episode.title.trim(),
-            description: episode.description.trim(),
-            videoUrl: episode.videoUrl.trim(),
-            thumbnailUrl: episode.thumbnailUrl.trim(),
-            duration: episode.duration.trim(),
+            title: episode.title?.trim() || '',
+            description: episode.description?.trim() || '',
+            videoUrl: episode.videoUrl?.trim() || '',
+            thumbnailUrl: episode.thumbnailUrl?.trim() || '',
+            duration: episode.duration?.trim() || '',
             number: episode.number,
-            content: episode.content.trim()
+            content: episode.content?.trim() || ''
           }))
         };
       
-      default: // 'standard' article type (headliners)
-        console.log('Converting standard article with base data only');
+      default: // 'standard' article type
         return baseData;
     }
   };
 
-  // Save draft function with validation
+  // Save draft function
   const handleSaveDraft = async (): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -138,13 +123,6 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     setIsSaving(true);
     try {
       const formData = form.getValues();
-      console.log('Saving draft with form data:', formData);
-      
-      // Validate before converting
-      if (!validateFormData(formData)) {
-        return;
-      }
-      
       const convertedData = convertToArticleFormData(formData);
       console.log('Saving draft with converted data:', convertedData);
       
@@ -159,7 +137,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         throw new Error(result.error || 'Failed to save draft');
       }
     } catch (error) {
-      console.error('useArticleFormSubmission: Save draft error:', error);
+      console.error('Save draft error:', error);
       toast({
         title: "Save failed",
         description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
@@ -170,7 +148,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
     }
   };
 
-  // Submit function with enhanced validation
+  // Submit function with proper validation
   const handleSubmit = async (data: ArticleFormSchemaType): Promise<void> => {
     if (!user?.id) {
       toast({
@@ -205,7 +183,7 @@ export const useArticleFormSubmission = ({ form, articleId }: UseArticleFormSubm
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {
-      console.error('useArticleFormSubmission: Submit error:', error);
+      console.error('Submit error:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
