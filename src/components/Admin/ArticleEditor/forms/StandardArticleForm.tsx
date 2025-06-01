@@ -6,6 +6,7 @@ import { Form } from '@/components/ui/form';
 import { standardArticleSchema, StandardArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { useStandardArticleSubmission } from '../hooks/useStandardArticleSubmission';
 import { useCategoryResolver } from '@/hooks/article/useCategoryResolver';
+import { useArticleLoader } from '@/hooks/article/useArticleLoader';
 import StandardFormContent from './sections/StandardFormContent';
 import SimpleFormActions from '../SimpleFormActions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -31,17 +32,25 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     categoryName
   });
 
+  // Load existing article data for editing
+  const { articleData, isLoading: isLoadingArticle, error: articleError } = useArticleLoader(
+    !isNewArticle ? articleId : undefined
+  );
+
   // Pre-resolve category for new articles
   const { categoryData, isLoading: isCategoryLoading, error: categoryError } = useCategoryResolver(
     isNewArticle ? categorySlug : undefined,
     isNewArticle ? categoryName : undefined
   );
 
-  console.log('StandardArticleForm: Category resolution state:', {
+  console.log('StandardArticleForm: Data loading state:', {
+    isNewArticle,
+    articleData,
     categoryData,
+    isLoadingArticle,
     isCategoryLoading,
-    categoryError,
-    hasCategoryId: !!categoryData?.id
+    articleError,
+    categoryError
   });
 
   const form = useForm<StandardArticleFormData>({
@@ -61,25 +70,40 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     }
   });
 
-  console.log('StandardArticleForm: Form state:', {
-    formValues: form.getValues(),
-    formErrors: form.formState.errors,
-    isDirty: form.formState.isDirty,
-    isValid: form.formState.isValid,
-    isSubmitting: form.formState.isSubmitting
-  });
+  // Load existing article data into form
+  useEffect(() => {
+    if (!isNewArticle && articleData) {
+      console.log('StandardArticleForm: Loading existing article data into form:', {
+        title: articleData.title,
+        categoryId: articleData.categoryId,
+        categoryName: articleData.categoryName
+      });
+      
+      form.reset({
+        title: articleData.title,
+        content: articleData.content,
+        excerpt: articleData.excerpt,
+        imageUrl: articleData.imageUrl,
+        categoryId: articleData.categoryId,
+        slug: articleData.slug,
+        articleType: articleData.articleType as any,
+        status: articleData.status as any,
+        publishDate: null,
+        shouldHighlight: false,
+        allowVoting: false
+      });
+    }
+  }, [articleData, isNewArticle, form]);
 
-  // Update form with resolved category data
+  // Update form with resolved category data for new articles
   useEffect(() => {
     if (isNewArticle && categoryData?.id) {
-      console.log('StandardArticleForm: Setting categoryId in form:', {
+      console.log('StandardArticleForm: Setting categoryId in form for new article:', {
         categoryId: categoryData.id,
         categoryName: categoryData.name
       });
       
       form.setValue('categoryId', categoryData.id);
-      
-      // Trigger validation to clear any existing errors
       form.trigger('categoryId');
     }
   }, [categoryData, isNewArticle, form]);
@@ -98,6 +122,32 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     errors: errors
   });
 
+  // Show loading state while loading article data for editing
+  if (!isNewArticle && isLoadingArticle) {
+    console.log('StandardArticleForm: Showing loading state for article data');
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading article...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if article loading failed
+  if (!isNewArticle && articleError) {
+    console.error('StandardArticleForm: Article loading failed:', articleError);
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {articleError}. Please try again or check if the article exists.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   // Show loading state while resolving category for new articles
   if (isNewArticle && isCategoryLoading) {
     console.log('StandardArticleForm: Showing loading state for category resolution');
@@ -111,7 +161,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     );
   }
 
-  // Show error if category resolution failed
+  // Show error if category resolution failed for new articles
   if (isNewArticle && categoryError) {
     console.error('StandardArticleForm: Category resolution failed:', categoryError);
     return (
@@ -124,7 +174,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     );
   }
 
-  // Don't render form until we have category data for new articles
+  // Don't render form until we have necessary data
   if (isNewArticle && !categoryData) {
     console.log('StandardArticleForm: Waiting for category data...');
     return (
@@ -132,6 +182,18 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isNewArticle && !articleData) {
+    console.log('StandardArticleForm: Waiting for article data...');
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading article data...</p>
         </div>
       </div>
     );
@@ -206,6 +268,13 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     }
   });
 
+  // Prepare category data for the form content
+  const resolvedCategoryForForm = isNewArticle 
+    ? categoryData 
+    : articleData 
+      ? { id: articleData.categoryId, name: articleData.categoryName, slug: '' }
+      : null;
+
   return (
     <Form {...form}>
       <form onSubmit={handleFormSubmit} className="space-y-6">
@@ -213,7 +282,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
           form={form}
           isSubmitting={isSubmitting}
           isNewArticle={isNewArticle}
-          resolvedCategoryData={isNewArticle ? categoryData : undefined}
+          resolvedCategoryData={resolvedCategoryForForm}
         />
         
         <SimpleFormActions 
@@ -249,7 +318,8 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
                 <pre className="mt-2 whitespace-pre-wrap">
                   {JSON.stringify({
                     formValues: form.getValues(),
-                    categoryData,
+                    categoryData: resolvedCategoryForForm,
+                    articleData: articleData,
                     isFormDisabled,
                     formErrors: errors
                   }, null, 2)}

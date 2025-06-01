@@ -32,7 +32,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   resolvedCategoryData
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(!isNewArticle);
+  const [loading, setLoading] = useState(false);
 
   console.log('CategorySelector: Rendering with props:', {
     isNewArticle,
@@ -41,16 +41,15 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   });
 
   useEffect(() => {
-    // For new articles with resolved category data, don't fetch categories
-    if (isNewArticle && resolvedCategoryData) {
-      console.log('CategorySelector: Using resolved category data, skipping fetch');
-      setLoading(false);
+    // Only fetch categories for new articles without resolved category data
+    if (!isNewArticle || resolvedCategoryData) {
+      console.log('CategorySelector: Skipping category fetch - editing existing article or have resolved data');
       return;
     }
 
     const fetchCategories = async () => {
       try {
-        console.log('CategorySelector: Fetching categories for existing article');
+        console.log('CategorySelector: Fetching categories for new article');
         setLoading(true);
         const { data, error } = await supabase
           .from('categories')
@@ -66,7 +65,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         if (data) {
           console.log('CategorySelector: Categories fetched successfully:', data);
           setCategories(data);
-          logger.info(LogSource.EDITOR, 'Categories fetched for existing article');
+          logger.info(LogSource.EDITOR, 'Categories fetched for new article');
         }
       } catch (err) {
         console.error('CategorySelector: Exception fetching categories:', err);
@@ -90,9 +89,26 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     });
   }, [currentCategoryId, resolvedCategoryData?.id]);
 
-  // For new articles with resolved category data, show read-only display
-  if (isNewArticle && resolvedCategoryData) {
-    console.log('CategorySelector: Rendering read-only category display for:', resolvedCategoryData.name);
+  // For editing existing articles OR new articles with resolved category data, show read-only display
+  if (!isNewArticle || (isNewArticle && resolvedCategoryData)) {
+    const displayCategory = resolvedCategoryData;
+    
+    if (!displayCategory) {
+      console.warn('CategorySelector: No category data available for read-only display');
+      return (
+        <div className="space-y-3">
+          <Label>Category</Label>
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Category information is not available.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    console.log('CategorySelector: Rendering read-only category display for:', displayCategory.name);
     return (
       <div className="space-y-3">
         <Label>Category</Label>
@@ -100,8 +116,9 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           <Info className="h-4 w-4" />
           <AlertDescription>
             <div className="flex items-center gap-2">
-              <span>{getCategoryIcon(resolvedCategoryData.name)}</span>
-              <strong>{resolvedCategoryData.name}</strong> has been selected for this article.
+              <span>{getCategoryIcon(displayCategory.name)}</span>
+              <strong>{displayCategory.name}</strong>
+              {!isNewArticle && <span className="text-muted-foreground">(cannot be changed when editing)</span>}
             </div>
           </AlertDescription>
         </Alert>
@@ -109,14 +126,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         {/* Debug info for development */}
         {process.env.NODE_ENV === 'development' && (
           <div className="text-xs text-muted-foreground">
-            Debug: Category ID = {resolvedCategoryData.id}
+            Debug: Category ID = {displayCategory.id}, isNewArticle = {isNewArticle.toString()}
           </div>
         )}
       </div>
     );
   }
 
-  // For existing articles, show the full selector
+  // For new articles without resolved category data, show the full selector
   console.log('CategorySelector: Rendering full category selector with', categories.length, 'categories');
   
   return (
