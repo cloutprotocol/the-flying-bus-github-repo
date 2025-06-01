@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { AuthResponse } from '@/types/auth/AuthTypes';
@@ -67,7 +66,7 @@ export async function registerUser(
       return createAuthResponse(false, new Error('Registration failed'));
     }
     
-    // Create the user profile
+    // Create the user profile with only existing columns
     const { error: profileError } = await supabase.from('profiles').upsert({
       id: data.user.id,
       username,
@@ -75,11 +74,7 @@ export async function registerUser(
       email,
       role: 'reader',
       avatar_url: '',
-      bio: '',
-      badges: [],
-      reading_streak: 0,
-      comment_count: 0,
-      achievements: []
+      bio: ''
     });
     
     if (profileError) {
