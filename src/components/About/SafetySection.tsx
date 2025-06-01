@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Eye, Lock, UserCheck } from 'lucide-react';
@@ -31,7 +30,7 @@ const SafetySection = () => {
     <section className="py-16 md:py-20 bg-gradient-to-br from-flyingbus-green/5 to-flyingbus-blue/5">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-flyingbus-purple mb-4">
+          <h2 className="section-headline">
             Safety First, Always
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -61,7 +60,7 @@ const SafetySection = () => {
         </div>
         
         <div className="bg-white rounded-2xl p-8 shadow-sm">
-          <h3 className="text-2xl font-bold text-flyingbus-purple mb-4">For Parents</h3>
+          <h3 className="subsection-headline">For Parents</h3>
           <div className="prose prose-lg max-w-none text-gray-700">
             <p className="mb-4">
               The Flying Bus provides a nurturing digital environment where children can develop 
