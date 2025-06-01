@@ -27,7 +27,8 @@ export class UnifiedSubmissionService {
         hasId: !!formData.id,
         title: formData.title?.substring(0, 30),
         userId,
-        categoryId: formData.categoryId
+        categoryId: formData.categoryId,
+        shouldHighlight: formData.shouldHighlight
       });
 
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
@@ -45,8 +46,27 @@ export class UnifiedSubmissionService {
         return { success: false, error: 'Category is required' };
       }
 
+      // Handle featured article constraint
+      if (formData.shouldHighlight) {
+        console.log('Article marked as featured, unfeaturing existing featured articles...');
+        
+        // First, unfeatured any existing featured articles
+        const { error: unfeaturedError } = await supabase
+          .from('articles')
+          .update({ featured: false })
+          .eq('featured', true);
+        
+        if (unfeaturedError) {
+          console.error('Error unfeaturing existing articles:', unfeaturedError);
+          return { success: false, error: 'Failed to update existing featured article' };
+        }
+      }
+
       // Map and validate form data with updated field mapping
       const mappedData = mapFormDataToDatabase(formData, userId);
+      // Add featured field mapping
+      mappedData.featured = formData.shouldHighlight || false;
+      
       const validation = validateMappedData(mappedData);
 
       if (!validation.isValid) {
@@ -145,7 +165,8 @@ export class UnifiedSubmissionService {
         articleType: formData.articleType,
         hasId: !!formData.id,
         title: formData.title?.substring(0, 30),
-        categoryId: formData.categoryId
+        categoryId: formData.categoryId,
+        shouldHighlight: formData.shouldHighlight
       });
 
       logger.info(LogSource.ARTICLE, 'Saving article draft', {
@@ -158,9 +179,25 @@ export class UnifiedSubmissionService {
         return { success: false, error: 'Title is required' };
       }
 
+      // Handle featured article constraint for drafts too
+      if (formData.shouldHighlight) {
+        console.log('Draft marked as featured, unfeaturing existing featured articles...');
+        
+        const { error: unfeaturedError } = await supabase
+          .from('articles')
+          .update({ featured: false })
+          .eq('featured', true);
+        
+        if (unfeaturedError) {
+          console.error('Error unfeaturing existing articles:', unfeaturedError);
+          return { success: false, error: 'Failed to update existing featured article' };
+        }
+      }
+
       const mappedData = mapFormDataToDatabase(formData, userId);
-      // Override status to draft for save operations
+      // Override status to draft for save operations and add featured mapping
       mappedData.status = ARTICLE_STATUS?.DRAFT || 'draft';
+      mappedData.featured = formData.shouldHighlight || false;
 
       console.log('Mapped data for draft save:', {
         ...mappedData,

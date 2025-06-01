@@ -1,18 +1,15 @@
 
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { StoryboardArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import CategorySelector from '../../CategorySelector';
-import RichTextEditor from '../../RichTextEditor';
 import MediaSelector from '../../MediaSelector';
 import MetadataFields from '../../MetadataFields';
 import StoryboardFields from '../../StoryboardFields';
 
 interface StoryboardFormContentProps {
-  form: UseFormReturn<StoryboardArticleFormData>;
+  form: any;
   isSubmitting: boolean;
   isNewArticle?: boolean;
   resolvedCategoryData?: {
@@ -37,7 +34,11 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
           <FormItem>
             <FormLabel>Series Title</FormLabel>
             <FormControl>
-              <Input placeholder="Enter storyboard series title" {...field} disabled={isSubmitting} />
+              <Input 
+                placeholder="Enter series title..." 
+                {...field} 
+                disabled={isSubmitting}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -50,7 +51,24 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <MediaSelector form={form} />
+      <FormField
+        control={form.control}
+        name="imageUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Series Cover Image</FormLabel>
+            <FormControl>
+              <MediaSelector
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select or upload series cover image"
+                accept="image/*"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}
@@ -60,7 +78,9 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
             <FormLabel>Series Description</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Brief description of the series..."
+                placeholder="Brief description of the storyboard series..."
+                className="resize-none"
+                rows={3}
                 {...field}
                 disabled={isSubmitting}
               />
@@ -70,27 +90,9 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="content"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Series Overview</FormLabel>
-            <FormControl>
-              <RichTextEditor
-                value={field.value}
-                onChange={field.onChange}
-                disabled={isSubmitting}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <StoryboardFields form={form} disabled={isSubmitting} />
 
-      <StoryboardFields form={form} />
-
-      <MetadataFields form={form} />
+      <MetadataFields form={form} articleType="storyboard" />
     </div>
   );
 };

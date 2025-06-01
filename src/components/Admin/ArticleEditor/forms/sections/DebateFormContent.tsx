@@ -1,18 +1,15 @@
 
-import React, { useEffect } from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { DebateArticleFormData } from '@/utils/validation/separateFormSchemas';
+import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import CategorySelector from '../../CategorySelector';
 import RichTextEditor from '../../RichTextEditor';
+import CategorySelector from '../../CategorySelector';
 import MediaSelector from '../../MediaSelector';
 import MetadataFields from '../../MetadataFields';
-import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 interface DebateFormContentProps {
-  form: UseFormReturn<DebateArticleFormData>;
+  form: any;
   isSubmitting: boolean;
   isNewArticle?: boolean;
   resolvedCategoryData?: {
@@ -28,17 +25,6 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
   isNewArticle = false,
   resolvedCategoryData
 }) => {
-  const titleValue = form.watch('title');
-
-  // Auto-generate slug when title changes (matching reference document pattern)
-  useEffect(() => {
-    if (titleValue && titleValue.trim()) {
-      const newSlug = generateClientSideSlug(titleValue);
-      form.setValue('slug', newSlug);
-      console.log('Auto-generated slug for debate:', newSlug);
-    }
-  }, [titleValue, form]);
-
   return (
     <div className="space-y-6">
       <FormField
@@ -46,9 +32,13 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Title</FormLabel>
+            <FormLabel>Debate Title</FormLabel>
             <FormControl>
-              <Input placeholder="Enter debate article title" {...field} disabled={isSubmitting} />
+              <Input 
+                placeholder="Enter debate title..." 
+                {...field} 
+                disabled={isSubmitting}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -61,7 +51,24 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <MediaSelector form={form} />
+      <FormField
+        control={form.control}
+        name="imageUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Featured Image</FormLabel>
+            <FormControl>
+              <MediaSelector
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select or upload featured image"
+                accept="image/*"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}
@@ -70,8 +77,28 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
           <FormItem>
             <FormLabel>Debate Question</FormLabel>
             <FormControl>
+              <Input 
+                placeholder="What is the main question for this debate?" 
+                {...field} 
+                disabled={isSubmitting}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="debateSettings.yesPosition"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Yes Position</FormLabel>
+            <FormControl>
               <Textarea 
-                placeholder="What question should readers debate about?"
+                placeholder="Describe the 'Yes' side of the debate..."
+                className="resize-none"
+                rows={3}
                 {...field}
                 disabled={isSubmitting}
               />
@@ -81,53 +108,17 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
         )}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="debateSettings.yesPosition"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Yes Position</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Argument for the yes side..."
-                  {...field}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="debateSettings.noPosition"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>No Position</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Argument for the no side..."
-                  {...field}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
       <FormField
         control={form.control}
-        name="excerpt"
+        name="debateSettings.noPosition"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Excerpt (Optional)</FormLabel>
+            <FormLabel>No Position</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Brief description of the debate..."
+                placeholder="Describe the 'No' side of the debate..."
+                className="resize-none"
+                rows={3}
                 {...field}
                 disabled={isSubmitting}
               />
@@ -142,11 +133,12 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
         name="content"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Additional Content (Optional)</FormLabel>
+            <FormLabel>Additional Context</FormLabel>
             <FormControl>
               <RichTextEditor
-                value={field.value || ''}
+                value={field.value}
                 onChange={field.onChange}
+                placeholder="Provide background information or context for the debate..."
                 disabled={isSubmitting}
               />
             </FormControl>
@@ -155,7 +147,7 @@ const DebateFormContent: React.FC<DebateFormContentProps> = ({
         )}
       />
 
-      <MetadataFields form={form} />
+      <MetadataFields form={form} articleType="debate" />
     </div>
   );
 };

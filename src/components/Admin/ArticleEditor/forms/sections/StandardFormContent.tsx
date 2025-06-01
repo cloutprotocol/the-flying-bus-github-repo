@@ -1,18 +1,15 @@
 
-import React, { useEffect } from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { StandardArticleFormData } from '@/utils/validation/separateFormSchemas';
+import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import CategorySelector from '../../CategorySelector';
 import RichTextEditor from '../../RichTextEditor';
+import CategorySelector from '../../CategorySelector';
 import MediaSelector from '../../MediaSelector';
 import MetadataFields from '../../MetadataFields';
-import { generateClientSideSlug } from '@/utils/article/slugGenerator';
 
 interface StandardFormContentProps {
-  form: UseFormReturn<StandardArticleFormData>;
+  form: any;
   isSubmitting: boolean;
   isNewArticle?: boolean;
   resolvedCategoryData?: {
@@ -28,17 +25,6 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
   isNewArticle = false,
   resolvedCategoryData
 }) => {
-  const titleValue = form.watch('title');
-
-  // Auto-generate slug when title changes
-  useEffect(() => {
-    if (titleValue && titleValue.trim()) {
-      const newSlug = generateClientSideSlug(titleValue);
-      form.setValue('slug', newSlug);
-      console.log('Auto-generated slug:', newSlug);
-    }
-  }, [titleValue, form]);
-
   return (
     <div className="space-y-6">
       <FormField
@@ -48,7 +34,11 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
           <FormItem>
             <FormLabel>Title</FormLabel>
             <FormControl>
-              <Input placeholder="Enter article title" {...field} disabled={isSubmitting} />
+              <Input 
+                placeholder="Enter article title..." 
+                {...field} 
+                disabled={isSubmitting}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -61,17 +51,36 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <MediaSelector form={form} />
+      <FormField
+        control={form.control}
+        name="imageUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Featured Image</FormLabel>
+            <FormControl>
+              <MediaSelector
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select or upload featured image"
+                accept="image/*"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}
         name="excerpt"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Excerpt (Optional)</FormLabel>
+            <FormLabel>Excerpt</FormLabel>
             <FormControl>
               <Textarea 
                 placeholder="Brief description of the article..."
+                className="resize-none"
+                rows={3}
                 {...field}
                 disabled={isSubmitting}
               />
@@ -91,6 +100,7 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
               <RichTextEditor
                 value={field.value}
                 onChange={field.onChange}
+                placeholder="Write your article content here..."
                 disabled={isSubmitting}
               />
             </FormControl>
@@ -99,7 +109,7 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
         )}
       />
 
-      <MetadataFields form={form} />
+      <MetadataFields form={form} articleType="standard" />
     </div>
   );
 };

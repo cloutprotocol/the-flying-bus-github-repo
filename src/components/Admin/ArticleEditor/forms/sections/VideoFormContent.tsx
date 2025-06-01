@@ -1,17 +1,14 @@
 
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { VideoArticleFormData } from '@/utils/validation/separateFormSchemas';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import CategorySelector from '../../CategorySelector';
-import RichTextEditor from '../../RichTextEditor';
 import MediaSelector from '../../MediaSelector';
 import MetadataFields from '../../MetadataFields';
 
 interface VideoFormContentProps {
-  form: UseFormReturn<VideoArticleFormData>;
+  form: any;
   isSubmitting: boolean;
   isNewArticle?: boolean;
   resolvedCategoryData?: {
@@ -36,7 +33,11 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
           <FormItem>
             <FormLabel>Title</FormLabel>
             <FormControl>
-              <Input placeholder="Enter video article title" {...field} disabled={isSubmitting} />
+              <Input 
+                placeholder="Enter video title..." 
+                {...field} 
+                disabled={isSubmitting}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -49,8 +50,6 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <MediaSelector form={form} />
-
       <FormField
         control={form.control}
         name="videoUrl"
@@ -59,9 +58,28 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
             <FormLabel>Video URL</FormLabel>
             <FormControl>
               <Input 
-                placeholder="https://youtube.com/watch?v=..."
-                {...field}
+                placeholder="Enter video URL..." 
+                {...field} 
                 disabled={isSubmitting}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="imageUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Thumbnail Image</FormLabel>
+            <FormControl>
+              <MediaSelector
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select or upload thumbnail image"
+                accept="image/*"
               />
             </FormControl>
             <FormMessage />
@@ -74,10 +92,12 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
         name="excerpt"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Excerpt (Optional)</FormLabel>
+            <FormLabel>Description</FormLabel>
             <FormControl>
               <Textarea 
                 placeholder="Brief description of the video..."
+                className="resize-none"
+                rows={3}
                 {...field}
                 disabled={isSubmitting}
               />
@@ -87,25 +107,7 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="content"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Content</FormLabel>
-            <FormControl>
-              <RichTextEditor
-                value={field.value}
-                onChange={field.onChange}
-                disabled={isSubmitting}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <MetadataFields form={form} />
+      <MetadataFields form={form} articleType="video" />
     </div>
   );
 };

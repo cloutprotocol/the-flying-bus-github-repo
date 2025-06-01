@@ -23,6 +23,8 @@ export const mapFormDataToDatabase = (formData: ArticleFormData, userId: string)
     articleType: formData.articleType,
     slug: formData.slug,
     publishDate: formData.publishDate,
+    // Map shouldHighlight to featured field
+    featured: formData.shouldHighlight || false,
     shouldHighlight: formData.shouldHighlight,
     allowVoting: formData.allowVoting,
     debateSettings: formData.debateSettings,

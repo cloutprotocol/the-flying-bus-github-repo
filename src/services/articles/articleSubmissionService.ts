@@ -20,6 +20,7 @@ export const submitArticleOptimized = async (
       imageUrl: formData.imageUrl,
       contentLength: formData.content?.length,
       articleType: formData.articleType,
+      shouldHighlight: formData.shouldHighlight,
       publishImmediately
     });
 
@@ -37,6 +38,22 @@ export const submitArticleOptimized = async (
       return { success: false, error: 'Category is required' };
     }
 
+    // Handle featured article constraint
+    if (formData.shouldHighlight) {
+      console.log('Article marked as featured, checking for existing featured article...');
+      
+      // First, unfeatured any existing featured articles
+      const { error: unfeaturedError } = await supabase
+        .from('articles')
+        .update({ featured: false })
+        .eq('featured', true);
+      
+      if (unfeaturedError) {
+        console.error('Error unfeaturing existing articles:', unfeaturedError);
+        return { success: false, error: 'Failed to update existing featured article' };
+      }
+    }
+
     // Map form data to database fields
     const articleData = {
       title: formData.title.trim(),
@@ -44,6 +61,7 @@ export const submitArticleOptimized = async (
       excerpt: formData.excerpt?.trim() || '',
       cover_image: formData.imageUrl.trim(), // Map imageUrl to cover_image
       category_id: formData.categoryId.trim(), // Map categoryId to category_id
+      featured: formData.shouldHighlight || false, // Map shouldHighlight to featured
       status: publishImmediately ? 'published' : 'pending_review',
       article_type: formData.articleType || 'standard',
       slug: formData.slug?.trim() || formData.title?.toLowerCase().replace(/\s+/g, '-'),
@@ -51,7 +69,10 @@ export const submitArticleOptimized = async (
       published_at: publishImmediately ? new Date().toISOString() : null
     };
 
-    console.log('Mapped article data for database:', articleData);
+    console.log('Mapped article data for database:', {
+      ...articleData,
+      content: articleData.content.substring(0, 50) + '...'
+    });
 
     if (formData.id) {
       // Update existing article
