@@ -31,13 +31,18 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
     // Always generate a fresh slug for submission to avoid duplicates
     const submissionSlug = generateSubmissionSlug(data.title || '');
     
-    // Convert debate settings to ensure required fields are present
+    // Convert debate settings to ensure required fields are present with proper date handling
     const debateSettings: DebateSettings = {
       question: data.debateSettings?.question || '',
       yesPosition: data.debateSettings?.yesPosition || '',
       noPosition: data.debateSettings?.noPosition || '',
       votingEnabled: data.debateSettings?.votingEnabled ?? true,
-      voting_ends_at: data.debateSettings?.voting_ends_at || null
+      // Convert Date to string if needed, otherwise use as-is
+      voting_ends_at: data.debateSettings?.voting_ends_at 
+        ? (data.debateSettings.voting_ends_at instanceof Date 
+           ? data.debateSettings.voting_ends_at.toISOString() 
+           : data.debateSettings.voting_ends_at)
+        : null
     };
 
     return {
@@ -50,7 +55,10 @@ export const useDebateArticleSubmission = ({ form, articleId }: UseDebateArticle
       slug: submissionSlug, // Use fresh generated slug
       articleType: 'debate',
       status: convertedStatus as any,
-      publishDate: data.publishDate,
+      // Convert Date to string if needed, otherwise use as-is
+      publishDate: data.publishDate 
+        ? (data.publishDate instanceof Date ? data.publishDate.toISOString() : data.publishDate)
+        : null,
       shouldHighlight: data.shouldHighlight || false,
       allowVoting: data.allowVoting || false,
       debateSettings

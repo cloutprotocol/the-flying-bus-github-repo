@@ -46,7 +46,10 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
       slug: data.slug || '',
       articleType: 'storyboard',
       status: convertedStatus as any,
-      publishDate: data.publishDate,
+      // Convert Date to string if needed, otherwise use as-is
+      publishDate: data.publishDate 
+        ? (data.publishDate instanceof Date ? data.publishDate.toISOString() : data.publishDate)
+        : null,
       shouldHighlight: data.shouldHighlight,
       allowVoting: data.allowVoting,
       storyboardEpisodes: episodes
