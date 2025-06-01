@@ -80,6 +80,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
           )}
           <Button 
             type="submit" 
+            variant="outline"
             disabled={!comment.trim() || isSubmitting || !isLoggedIn}
             size="sm"
           >
