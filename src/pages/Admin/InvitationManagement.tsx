@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
@@ -51,7 +50,13 @@ const InvitationManagement = () => {
         return;
       }
 
-      setInvitations(result.data || []);
+      // Type-safe mapping to ensure status is properly typed
+      const typedInvitations = (result.data || []).map(invitation => ({
+        ...invitation,
+        status: invitation.status as 'pending' | 'approved' | 'denied'
+      }));
+
+      setInvitations(typedInvitations);
     } catch (error) {
       console.error('Error loading invitations:', error);
       toast({
@@ -138,7 +143,7 @@ const InvitationManagement = () => {
           
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-500" />
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={(value: 'all' | 'pending' | 'approved' | 'denied') => setFilterStatus(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>

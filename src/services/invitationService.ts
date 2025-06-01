@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface InvitationRequest {
@@ -13,6 +12,14 @@ export interface InvitationRequest {
   reviewed_at?: string | null;
   reviewer_id?: string | null;
   child_user_id?: string | null;
+  // Add these optional fields for the joined data
+  reviewer?: {
+    display_name: string;
+  } | null;
+  child_user?: {
+    display_name: string;
+    username: string;
+  } | null;
 }
 
 /**
