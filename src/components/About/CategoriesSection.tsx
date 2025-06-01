@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
-import { getCategoryIcon } from '@/utils/getCategoryIcon';
+import { getCategoryIconComponent } from '@/utils/getCategoryIcon';
 
 const categories = [
   { name: 'Headliners', path: '/headliners', description: 'Breaking news and top stories from young journalists' },
@@ -30,7 +29,7 @@ const CategoriesSection = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category, index) => {
-            const IconComponent = getCategoryIcon(category.name);
+            const IconComponent = getCategoryIconComponent(category.name);
             return (
               <Link key={index} to={category.path}>
                 <Card className="h-full group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer">
