@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SheetClose } from '@/components/ui/sheet';
@@ -8,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, LogOut, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RainbowButton } from '@/components/ui/rainbow-button';
+import { DrawerAuth } from '@/components/ui/drawer-auth';
 
 interface DrawerNavigationProps {
   items: NavItem[];
@@ -61,24 +63,29 @@ const DrawerNavigation: React.FC<DrawerNavigationProps> = ({ items }) => {
     
     return (
       <div className="mt-6 pt-6">
-        <div className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-2">Account</div>
+        <div className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-2">Get Started</div>
         <Separator className="mb-3" />
-        <SheetClose asChild>
-          <Link to="/reader-auth?tab=sign-in" className="block w-full mb-3">
-            <Button variant="outline" className="w-full flex items-center">
-              <User className="mr-2 h-4 w-4" />
-              Sign In
-            </Button>
-          </Link>
-        </SheetClose>
-        <SheetClose asChild>
-          <Link to="/reader-auth?tab=sign-up" className="block w-full">
-            <RainbowButton className="w-full flex items-center justify-center">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Join Us
-            </RainbowButton>
-          </Link>
-        </SheetClose>
+        <div className="space-y-3">
+          <DrawerAuth 
+            triggerComponent={
+              <Button variant="outline" className="w-full flex items-center">
+                <User className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+            }
+            defaultTab="sign-in"
+          />
+          
+          <DrawerAuth 
+            triggerComponent={
+              <RainbowButton className="w-full flex items-center justify-center">
+                <BookOpen className="mr-2 h-4 w-4" />
+                Join Us
+              </RainbowButton>
+            }
+            defaultTab="sign-up"
+          />
+        </div>
       </div>
     );
   };

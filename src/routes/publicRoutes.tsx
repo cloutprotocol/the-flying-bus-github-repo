@@ -9,11 +9,13 @@ import StoryboardCategoryPage from '@/pages/StoryboardCategoryPage';
 import StoryboardEpisodePage from '@/pages/StoryboardEpisodePage';
 import PublicProfile from '@/pages/PublicProfile';
 import Settings from '@/pages/Settings';
+import ReaderAuth from '@/pages/ReaderAuth';
 
 export const publicRoutes = [
   { path: "/", element: <Index /> },
   { path: "/about", element: <About /> },
   { path: "/article/:slug", element: <ArticlePage /> },
+  { path: "/reader-auth", element: <ReaderAuth /> },
   
   // Direct category routes matching the navigation URLs
   { path: "/headliners", element: <CategoryPage /> },
