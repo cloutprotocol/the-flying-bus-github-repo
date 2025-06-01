@@ -46,7 +46,7 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
       <DrawerContent className="bg-white">
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle className="text-flyingbus-purple">
+            <DrawerTitle className="text-gray-900">
               {activeTab === 'sign-in' ? 'Sign In' : 'Create Account'}
             </DrawerTitle>
             <DrawerDescription>
