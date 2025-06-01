@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Award, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import type { ReaderProfile, PrivacySettings, Achievement, AchievementType } from '@/types/ReaderProfile';
+import type { ReaderProfile, PrivacySettings } from '@/types/ReaderProfile';
 
 interface ProfileBadgesProps {
   profile: ReaderProfile;
@@ -12,7 +12,7 @@ interface ProfileBadgesProps {
 }
 
 const ProfileBadges = ({ profile, privacySettings }: ProfileBadgesProps) => {
-  const [achievements, setAchievements] = useState<(Achievement & { type: AchievementType })[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,21 +24,15 @@ const ProfileBadges = ({ profile, privacySettings }: ProfileBadgesProps) => {
       setLoading(true);
 
       if (privacySettings?.show_achievements !== false) {
+        // Fetch achievements without the broken relation for now
         const { data: userAchievements } = await supabase
           .from('user_achievements')
-          .select(`
-            *,
-            achievement_types!inner(*)
-          `)
+          .select('*')
           .eq('user_id', profile.id)
           .order('achieved_at', { ascending: false });
 
         if (userAchievements) {
-          const formattedAchievements = userAchievements.map(achievement => ({
-            ...achievement,
-            type: achievement.achievement_types
-          }));
-          setAchievements(formattedAchievements);
+          setAchievements(userAchievements);
         }
       }
     } catch (error) {
@@ -121,20 +115,20 @@ const ProfileBadges = ({ profile, privacySettings }: ProfileBadgesProps) => {
                   >
                     <div className="flex-shrink-0 mt-1">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg">
-                        {achievement.type.icon || '🏆'}
+                        🏆
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{achievement.type.name}</span>
+                        <span className="font-semibold">{achievement.achievement_name}</span>
                         <Badge variant="secondary" className="text-xs">
-                          {achievement.type.category}
+                          Achievement
                         </Badge>
                       </div>
                       
                       <p className="text-sm text-muted-foreground mb-2">
-                        {achievement.type.description}
+                        Achievement earned through participation
                       </p>
                       
                       <div className="text-xs text-muted-foreground">

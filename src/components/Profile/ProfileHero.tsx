@@ -46,9 +46,9 @@ const ProfileHero = ({ profile }: ProfileHeroProps) => {
           {/* Avatar */}
           <div className="relative">
             <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-              <AvatarImage src={profile.avatar} alt={profile.displayName} />
+              <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
               <AvatarFallback className="bg-white text-purple-600 text-2xl font-bold">
-                {getInitials(profile.displayName)}
+                {getInitials(profile.display_name)}
               </AvatarFallback>
             </Avatar>
             {/* Future badge indicator */}
@@ -59,7 +59,7 @@ const ProfileHero = ({ profile }: ProfileHeroProps) => {
 
           {/* Profile Info */}
           <div className="text-center md:text-left flex-1 text-white">
-            <h1 className="text-4xl font-bold mb-2">{profile.displayName}</h1>
+            <h1 className="text-4xl font-bold mb-2">{profile.display_name}</h1>
             <p className="text-xl opacity-90 mb-2">@{profile.username}</p>
             
             {profile.public_bio && (

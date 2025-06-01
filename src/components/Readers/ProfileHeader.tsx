@@ -12,6 +12,14 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ reader, isOwnProfile }) => {
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <div className="relative mb-16">
       {/* Gradient background */}
@@ -55,9 +63,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ reader, isOwnProfile }) =
       {/* Profile container with negative margin to create overlap */}
       <div className="absolute left-0 right-0 -mt-16 flex flex-col items-center">
         <Avatar className="h-32 w-32 border-4 border-white bg-white shadow-md">
-          <AvatarImage src={reader.avatar} alt={reader.displayName} />
+          <AvatarImage src={reader.avatar_url} alt={reader.display_name} />
           <AvatarFallback className="text-3xl bg-purple-50 text-purple-700">
-            {reader.displayName.substring(0, 2).toUpperCase()}
+            {getInitials(reader.display_name)}
           </AvatarFallback>
         </Avatar>
       </div>

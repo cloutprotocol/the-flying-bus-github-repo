@@ -101,9 +101,9 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
       .toUpperCase();
   };
   
-  const formatDate = (date?: Date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -120,14 +120,14 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatar} alt={user.displayName} />
+              <AvatarImage src={user.avatar_url} alt={user.display_name} />
               <AvatarFallback className="bg-neutral-700 text-white text-lg">
-                {getInitials(user.displayName)}
+                {getInitials(user.display_name)}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1 space-y-1 text-center sm:text-left">
-              <h3 className="font-medium text-lg">{user.displayName}</h3>
+              <h3 className="font-medium text-lg">{user.display_name}</h3>
               <div className="text-muted-foreground">@{user.username}</div>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start mt-2">
                 <Badge variant="outline">{user.role}</Badge>
@@ -148,8 +148,8 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input 
                     id="displayName" 
-                    value={editedUser.displayName}
-                    onChange={(e) => setEditedUser({...editedUser, displayName: e.target.value})}
+                    value={editedUser.display_name}
+                    onChange={(e) => setEditedUser({...editedUser, display_name: e.target.value})}
                   />
                 </div>
                 
@@ -174,7 +174,7 @@ const UserDetailDialog: React.FC<UserDetailDialogProps> = ({
                 
                 <div className="space-y-2">
                   <Label htmlFor="joined">Joined Date</Label>
-                  <Input id="joined" value={formatDate(user.joinedDate)} disabled />
+                  <Input id="joined" value={formatDate(user.created_at)} disabled />
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">

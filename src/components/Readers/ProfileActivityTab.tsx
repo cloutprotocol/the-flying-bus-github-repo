@@ -22,7 +22,7 @@ const ProfileActivityTab: React.FC<ProfileActivityTabProps> = ({ reader }) => {
             </div>
             <div>
               <p className="text-sm text-gray-500">Reading Streak</p>
-              <p className="text-xl font-medium">{reader.readingStreak || 0} days</p>
+              <p className="text-xl font-medium">0 days</p>
             </div>
           </div>
           
@@ -32,7 +32,7 @@ const ProfileActivityTab: React.FC<ProfileActivityTabProps> = ({ reader }) => {
             </div>
             <div>
               <p className="text-sm text-gray-500">Comments</p>
-              <p className="text-xl font-medium">{reader.commentCount} total</p>
+              <p className="text-xl font-medium">0 total</p>
             </div>
           </div>
         </div>

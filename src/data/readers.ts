@@ -5,58 +5,42 @@ const readers: ReaderProfile[] = [
   {
     id: '1',
     username: 'curious_reader',
-    displayName: 'Curious Reader',
+    display_name: 'Curious Reader',
     email: 'curious@theflyingbus.com',
     role: 'reader',
     bio: 'I love reading articles about science and space!',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    joinedDate: new Date('2024-02-15'),
-    badges: ['Frequent Commenter', 'Science Enthusiast'],
-    readingStreak: 12,
-    commentCount: 24,
-    achievements: ['First Comment', 'Read 10 Articles', 'Weekly Reader']
+    avatar_url: 'https://i.pravatar.cc/150?img=1',
+    created_at: new Date('2024-02-15').toISOString(),
   },
   {
     id: '2',
     username: 'young_journalist',
-    displayName: 'Sam Johnson',
+    display_name: 'Sam Johnson',
     email: 'sam@theflyingbus.com',
     role: 'author',
     bio: 'Aspiring journalist and science enthusiast.',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    joinedDate: new Date('2024-01-20'),
-    badges: ['Top Contributor', 'Story Writer'],
-    readingStreak: 30,
-    commentCount: 45,
-    achievements: ['First Article Published', 'Popular Writer', 'Community Favorite']
+    avatar_url: 'https://i.pravatar.cc/150?img=2',
+    created_at: new Date('2024-01-20').toISOString(),
   },
   {
     id: '3',
     username: 'content_moderator',
-    displayName: 'Alex Rodriguez',
+    display_name: 'Alex Rodriguez',
     email: 'alex@theflyingbus.com',
     role: 'moderator',
     bio: 'Helping keep The Flying Bus a safe and fun place for young journalists.',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    joinedDate: new Date('2023-12-10'),
-    badges: ['Mentor', 'Helpful Guide'],
-    readingStreak: 25,
-    commentCount: 36,
-    achievements: ['Content Guardian', 'Helped 10 Users', 'Quick Responder']
+    avatar_url: 'https://i.pravatar.cc/150?img=3',
+    created_at: new Date('2023-12-10').toISOString(),
   },
   {
     id: '4',
     username: 'admin_user',
-    displayName: 'Taylor Smith',
+    display_name: 'Taylor Smith',
     email: 'taylor@theflyingbus.com',
     role: 'admin',
     bio: 'Editor-in-chief at The Flying Bus.',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    joinedDate: new Date('2023-10-05'),
-    badges: ['Editor', 'Lead Contributor'],
-    readingStreak: 45,
-    commentCount: 52,
-    achievements: ['Site Administrator', 'Content Manager', 'Community Leader']
+    avatar_url: 'https://i.pravatar.cc/150?img=4',
+    created_at: new Date('2023-10-05').toISOString(),
   }
 ];
 
@@ -72,7 +56,6 @@ export function getReaderById(id: string): ReaderProfile | null {
   return readers.find(reader => reader.id === id) || null;
 }
 
-// Add this new export to resolve the import error in UserList.tsx
 export const mockReaderProfiles = readers;
 
 export default readers;

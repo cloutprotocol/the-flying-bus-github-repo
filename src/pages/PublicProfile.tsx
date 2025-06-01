@@ -41,7 +41,24 @@ const PublicProfile = () => {
         return;
       }
 
-      setProfile(profileData);
+      // Transform the data to match ReaderProfile interface
+      const transformedProfile: ReaderProfile = {
+        id: profileData.id,
+        email: profileData.email,
+        display_name: profileData.display_name,
+        username: profileData.username,
+        role: profileData.role,
+        avatar_url: profileData.avatar_url,
+        bio: profileData.bio,
+        public_bio: profileData.public_bio,
+        crypto_wallet_address: profileData.crypto_wallet_address,
+        badge_display_preferences: profileData.badge_display_preferences,
+        favorite_categories: profileData.favorite_categories,
+        created_at: profileData.created_at,
+        updated_at: profileData.updated_at,
+      };
+
+      setProfile(transformedProfile);
 
       // Get privacy settings
       const { data: privacyData, error: privacyError } = await supabase
@@ -54,12 +71,24 @@ const PublicProfile = () => {
         throw privacyError;
       }
 
-      setPrivacySettings(privacyData);
+      if (privacyData) {
+        // Transform privacy data to ensure proper typing
+        const transformedPrivacy: PrivacySettings = {
+          user_id: privacyData.user_id,
+          profile_visibility: privacyData.profile_visibility as 'public' | 'private',
+          show_reading_activity: privacyData.show_reading_activity,
+          show_comment_history: privacyData.show_comment_history,
+          show_badges: privacyData.show_badges,
+          show_achievements: privacyData.show_achievements,
+          updated_at: privacyData.updated_at,
+        };
+        setPrivacySettings(transformedPrivacy);
 
-      // Check if profile is private
-      if (privacyData?.profile_visibility === 'private') {
-        setNotFound(true);
-        return;
+        // Check if profile is private
+        if (transformedPrivacy.profile_visibility === 'private') {
+          setNotFound(true);
+          return;
+        }
       }
 
     } catch (error) {

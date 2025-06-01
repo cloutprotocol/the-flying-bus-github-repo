@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Search, Filter, Edit, Trash2, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -124,13 +125,13 @@ const UserList = () => {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={user.avatar} alt={user.displayName} />
+                        <AvatarImage src={user.avatar_url} alt={user.display_name} />
                         <AvatarFallback className="bg-neutral-700 text-white">
-                          {getInitials(user.displayName)}
+                          {getInitials(user.display_name)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{user.displayName}</div>
+                        <div className="font-medium">{user.display_name}</div>
                         <div className="text-sm text-muted-foreground">@{user.username}</div>
                       </div>
                     </div>
@@ -142,8 +143,8 @@ const UserList = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    {user.joinedDate 
-                      ? new Date(user.joinedDate).toLocaleDateString() 
+                    {user.created_at 
+                      ? new Date(user.created_at).toLocaleDateString() 
                       : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">

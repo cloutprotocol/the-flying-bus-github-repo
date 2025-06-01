@@ -35,7 +35,6 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
           .join(' ');
         
         // For testing purposes, set specific emails to have admin/moderator/author roles
-        // This is for testing only and should be replaced with proper role management
         let assignedRole: 'reader' | 'author' | 'moderator' | 'admin' = 'reader';
         if (email.includes('admin')) {
           assignedRole = 'admin';
@@ -70,16 +69,15 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
         console.log('New profile created successfully:', newProfile);
         
         // Return the newly created profile
-        const profileRole = newProfile.role as 'reader' | 'author' | 'moderator' | 'admin';
         const userProfile: ReaderProfile = {
           id: newProfile.id,
           username: newProfile.username,
-          displayName: newProfile.display_name,
+          display_name: newProfile.display_name,
           email: newProfile.email,
-          role: profileRole,
+          role: newProfile.role,
           bio: newProfile.bio || '',
-          avatar: newProfile.avatar_url || '',
-          joinedDate: new Date(newProfile.created_at),
+          avatar_url: newProfile.avatar_url || '',
+          created_at: newProfile.created_at,
         };
         return userProfile;
       } else {
@@ -90,16 +88,15 @@ export const fetchUserProfile = async (userId: string): Promise<ReaderProfile | 
     
     if (profile) {
       console.log('Profile found:', profile);
-      const profileRole = profile.role as 'reader' | 'author' | 'moderator' | 'admin';
       const userProfile: ReaderProfile = {
         id: profile.id,
         username: profile.username,
-        displayName: profile.display_name,
+        display_name: profile.display_name,
         email: profile.email,
-        role: profileRole,
+        role: profile.role,
         bio: profile.bio || '',
-        avatar: profile.avatar_url || '',
-        joinedDate: new Date(profile.created_at),
+        avatar_url: profile.avatar_url || '',
+        created_at: profile.created_at,
       };
       return userProfile;
     }

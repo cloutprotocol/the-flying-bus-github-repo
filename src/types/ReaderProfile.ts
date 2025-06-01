@@ -2,10 +2,10 @@
 export interface ReaderProfile {
   id: string;
   email: string;
-  displayName: string;
+  display_name: string;
   username: string;
   role: string;
-  avatar: string;
+  avatar_url?: string;
   bio?: string;
   public_bio?: string;
   crypto_wallet_address?: string;

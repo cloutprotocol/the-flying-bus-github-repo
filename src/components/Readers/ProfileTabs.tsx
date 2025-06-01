@@ -46,7 +46,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ reader, readerComments }) => 
         </TabsContent>
         
         <TabsContent value="achievements">
-          <ProfileAchievementsTab achievements={reader.achievements} />
+          <ProfileAchievementsTab achievements={[]} />
         </TabsContent>
       </Tabs>
     </div>

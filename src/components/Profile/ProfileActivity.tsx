@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, BookOpen, Clock } from 'lucide-react';
+import { MessageCircle, BookOpen, Clock, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ReaderProfile, PrivacySettings } from '@/types/ReaderProfile';
 

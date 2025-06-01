@@ -55,19 +55,30 @@ const UserPrivacySettings = () => {
       }
 
       if (data) {
-        setPrivacySettings(data);
+        // Transform and validate the data
+        const transformedData: PrivacySettings = {
+          user_id: data.user_id,
+          profile_visibility: data.profile_visibility as 'public' | 'private',
+          show_reading_activity: data.show_reading_activity,
+          show_comment_history: data.show_comment_history,
+          show_badges: data.show_badges,
+          show_achievements: data.show_achievements,
+          updated_at: data.updated_at,
+        };
+
+        setPrivacySettings(transformedData);
         form.reset({
-          profileVisibility: data.profile_visibility as 'public' | 'private',
-          showReadingActivity: data.show_reading_activity,
-          showCommentHistory: data.show_comment_history,
-          showBadges: data.show_badges,
-          showAchievements: data.show_achievements,
+          profileVisibility: transformedData.profile_visibility,
+          showReadingActivity: transformedData.show_reading_activity,
+          showCommentHistory: transformedData.show_comment_history,
+          showBadges: transformedData.show_badges,
+          showAchievements: transformedData.show_achievements,
         });
       } else {
         // Create default privacy settings
         const defaultSettings = {
           user_id: currentUser.id,
-          profile_visibility: 'public',
+          profile_visibility: 'public' as const,
           show_reading_activity: true,
           show_comment_history: true,
           show_badges: true,
@@ -81,7 +92,18 @@ const UserPrivacySettings = () => {
           .single();
 
         if (createError) throw createError;
-        setPrivacySettings(newSettings);
+        
+        const transformedNewSettings: PrivacySettings = {
+          user_id: newSettings.user_id,
+          profile_visibility: newSettings.profile_visibility as 'public' | 'private',
+          show_reading_activity: newSettings.show_reading_activity,
+          show_comment_history: newSettings.show_comment_history,
+          show_badges: newSettings.show_badges,
+          show_achievements: newSettings.show_achievements,
+          updated_at: newSettings.updated_at,
+        };
+        
+        setPrivacySettings(transformedNewSettings);
       }
     } catch (error) {
       console.error('Error fetching privacy settings:', error);
