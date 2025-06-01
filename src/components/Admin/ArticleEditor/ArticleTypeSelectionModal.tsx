@@ -121,11 +121,11 @@ const ArticleTypeSelectionModal: React.FC<ArticleTypeSelectionModalProps> = ({
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <div className="p-3 bg-primary/10 rounded-lg flex items-center justify-center">
                     <img 
                       src={type.iconSrc} 
                       alt={`${type.name} icon`}
-                      className="w-6 h-6"
+                      className="w-8 h-8"
                     />
                   </div>
                   <CardTitle className="text-lg">{type.name}</CardTitle>
