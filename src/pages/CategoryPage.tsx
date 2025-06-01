@@ -29,8 +29,13 @@ CategoryPageContent.displayName = 'CategoryPageContent';
 const CategoryPage: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const location = useLocation();
+  
+  // Extract category from pathname for direct routes (e.g., /headliners -> headliners)
+  const pathCategory = location.pathname.startsWith('/') ? location.pathname.slice(1) : location.pathname;
   const categoryRoute = getCategoryByPath(location.pathname);
-  const resolvedCategoryId = categoryId || categoryRoute?.slug;
+  
+  // Use categoryId from params if available, otherwise use path-based category
+  const resolvedCategoryId = categoryId || categoryRoute?.slug || pathCategory;
   const mountCountRef = useRef(0);
   
   useEffect(() => {
@@ -41,6 +46,7 @@ const CategoryPage: React.FC = () => {
       pathname: location.pathname,
       key: location.key,
       routeInfo: categoryRoute,
+      pathCategory,
       mountCount: mountCountRef.current
     });
     
@@ -50,7 +56,7 @@ const CategoryPage: React.FC = () => {
         pathname: location.pathname
       });
     };
-  }, [resolvedCategoryId, location.pathname, location.key, categoryRoute]);
+  }, [resolvedCategoryId, location.pathname, location.key, categoryRoute, pathCategory]);
 
   return (
     <MainLayout fullWidth={true}>
