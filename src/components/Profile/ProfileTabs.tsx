@@ -14,18 +14,18 @@ interface ProfileTabsProps {
 const ProfileTabs = ({ profile, privacySettings }: ProfileTabsProps) => {
   const tabs = [
     {
-      value: 'activity',
-      label: 'Activity',
-      icon: Activity,
-      show: privacySettings?.show_reading_activity !== false || privacySettings?.show_comment_history !== false,
-      component: <ProfileActivity profile={profile} privacySettings={privacySettings} />
-    },
-    {
       value: 'badges',
       label: 'Badges & Achievements',
       icon: Award,
       show: privacySettings?.show_badges !== false || privacySettings?.show_achievements !== false,
       component: <ProfileBadges profile={profile} privacySettings={privacySettings} />
+    },
+    {
+      value: 'activity',
+      label: 'Activity',
+      icon: Activity,
+      show: privacySettings?.show_reading_activity !== false || privacySettings?.show_comment_history !== false,
+      component: <ProfileActivity profile={profile} privacySettings={privacySettings} />
     },
   ];
 

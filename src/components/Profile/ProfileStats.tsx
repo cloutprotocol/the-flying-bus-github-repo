@@ -62,28 +62,36 @@ const ProfileStats = ({ profile, privacySettings }: ProfileStatsProps) => {
       title: 'Articles Read',
       value: readingStats?.articles_read || 0,
       icon: BookOpen,
-      color: 'from-blue-500 to-blue-600',
+      color: 'bg-blue-500',
+      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-50',
       show: privacySettings?.show_reading_activity !== false,
     },
     {
       title: 'Reading Streak',
       value: `${readingStats?.reading_streak || 0} days`,
       icon: Flame,
-      color: 'from-orange-500 to-red-500',
+      color: 'bg-orange-500',
+      iconColor: 'text-orange-600',
+      bgColor: 'bg-orange-50',
       show: privacySettings?.show_reading_activity !== false,
     },
     {
       title: 'Comments',
       value: commentCount,
       icon: MessageCircle,
-      color: 'from-green-500 to-green-600',
+      color: 'bg-green-500',
+      iconColor: 'text-green-600',
+      bgColor: 'bg-green-50',
       show: privacySettings?.show_comment_history !== false,
     },
     {
       title: 'Achievements',
       value: achievementCount,
       icon: Trophy,
-      color: 'from-purple-500 to-purple-600',
+      color: 'bg-purple-500',
+      iconColor: 'text-purple-600',
+      bgColor: 'bg-purple-50',
       show: privacySettings?.show_achievements !== false,
     },
   ];
@@ -99,16 +107,20 @@ const ProfileStats = ({ profile, privacySettings }: ProfileStatsProps) => {
       {visibleStats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={index} className="overflow-hidden">
-            <CardHeader className={`bg-gradient-to-r ${stat.color} text-white pb-2`}>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Icon className="h-4 w-4" />
-                {stat.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-center">
-                {stat.value}
+          <Card key={index} className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {stat.value}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.bgColor}`}>
+                  <Icon className={`h-6 w-6 ${stat.iconColor}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
