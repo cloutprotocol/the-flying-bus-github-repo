@@ -19,7 +19,7 @@ interface ProfileFormData {
 }
 
 const ProfileSettings = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUserProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
@@ -45,10 +45,21 @@ const ProfileSettings = () => {
         avatar_url: data.avatar,
       });
       
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
+      // Refresh the user profile to get the latest data
+      const refreshSuccess = await refreshUserProfile();
+      
+      if (refreshSuccess) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+      } else {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated, but there was an issue refreshing the display. Please refresh the page.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -60,6 +71,18 @@ const ProfileSettings = () => {
       setIsLoading(false);
     }
   };
+
+  // Update form values when currentUser changes (after refresh)
+  React.useEffect(() => {
+    if (currentUser) {
+      form.reset({
+        username: currentUser.username || '',
+        displayName: currentUser.displayName || '',
+        bio: currentUser.bio || '',
+        avatar: currentUser.avatar || '',
+      });
+    }
+  }, [currentUser, form]);
 
   const getInitials = (name: string) => {
     return name

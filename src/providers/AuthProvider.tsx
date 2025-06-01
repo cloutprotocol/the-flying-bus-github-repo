@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { useToast } from '@/hooks/use-toast';
@@ -161,6 +162,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUserProfile = async (): Promise<boolean> => {
+    if (!session?.user?.id) {
+      console.warn('Cannot refresh profile: no active session');
+      return false;
+    }
+
+    try {
+      console.log('Refreshing user profile...');
+      const profile = await fetchUserProfile(session.user.id);
+      
+      if (profile) {
+        console.log('Profile refreshed successfully:', profile.displayName);
+        setCurrentUser(profile);
+        return true;
+      } else {
+        console.error('Failed to refresh user profile');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+      return false;
+    }
+  };
+
   const checkRoleAccess = (allowedRoles: string[]): boolean => {
     return currentUser ? allowedRoles.includes(currentUser.role) : false;
   };
@@ -170,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoggedIn: !!currentUser,
     login,
     logout,
+    refreshUserProfile,
     isLoading,
     checkRoleAccess,
     session,
