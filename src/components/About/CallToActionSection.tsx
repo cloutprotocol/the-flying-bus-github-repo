@@ -8,9 +8,9 @@ const CallToActionSection = () => {
   return (
     <section className="py-16 md:py-20 bg-gray-50">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-flyingbus-purple/10 via-flyingbus-blue/10 to-flyingbus-green/10 px-8 py-12 text-center border-b border-gray-100">
+        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+          {/* Header Section - Clean white background */}
+          <div className="bg-white px-8 py-12 text-center border-b border-gray-100">
             <div className="space-y-4">
               <h2 className="section-headline text-gray-900">
                 Ready to Start Your Journey?
@@ -22,8 +22,8 @@ const CallToActionSection = () => {
             </div>
           </div>
           
-          {/* Getting Started Section */}
-          <div className="px-8 py-10">
+          {/* Getting Started Section - Subtle gradient background */}
+          <div className="bg-gradient-to-br from-gray-50 via-flyingbus-blue/5 to-flyingbus-green/5 px-8 py-10">
             <div className="text-center mb-8">
               <h3 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center justify-center gap-2">
                 <Users className="h-6 w-6 text-flyingbus-blue" />
@@ -32,7 +32,7 @@ const CallToActionSection = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-              <div className="bg-gradient-to-br from-flyingbus-purple/5 to-flyingbus-blue/5 rounded-2xl p-6 border border-flyingbus-purple/10">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="p-2 bg-flyingbus-purple/10 rounded-lg">
                     <Users className="h-5 w-5 text-flyingbus-purple" />
@@ -44,7 +44,7 @@ const CallToActionSection = () => {
                 </p>
               </div>
               
-              <div className="bg-gradient-to-br from-flyingbus-green/5 to-flyingbus-blue/5 rounded-2xl p-6 border border-flyingbus-green/10">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="p-2 bg-flyingbus-green/10 rounded-lg">
                     <Shield className="h-5 w-5 text-flyingbus-green" />
@@ -66,7 +66,7 @@ const CallToActionSection = () => {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="text-lg px-8 py-3 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                className="text-lg px-8 py-3 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 bg-white"
               >
                 Learn More
                 <ArrowRight className="ml-2 h-5 w-5" />
