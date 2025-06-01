@@ -11,22 +11,16 @@ export const useDemoAuth = () => {
 
   const demoLogin = async (username: string) => {
     setIsLoading(true);
-    logger.debug(LogSource.AUTH, 'Starting demo login attempt', { username });
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     const user = getReaderByUsername(username);
     if (user) {
-      logger.info(LogSource.AUTH, 'Demo login successful', { 
-        username, 
-        displayName: user.display_name,
-        userId: user.id,
-        role: user.role 
-      });
+      logger.info(LogSource.AUTH, 'Demo login successful', { username, displayName: user.display_name });
       setCurrentUser(user);
     } else {
-      logger.error(LogSource.AUTH, 'Demo user not found during login attempt', { username });
+      logger.error(LogSource.AUTH, 'Demo user not found', { username });
       throw new Error(`Demo user '${username}' not found`);
     }
     
@@ -35,14 +29,10 @@ export const useDemoAuth = () => {
 
   const demoLogout = async () => {
     setIsLoading(true);
-    logger.info(LogSource.AUTH, 'Starting demo logout', { 
-      currentUser: currentUser?.username 
-    });
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    logger.info(LogSource.AUTH, 'Demo logout completed successfully');
     setCurrentUser(null);
     setIsLoading(false);
   };
