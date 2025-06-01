@@ -28,12 +28,15 @@ export const useArticleLoader = (articleId?: string): UseArticleLoaderResult => 
   const [isLoading, setIsLoading] = useState(!!articleId);
   const [error, setError] = useState<string | null>(null);
 
-  logger.debug(LogSource.EDITOR, 'Article loader hook called', { articleId });
+  logger.debug(LogSource.EDITOR, 'Article loader hook initialized', { 
+    articleId,
+    hasArticleId: !!articleId 
+  });
 
   useEffect(() => {
     const loadArticle = async () => {
       if (!articleId) {
-        logger.debug(LogSource.EDITOR, 'No articleId provided, skipping load');
+        logger.debug(LogSource.EDITOR, 'No articleId provided, skipping article load');
         setIsLoading(false);
         return;
       }
@@ -46,7 +49,11 @@ export const useArticleLoader = (articleId?: string): UseArticleLoaderResult => 
         const { article, error: fetchError } = await getArticleById(articleId);
         
         if (fetchError) {
-          logger.error(LogSource.EDITOR, 'Error loading article', { articleId, error: fetchError });
+          logger.error(LogSource.EDITOR, 'Error loading article from service', { 
+            articleId, 
+            error: fetchError,
+            errorMessage: fetchError.message 
+          });
           setError(fetchError.message || 'Failed to load article');
           return;
         }
@@ -71,16 +78,21 @@ export const useArticleLoader = (articleId?: string): UseArticleLoaderResult => 
           status: 'draft' // Default status for editing
         };
 
-        logger.info(LogSource.EDITOR, 'Article loaded successfully for editing', {
+        logger.info(LogSource.EDITOR, 'Article loaded and transformed successfully', {
           articleId: transformedData.id,
           title: transformedData.title,
-          categoryName: transformedData.categoryName
+          categoryName: transformedData.categoryName,
+          articleType: transformedData.articleType
         });
 
         setArticleData(transformedData);
       } catch (err) {
         const errorMsg = `Failed to load article: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        logger.error(LogSource.EDITOR, errorMsg, { articleId, error: err });
+        logger.error(LogSource.EDITOR, 'Exception during article loading', { 
+          articleId, 
+          error: err,
+          errorMessage: err instanceof Error ? err.message : 'Unknown error'
+        });
         setError(errorMsg);
       } finally {
         setIsLoading(false);
@@ -94,7 +106,8 @@ export const useArticleLoader = (articleId?: string): UseArticleLoaderResult => 
   logger.debug(LogSource.EDITOR, 'Article loader returning result', { 
     hasData: !!result.articleData,
     isLoading: result.isLoading,
-    hasError: !!result.error
+    hasError: !!result.error,
+    articleId
   });
 
   return result;

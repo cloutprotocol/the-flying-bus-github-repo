@@ -35,6 +35,8 @@ export const useDashboardMetrics = () => {
   
   const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
+    logger.debug(LogSource.DASHBOARD, 'Starting dashboard metrics fetch', { page, limit });
+    
     try {
       // Get pending articles count directly from articles table
       const { count: pendingArticlesCount, error: pendingArticlesError } = await supabase
@@ -43,7 +45,10 @@ export const useDashboardMetrics = () => {
         .in('status', ['pending', 'under_review']);
 
       if (pendingArticlesError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching pending articles count', pendingArticlesError);
+        logger.error(LogSource.DASHBOARD, 'Error fetching pending articles count', {
+          error: pendingArticlesError,
+          errorMessage: pendingArticlesError.message
+        });
       }
 
       // Get pending comments count from flagged content table
@@ -54,7 +59,10 @@ export const useDashboardMetrics = () => {
         .eq('status', 'pending');
 
       if (pendingCommentsError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching pending comments count', pendingCommentsError);
+        logger.error(LogSource.DASHBOARD, 'Error fetching pending comments count', {
+          error: pendingCommentsError,
+          errorMessage: pendingCommentsError.message
+        });
       }
 
       // Perform all other queries in parallel for better performance
@@ -72,7 +80,10 @@ export const useDashboardMetrics = () => {
       
       // Handle errors
       if (metricsError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching dashboard metrics', metricsError);
+        logger.error(LogSource.DASHBOARD, 'Error fetching dashboard metrics from service', {
+          error: metricsError,
+          errorMessage: metricsError.message
+        });
         setError(new Error('Failed to load dashboard metrics'));
         toast({
           title: "Error",
@@ -83,7 +94,11 @@ export const useDashboardMetrics = () => {
       }
       
       if (articlesError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching articles', articlesError);
+        logger.error(LogSource.DASHBOARD, 'Error fetching articles for dashboard', {
+          error: articlesError,
+          page,
+          limit
+        });
         setError(new Error('Failed to load articles'));
         return;
       }
@@ -93,7 +108,7 @@ export const useDashboardMetrics = () => {
       setTotalPages(calculatedTotalPages);
       
       if (metricsData && articles) {
-        setMetrics({
+        const dashboardMetrics = {
           ...metricsData,
           recentArticles: articles.map(article => ({
             id: article.id,
@@ -107,10 +122,24 @@ export const useDashboardMetrics = () => {
           flaggedContent: moderationStats?.flaggedContent || 0,
           // Add invitation count with fallback to 0
           pendingInvitations: invitationsCount || 0
+        };
+
+        logger.info(LogSource.DASHBOARD, 'Dashboard metrics loaded successfully', {
+          totalArticles: dashboardMetrics.totalArticles,
+          pendingArticles: dashboardMetrics.pendingArticles,
+          pendingComments: dashboardMetrics.pendingComments,
+          recentArticlesCount: dashboardMetrics.recentArticles.length
         });
+
+        setMetrics(dashboardMetrics);
       }
     } catch (err) {
-      logger.error(LogSource.DASHBOARD, 'Exception fetching dashboard metrics', err);
+      logger.error(LogSource.DASHBOARD, 'Exception during dashboard metrics fetch', {
+        error: err,
+        errorMessage: err instanceof Error ? err.message : 'Unknown error',
+        page,
+        limit
+      });
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
     } finally {
       setLoading(false);

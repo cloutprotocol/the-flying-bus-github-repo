@@ -9,10 +9,11 @@ export const saveDraftOptimized = async (
   formData: ArticleFormData
 ): Promise<{ success: boolean; error?: string; articleId?: string }> => {
   try {
-    console.log('saveDraftOptimized: Starting save with data:', {
+    logger.debug(LogSource.ARTICLE, 'Starting optimized draft save', {
       title: formData.title,
       categoryId: formData.categoryId,
-      hasContent: !!formData.content
+      hasContent: !!formData.content,
+      articleId: formData.id
     });
 
     const articleData = {
@@ -35,10 +36,18 @@ export const saveDraftOptimized = async (
         .eq('id', formData.id);
       
       if (error) {
-        console.error('saveDraftOptimized: Update error:', error);
+        logger.error(LogSource.ARTICLE, 'Failed to update existing draft', { 
+          articleId: formData.id, 
+          error: error.message,
+          userId 
+        });
         return { success: false, error: error.message };
       }
       
+      logger.info(LogSource.ARTICLE, 'Draft updated successfully', { 
+        articleId: formData.id,
+        title: articleData.title 
+      });
       return { success: true, articleId: formData.id };
     } else {
       // Create new draft
@@ -49,14 +58,26 @@ export const saveDraftOptimized = async (
         .single();
       
       if (error) {
-        console.error('saveDraftOptimized: Insert error:', error);
+        logger.error(LogSource.ARTICLE, 'Failed to create new draft', { 
+          error: error.message,
+          userId,
+          title: articleData.title 
+        });
         return { success: false, error: error.message };
       }
       
+      logger.info(LogSource.ARTICLE, 'New draft created successfully', { 
+        articleId: data.id,
+        title: articleData.title 
+      });
       return { success: true, articleId: data.id };
     }
   } catch (error) {
-    console.error('saveDraftOptimized: Exception:', error);
+    logger.error(LogSource.ARTICLE, 'Exception during draft save operation', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId,
+      formDataId: formData.id 
+    });
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
