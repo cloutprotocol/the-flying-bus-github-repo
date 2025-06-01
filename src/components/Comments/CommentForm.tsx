@@ -82,7 +82,6 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
             type="submit" 
             disabled={!comment.trim() || isSubmitting || !isLoggedIn}
             size="sm"
-            className="bg-neutral-600 hover:bg-neutral-700"
           >
             {isSubmitting ? 'Posting...' : 'Post Comment'}
           </Button>

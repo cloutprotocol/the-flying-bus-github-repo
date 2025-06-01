@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,9 @@ const CommentItem: React.FC<CommentProps> = ({
     setShowReplies(!showReplies);
   };
   
+  // Generate profile username from author name if needed
+  const profileUsername = author.name.toLowerCase().replace(/\s+/g, '_');
+  
   return (
     <div className={`comment-item ${isReply ? 'pl-6 border-l border-gray-100 mt-4' : 'mb-6'}`}>
       <div className="flex gap-3">
@@ -87,7 +91,12 @@ const CommentItem: React.FC<CommentProps> = ({
         <div className="flex-1 space-y-1">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <div>
-              <span className="font-medium text-sm">{author.name}</span>
+              <Link 
+                to={`/profile/${profileUsername}`}
+                className="font-medium text-sm hover:text-blue-600 hover:underline transition-colors"
+              >
+                {author.name}
+              </Link>
               <span className="text-xs text-muted-foreground ml-2">
                 {formatDistanceToNow(createdAt, { addSuffix: true })}
               </span>
