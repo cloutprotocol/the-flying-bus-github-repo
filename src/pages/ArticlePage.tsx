@@ -14,35 +14,10 @@ import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
 const ArticlePage = () => {
-  const { articleId } = useParams<{ articleId: string }>();
+  const { slug: articleId } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   
-  // Log the current URL and articleId for debugging
-  React.useEffect(() => {
-    logger.info(LogSource.ARTICLE, 'Article page loaded', { 
-      articleId, 
-      currentUrl: window.location.href,
-      pathname: window.location.pathname
-    });
-  }, [articleId]);
-  
   const { article, relatedArticles, debateSettings, isLoading } = useArticleData(articleId);
-
-  // Enhanced logging for debate articles
-  React.useEffect(() => {
-    if (article) {
-      const isDebate = isDebateArticle(article.articleType);
-      logger.info(LogSource.ARTICLE, 'Article type analysis', {
-        articleId: article.id,
-        articleType: article.articleType,
-        isDebate,
-        hasDebateSettings: !!debateSettings,
-        debateQuestion: debateSettings?.question?.substring(0, 50) || 'N/A',
-        hasYesPosition: !!debateSettings?.yes_position,
-        hasNoPosition: !!debateSettings?.no_position
-      });
-    }
-  }, [article, debateSettings]);
 
   // Redirect to Storyboard page if it's a storyboard article
   React.useEffect(() => {

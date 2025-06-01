@@ -68,14 +68,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   };
 
   const handleClick = () => {
-    logger.info(LogSource.ARTICLE, 'Article card clicked', { 
-      articleId: id, 
-      articleTitle: title,
-      navigationUrl: `/articles/${id}`,
-      category,
-      categoryColor
-    });
-    
     if (onClick) {
       onClick();
     }
@@ -83,7 +75,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
 
   return (
     <Link 
-      to={`/articles/${id}`} 
+      to={`/article/${id}`} 
       className="block" 
       onClick={handleClick}
     >

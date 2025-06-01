@@ -4,22 +4,12 @@ import { Link } from 'react-router-dom';
 import { ArticleProps } from './ArticleCard';
 import FeatureArticleImage from './FeatureArticleImage';
 import FeatureArticleHeader from './FeatureArticleHeader';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 
 const FeatureArticle = (props: ArticleProps) => {
-  const articleUrl = `/articles/${props.id}`;
-  
-  const handleClick = () => {
-    logger.info(LogSource.ARTICLE, 'Feature article clicked', { 
-      articleId: props.id,
-      articleTitle: props.title,
-      navigationUrl: articleUrl
-    });
-  };
+  const articleUrl = `/article/${props.id}`;
 
   return (
-    <Link to={articleUrl} className="block" onClick={handleClick}>
+    <Link to={articleUrl} className="block">
       <article className="relative rounded-lg overflow-hidden shadow-md group w-full hover:shadow-lg transition-shadow">
         <FeatureArticleImage imageUrl={props.imageUrl} title={props.title} />
         

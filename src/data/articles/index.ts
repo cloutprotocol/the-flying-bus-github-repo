@@ -49,8 +49,6 @@ export const mockArticles: ArticleProps[] = [
 
 export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
   try {
-    logger.info(LogSource.ARTICLE, 'Fetching headline article');
-    
     const { data, error } = await supabase
       .from('articles')
       .select(`
@@ -75,11 +73,8 @@ export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
     }
 
     if (!data) {
-      logger.info(LogSource.ARTICLE, 'No featured headline article found');
       return null;
     }
-
-    logger.info(LogSource.ARTICLE, 'Headline article fetched successfully', { id: data.id });
 
     return {
       id: data.id,
@@ -101,8 +96,6 @@ export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
 
 export const getCategoryArticles = async (categoryName: string): Promise<ArticleProps[]> => {
   try {
-    logger.info(LogSource.ARTICLE, `Fetching articles for category: ${categoryName}`);
-    
     // First get the category ID matching the provided name
     const { data: categoryData, error: categoryError } = await supabase
       .from('categories')
@@ -141,11 +134,8 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
     }
 
     if (!data || data.length === 0) {
-      logger.info(LogSource.ARTICLE, `No articles found for category ${categoryName}`);
       return [];
     }
-
-    logger.info(LogSource.ARTICLE, `${data.length} articles fetched for category ${categoryName}`);
 
     return data.map(article => ({
       id: article.id,
