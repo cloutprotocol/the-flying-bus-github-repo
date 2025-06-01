@@ -15,7 +15,7 @@
     --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 262 83% 66%;
-    --primary-foreground: 210 40% 98%;
+    --primary-foreground: 222.2 84% 4.9%; /* Changed to dark color for better contrast */
 
     --secondary: 42 100% 67%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -62,7 +62,7 @@
     --popover-foreground: 210 40% 98%;
 
     --primary: 262 83% 66%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%; /* Keep light color for dark mode */
 
     --secondary: 42 100% 67%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -125,4 +125,3 @@
     }
   }
 }
-
