@@ -2,52 +2,76 @@
 import React from 'react';
 import { RainbowButton } from '@/components/ui/rainbow-button';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Mail } from 'lucide-react';
+import { ArrowRight, Mail, Users, Shield } from 'lucide-react';
 
 const CallToActionSection = () => {
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-r from-flyingbus-purple via-flyingbus-blue to-flyingbus-green">
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
-              Ready to Start Your Journey?
-            </h2>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
-              Join our community of young journalists and start earning TFB tokens 
-              while developing valuable skills in a safe, supportive environment.
-            </p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 space-y-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              Getting Started is Easy
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-white/90">
-              <div className="text-left">
-                <h4 className="font-semibold mb-2">For Young Writers (Ages 8-14):</h4>
-                <p className="text-sm">Ask a parent or guardian to request an invitation for you to join our platform.</p>
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold mb-2">For Parents:</h4>
-                <p className="text-sm">Contact our administrators to learn about the invitation process and safety measures.</p>
-              </div>
+    <section className="py-16 md:py-20 bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-flyingbus-purple/10 via-flyingbus-blue/10 to-flyingbus-green/10 px-8 py-12 text-center border-b border-gray-100">
+            <div className="space-y-4">
+              <h2 className="section-headline text-gray-900">
+                Ready to Start Your Journey?
+              </h2>
+              <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                Join our community of young journalists and start earning TFB tokens 
+                while developing valuable skills in a safe, supportive environment.
+              </p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <RainbowButton className="text-lg px-8 py-3 bg-white text-gray-900 hover:bg-gray-100">
-              <Mail className="mr-2 h-5 w-5" />
-              Request Invitation
-            </RainbowButton>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-gray-900"
-            >
-              Learn More
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+          {/* Getting Started Section */}
+          <div className="px-8 py-10">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center justify-center gap-2">
+                <Users className="h-6 w-6 text-flyingbus-blue" />
+                Getting Started is Easy
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+              <div className="bg-gradient-to-br from-flyingbus-purple/5 to-flyingbus-blue/5 rounded-2xl p-6 border border-flyingbus-purple/10">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 bg-flyingbus-purple/10 rounded-lg">
+                    <Users className="h-5 w-5 text-flyingbus-purple" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900">For Young Writers (Ages 8-14):</h4>
+                </div>
+                <p className="text-gray-600 leading-relaxed">
+                  Ask a parent or guardian to request an invitation for you to join our platform.
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-flyingbus-green/5 to-flyingbus-blue/5 rounded-2xl p-6 border border-flyingbus-green/10">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 bg-flyingbus-green/10 rounded-lg">
+                    <Shield className="h-5 w-5 text-flyingbus-green" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900">For Parents:</h4>
+                </div>
+                <p className="text-gray-600 leading-relaxed">
+                  Contact our administrators to learn about the invitation process and safety measures.
+                </p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <RainbowButton className="text-lg px-8 py-3 text-gray-900 font-semibold">
+                <Mail className="mr-2 h-5 w-5" />
+                Request Invitation
+              </RainbowButton>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg px-8 py-3 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+              >
+                Learn More
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
