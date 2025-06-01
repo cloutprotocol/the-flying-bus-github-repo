@@ -17,14 +17,12 @@ import { useArticleTypeSelection } from '@/contexts/ArticleTypeSelectionContext'
 interface QuickActionsProps {
   pendingArticles?: number;
   pendingComments?: number;
-  flaggedContent?: number;
   pendingInvitations?: number;
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({
   pendingArticles = 0,
   pendingComments = 0,
-  flaggedContent = 0,
   pendingInvitations = 0,
 }) => {
   const { openModal } = useArticleTypeSelection();
@@ -69,18 +67,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({
             {pendingComments > 0 && (
               <Badge variant="destructive" className="absolute -top-2 -right-2">
                 {pendingComments}
-              </Badge>
-            )}
-          </Button>
-        </Link>
-
-        <Link to="/admin/content-flagging">
-          <Button variant="outline" className="w-full relative">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Flagged Content
-            {flaggedContent > 0 && (
-              <Badge variant="destructive" className="absolute -top-2 -right-2">
-                {flaggedContent}
               </Badge>
             )}
           </Button>

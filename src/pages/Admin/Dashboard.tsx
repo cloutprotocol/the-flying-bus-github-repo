@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
@@ -89,7 +88,6 @@ const Dashboard: React.FC = () => {
         <QuickActions
           pendingArticles={metrics?.pendingArticles || 0}
           pendingComments={metrics?.pendingComments || 0}
-          flaggedContent={metrics?.flaggedContent || 0}
           pendingInvitations={metrics?.pendingInvitations || 0}
         />
         

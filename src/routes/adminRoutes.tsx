@@ -9,7 +9,6 @@ import UserManagement from '@/pages/Admin/UserManagement';
 import ApprovalQueue from '@/pages/Admin/ApprovalQueue';
 import ArticleReview from '@/pages/Admin/ArticleReview';
 import CommentModeration from '@/pages/Admin/CommentModeration';
-import ContentFlagging from '@/pages/Admin/ContentFlagging';
 import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import InvitationManagement from '@/pages/Admin/InvitationManagement';
@@ -55,10 +54,6 @@ export const adminRoutes = [
   { 
     path: "/admin/comment-moderation", 
     element: <ProtectedRoute><CommentModeration /></ProtectedRoute>
-  },
-  { 
-    path: "/admin/content-flagging", 
-    element: <ProtectedRoute><ContentFlagging /></ProtectedRoute>
   },
   { 
     path: "/admin/report-management", 
