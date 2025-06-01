@@ -17,6 +17,13 @@ export interface UserUpdateData {
   avatar_url?: string;
 }
 
+export interface UserStatistics {
+  commentCount: number;
+  readingStreak: number;
+  articlesRead: number;
+  achievements: number;
+}
+
 export async function fetchAllUsers(filters: UserSearchFilters = {}) {
   const { searchTerm, role, limit = 50, offset = 0 } = filters;
   
@@ -92,5 +99,45 @@ export async function updateUserProfile(userId: string, updates: UserUpdateData)
   } catch (error) {
     console.error('Exception in updateUserProfile:', error);
     throw error;
+  }
+}
+
+export async function getUserStatistics(userId: string): Promise<UserStatistics> {
+  try {
+    console.log('Fetching user statistics for:', userId);
+    
+    // Get comment count
+    const { count: commentCount } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    // Get reading stats
+    const { data: readingStats } = await supabase
+      .from('user_reading_stats')
+      .select('articles_read, reading_streak')
+      .eq('user_id', userId)
+      .single();
+
+    // Get achievements count
+    const { count: achievementsCount } = await supabase
+      .from('user_achievements')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    return {
+      commentCount: commentCount || 0,
+      readingStreak: readingStats?.reading_streak || 0,
+      articlesRead: readingStats?.articles_read || 0,
+      achievements: achievementsCount || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching user statistics:', error);
+    return {
+      commentCount: 0,
+      readingStreak: 0,
+      articlesRead: 0,
+      achievements: 0,
+    };
   }
 }
