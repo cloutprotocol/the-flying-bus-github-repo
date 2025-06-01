@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Flag,
   ListCheck,
-  Plus
+  Plus,
+  Mail
 } from 'lucide-react';
 import { useArticleTypeSelection } from '@/contexts/ArticleTypeSelectionContext';
 
@@ -24,6 +25,7 @@ const navItems = [
   { icon: <Image className="h-5 w-5" />, label: 'Media', path: '/admin/media' },
   { icon: <MessageSquare className="h-5 w-5" />, label: 'Comments', path: '/admin/comment-moderation' },
   { icon: <Flag className="h-5 w-5" />, label: 'Flagged', path: '/admin/content-flagging' },
+  { icon: <Mail className="h-5 w-5" />, label: 'Invitations', path: '/admin/invitations' },
   { icon: <Users className="h-5 w-5" />, label: 'Users', path: '/admin/users' },
   { icon: <Settings className="h-5 w-5" />, label: 'Settings', path: '/admin/settings' },
 ];

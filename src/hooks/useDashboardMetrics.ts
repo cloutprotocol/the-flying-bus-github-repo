@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { getDashboardMetrics } from '@/services/dashboardService';
 import { getArticlesByStatus } from '@/services/articleService';
 import { getModerationMetrics } from '@/services/moderationService';
+import { getPendingInvitationsCount } from '@/services/invitationService';
 
 export interface DashboardMetrics {
   totalArticles: number;
@@ -19,6 +20,7 @@ export interface DashboardMetrics {
   pendingArticles: number;
   pendingComments: number;
   flaggedContent: number;
+  pendingInvitations: number;
 }
 
 export const useDashboardMetrics = () => {
@@ -32,15 +34,17 @@ export const useDashboardMetrics = () => {
     setLoading(true);
     try {
       // Perform all queries in parallel for better performance
-      const [metricsPromise, moderationPromise, articlesPromise] = await Promise.all([
+      const [metricsPromise, moderationPromise, articlesPromise, invitationsPromise] = await Promise.all([
         getDashboardMetrics(),
         getModerationMetrics(),
-        getArticlesByStatus('all', undefined, page, limit)
+        getArticlesByStatus('all', undefined, page, limit),
+        getPendingInvitationsCount()
       ]);
       
       const { data: metricsData, error: metricsError } = metricsPromise;
       const { stats: moderationStats, error: moderationError } = moderationPromise;
       const { articles, count, error: articlesError } = articlesPromise;
+      const { count: invitationsCount, error: invitationsError } = invitationsPromise;
       
       // Handle errors
       if (metricsError) {
@@ -76,7 +80,9 @@ export const useDashboardMetrics = () => {
           // Add moderation counts from moderation service or default to 0
           pendingArticles: moderationStats?.pendingCount || 0,
           pendingComments: moderationStats?.reportedCount || 0,
-          flaggedContent: moderationStats?.flaggedContent || 0
+          flaggedContent: moderationStats?.flaggedContent || 0,
+          // Add invitation count with fallback to 0
+          pendingInvitations: invitationsCount || 0
         });
       }
     } catch (err) {

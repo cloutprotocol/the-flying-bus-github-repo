@@ -90,6 +90,7 @@ const Dashboard: React.FC = () => {
           pendingArticles={metrics?.pendingArticles || 0}
           pendingComments={metrics?.pendingComments || 0}
           flaggedContent={metrics?.flaggedContent || 0}
+          pendingInvitations={metrics?.pendingInvitations || 0}
         />
         
         {error && (
