@@ -51,24 +51,10 @@ const StoryboardFormContent: React.FC<StoryboardFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <FormField
-        control={form.control}
-        name="imageUrl"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Series Cover Image</FormLabel>
-            <FormControl>
-              <MediaSelector
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Select or upload series cover image"
-                accept="image/*"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div>
+        <FormLabel>Series Cover Image</FormLabel>
+        <MediaSelector form={form} />
+      </div>
 
       <FormField
         control={form.control}

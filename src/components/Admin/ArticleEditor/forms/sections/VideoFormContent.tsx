@@ -68,24 +68,10 @@ const VideoFormContent: React.FC<VideoFormContentProps> = ({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="imageUrl"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Thumbnail Image</FormLabel>
-            <FormControl>
-              <MediaSelector
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Select or upload thumbnail image"
-                accept="image/*"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div>
+        <FormLabel>Thumbnail Image</FormLabel>
+        <MediaSelector form={form} />
+      </div>
 
       <FormField
         control={form.control}

@@ -51,24 +51,10 @@ const StandardFormContent: React.FC<StandardFormContentProps> = ({
         resolvedCategoryData={resolvedCategoryData}
       />
 
-      <FormField
-        control={form.control}
-        name="imageUrl"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Featured Image</FormLabel>
-            <FormControl>
-              <MediaSelector
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Select or upload featured image"
-                accept="image/*"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div>
+        <FormLabel>Featured Image</FormLabel>
+        <MediaSelector form={form} />
+      </div>
 
       <FormField
         control={form.control}
