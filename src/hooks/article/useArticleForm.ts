@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useDraftManagement } from './useDraftManagement';
@@ -35,7 +36,7 @@ export const useArticleForm = (
 
   const handleSubmit = async (data: any, isDraft: boolean = false) => {
     if (submittingRef.current) {
-      console.log("Submission already in progress, ignoring duplicate call");
+      logger.debug(LogSource.EDITOR, "Submission already in progress, ignoring duplicate call");
       return;
     }
     
@@ -101,7 +102,7 @@ export const useArticleForm = (
         }
       });
       
-      console.log("Saving draft with content:", {
+      logger.debug(LogSource.EDITOR, "Saving draft with content", {
         contentLength: content.length,
         contentPreview: content.substring(0, 100) + '...'
       });
@@ -174,7 +175,7 @@ export const useArticleForm = (
         }
       } catch (error) {
         updateLastStep('error', { error: 'Submission failed' });
-        console.error("Article submission error:", error);
+        logger.error(LogSource.EDITOR, "Article submission error", error);
       }
       
     } catch (error) {
