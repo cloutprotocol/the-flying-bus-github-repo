@@ -9,11 +9,10 @@ import MediaGrid from './MediaGrid';
 import MediaList from './MediaList';
 import FilterPanel from './FilterPanel';
 import SelectionToolbar from './SelectionToolbar';
-import MediaUploader from './MediaUpload/MediaUploader';
+import { MediaUploader } from '@/components/Common/MediaUploader';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import useMediaManager from '@/hooks/useMediaManager';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -32,10 +31,8 @@ const MediaManager = () => {
     searchTerm, 
     setSearchTerm,
     totalCount,
-    handleUpload,
-    handleDelete,
-    isUploading,
-    uploadProgress
+    fetchMedia,
+    handleDelete
   } = useMediaManager();
   
   const handleMediaSelect = (id: string) => {
@@ -46,17 +43,14 @@ const MediaManager = () => {
     }
   };
   
-  const handleMediaUpload = async (file: File, altText: string) => {
-    logger.info(LogSource.MEDIA, 'Handling media upload', { 
-      filename: file.name,
-      size: file.size,
-      type: file.type
-    });
+  const handleMediaUpload = (url: string, isVideo: boolean) => {
+    logger.info(LogSource.MEDIA, 'Media upload completed', { url, isVideo });
     
-    const asset = await handleUpload(file, altText);
-    if (asset) {
-      setUploadOpen(false);
-    }
+    // Refresh the media list to show the new upload
+    fetchMedia();
+    
+    // Close the upload dialog
+    setUploadOpen(false);
   };
   
   const handleSelectAll = () => {
@@ -189,8 +183,9 @@ const MediaManager = () => {
           <div className="py-4">
             <MediaUploader 
               onUploadComplete={handleMediaUpload}
-              isUploading={isUploading}
-              uploadProgress={uploadProgress}
+              acceptedTypes="both"
+              maxFileSizeMB={50}
+              showAltText={true}
             />
           </div>
         </DialogContent>

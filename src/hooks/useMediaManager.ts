@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { MediaAsset, getMediaAssets, uploadMedia, deleteMedia, updateMediaMetadata } from '@/services/mediaService';
+import { MediaAsset, getMediaAssets, deleteMedia, updateMediaMetadata } from '@/services/mediaService';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -12,8 +12,6 @@ export const useMediaManager = () => {
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [totalCount, setTotalCount] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   const fetchMedia = useCallback(async () => {
@@ -44,59 +42,6 @@ export const useMediaManager = () => {
   useEffect(() => {
     fetchMedia();
   }, [fetchMedia]);
-
-  const handleUpload = async (file: File, altText: string = '') => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      // Simulated progress for better UX
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev < 90) return prev + 10;
-          return prev;
-        });
-      }, 200);
-      
-      const { asset, error } = await uploadMedia(file, altText);
-      
-      clearInterval(progressInterval);
-      
-      if (error) {
-        throw error;
-      }
-      
-      setUploadProgress(100);
-      
-      if (asset) {
-        setMedia(prev => [asset, ...prev]);
-        setTotalCount(prev => prev + 1);
-      }
-      
-      toast({
-        title: "Upload Success",
-        description: "Media uploaded successfully",
-      });
-      
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 1000);
-      
-      return asset;
-    } catch (e) {
-      setUploadProgress(0);
-      setIsUploading(false);
-      
-      toast({
-        title: "Upload Failed",
-        description: (e as Error).message || "Failed to upload media",
-        variant: "destructive",
-      });
-      
-      return null;
-    }
-  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -168,10 +113,7 @@ export const useMediaManager = () => {
     searchTerm,
     setSearchTerm,
     totalCount,
-    uploadProgress,
-    isUploading,
     fetchMedia,
-    handleUpload,
     handleDelete,
     handleUpdateMetadata
   };

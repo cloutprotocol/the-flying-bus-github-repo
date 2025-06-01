@@ -21,10 +21,28 @@ export interface MediaAsset {
 }
 
 /**
+ * Extract image dimensions from file
+ */
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve({ width: 0, height: 0 });
+      return;
+    }
+    
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      resolve({ width: 0, height: 0 });
+    };
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+/**
  * Fetch media assets from the database
- * @param {string} filter - Type filter ('all', 'image', 'video')
- * @param {string} search - Search term
- * @returns {Promise<{assets: MediaAsset[], count: number, error: any}>}
  */
 export const getMediaAssets = async (
   filter: 'all' | 'image' | 'video' = 'all',
@@ -98,16 +116,13 @@ export const getMediaAssets = async (
 
 /**
  * Upload a media file to storage
- * @param {File} file - File to upload
- * @param {string} altText - Alternative text for the image
- * @returns {Promise<{asset: MediaAsset | null, error: any}>}
  */
 export const uploadMedia = async (
   file: File,
   altText: string = ''
 ): Promise<{ asset: MediaAsset | null, error: any }> => {
   try {
-    logger.info(LogSource.MEDIA, 'Uploading media', {
+    logger.info(LogSource.MEDIA, 'Starting media upload', {
       filename: file.name,
       size: file.size,
       type: file.type
@@ -125,10 +140,23 @@ export const uploadMedia = async (
     const fileType = file.type.startsWith('image/') ? 'image' : 
                     file.type.startsWith('video/') ? 'video' : 'other';
     
+    // Get image dimensions if it's an image
+    let width: number | undefined;
+    let height: number | undefined;
+    
+    if (fileType === 'image') {
+      const dimensions = await getImageDimensions(file);
+      width = dimensions.width;
+      height = dimensions.height;
+    }
+    
     // Create a unique path for the file
     const timestamp = Date.now();
     const fileExt = file.name.split('.').pop();
-    const filePath = `${fileType}s/${userId}/${timestamp}_${file.name}`;
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `${fileType}s/${userId}/${timestamp}_${sanitizedName}`;
+    
+    logger.info(LogSource.MEDIA, 'Uploading to storage', { filePath });
     
     // Upload to Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -143,15 +171,7 @@ export const uploadMedia = async (
       return { asset: null, error: uploadError };
     }
     
-    // Get dimensions for images
-    let width: number | undefined;
-    let height: number | undefined;
-    let duration: number | undefined;
-    
-    if (fileType === 'image') {
-      // We would need to use something like createImageBitmap or HTML Image to get dimensions
-      // For now, we'll leave them undefined
-    }
+    logger.info(LogSource.MEDIA, 'File uploaded to storage, creating database record');
     
     // Insert record into media_assets table
     const { data: assetData, error: insertError } = await supabase
@@ -166,7 +186,7 @@ export const uploadMedia = async (
         uploader_id: userId,
         width: width,
         height: height,
-        duration: duration
+        duration: undefined // Could be extracted for videos in the future
       })
       .select()
       .single();
@@ -202,7 +222,8 @@ export const uploadMedia = async (
     
     logger.info(LogSource.MEDIA, 'Media uploaded successfully', {
       id: asset.id,
-      path: filePath
+      path: filePath,
+      url: url
     });
     
     return { asset, error: null };
@@ -262,12 +283,6 @@ export const deleteMedia = async (id: string): Promise<{ success: boolean, error
   }
 };
 
-/**
- * Update a media asset's metadata
- * @param {string} id - Asset ID
- * @param {Object} updates - Fields to update
- * @returns {Promise<{asset: MediaAsset | null, error: any}>}
- */
 export const updateMediaMetadata = async (
   id: string,
   updates: { title?: string; alt_text?: string }
