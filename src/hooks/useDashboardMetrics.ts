@@ -5,6 +5,7 @@ import { getDashboardMetrics } from '@/services/dashboardService';
 import { getArticlesByStatus } from '@/services/articleService';
 import { getModerationMetrics } from '@/services/moderationService';
 import { getPendingInvitationsCount } from '@/services/invitationService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardMetrics {
   totalArticles: number;
@@ -33,7 +34,28 @@ export const useDashboardMetrics = () => {
   const fetchMetrics = async (page: number = 1, limit: number = 5) => {
     setLoading(true);
     try {
-      // Perform all queries in parallel for better performance
+      // Get pending articles count directly from articles table
+      const { count: pendingArticlesCount, error: pendingArticlesError } = await supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['pending', 'under_review']);
+
+      if (pendingArticlesError) {
+        console.error('Error fetching pending articles count:', pendingArticlesError);
+      }
+
+      // Get pending comments count from flagged content table
+      const { count: pendingCommentsCount, error: pendingCommentsError } = await supabase
+        .from('flagged_content')
+        .select('*', { count: 'exact', head: true })
+        .eq('content_type', 'comment')
+        .eq('status', 'pending');
+
+      if (pendingCommentsError) {
+        console.error('Error fetching pending comments count:', pendingCommentsError);
+      }
+
+      // Perform all other queries in parallel for better performance
       const [metricsPromise, moderationPromise, articlesPromise, invitationsPromise] = await Promise.all([
         getDashboardMetrics(),
         getModerationMetrics(),
@@ -77,9 +99,9 @@ export const useDashboardMetrics = () => {
             status: article.status,
             lastEdited: new Date(article.updated_at).toLocaleDateString()
           })),
-          // Add moderation counts from moderation service or default to 0
-          pendingArticles: moderationStats?.pendingCount || 0,
-          pendingComments: moderationStats?.reportedCount || 0,
+          // Use correct counts from direct queries
+          pendingArticles: pendingArticlesCount || 0,
+          pendingComments: pendingCommentsCount || 0,
           flaggedContent: moderationStats?.flaggedContent || 0,
           // Add invitation count with fallback to 0
           pendingInvitations: invitationsCount || 0
