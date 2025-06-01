@@ -1,32 +1,31 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Form } from '@/components/ui/form';
-import ArticleDebugPanel from '@/components/Debug/ArticleDebugPanel';
-import { ArticleDebugStep } from '@/hooks/useArticleDebug';
 import { UseFormReturn } from 'react-hook-form';
 
 interface ArticleFormLayoutProps {
-  debugSteps: ArticleDebugStep[];
-  children: React.ReactNode;
-  onSubmit: (e: React.FormEvent) => void;
   form: UseFormReturn<any>;
+  onSubmit: (data: any) => void;
+  children: ReactNode;
+  className?: string;
 }
 
+/**
+ * Reusable layout component for article forms
+ * Encapsulates the common form structure
+ */
 const ArticleFormLayout: React.FC<ArticleFormLayoutProps> = ({
-  debugSteps,
-  children,
+  form,
   onSubmit,
-  form
+  children,
+  className = 'space-y-6'
 }) => {
   return (
-    <>
-      <ArticleDebugPanel steps={debugSteps} />
-      <Form {...form}>
-        <form onSubmit={onSubmit} className="space-y-6">
-          {children}
-        </form>
-      </Form>
-    </>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={className}>
+        {children}
+      </form>
+    </Form>
   );
 };
 

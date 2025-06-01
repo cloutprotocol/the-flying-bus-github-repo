@@ -1,112 +1,47 @@
-
-import { useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useCallback } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
-import type { DraftSaveStatus } from '@/types/ArticleEditorTypes';
+import type { DebugStep } from '@/types/DebugTypes';
 
-export interface ManualSaveOptions {
-  draftId?: string;
-  articleType: string;
-  setSaving: (isSaving: boolean) => void;
-  setSaveStatus: (status: DraftSaveStatus) => void;
-  setLastSaved: (date: Date | null) => void;
-  saveDraft: (formData: any) => Promise<{ success: boolean; articleId?: string; error?: any }>;
-  setDraftId?: (id: string) => void;
-  isMountedRef: React.MutableRefObject<boolean>;
-}
-
-export function useManualSaveHandler({
-  draftId,
-  articleType,
-  setSaving,
-  setSaveStatus,
-  setLastSaved,
-  saveDraft,
-  setDraftId,
-  isMountedRef
-}: ManualSaveOptions) {
+export const useManualSaveHandler = (articleId?: string) => {
   const { toast } = useToast();
-  const { addDebugStep, updateLastStep } = useArticleDebug();
-  
-  // Prevent duplicate save calls
-  const savingRef = useRef(false);
-  
-  const handleSaveDraft = async (formData: any): Promise<boolean> => {
-    // Prevent duplicate save calls
-    if (savingRef.current) {
-      console.log("Save already in progress, skipping duplicate call");
-      return false;
-    }
-    
+  const { addDebugStep } = useArticleDebug();
+
+  const handleManualSave = useCallback(async (formData: any) => {
     try {
-      savingRef.current = true;
-      setSaving(true);
-      setSaveStatus('saving');
-      
-      logger.info(LogSource.EDITOR, 'Manual draft save called', {
-        contentLength: formData.content?.length || 0,
-        draftId
-      });
-      
-      addDebugStep('Manually saving draft', {
-        draftId,
-        articleType,
-        isUpdate: !!draftId
-      });
-      
-      const result = await saveDraft(formData);
-      
-      if (!result.success) {
+      const result = await saveDraftOptimized('user-123', { ...formData, id: articleId });
+
+      if (result.success) {
+        toast({
+          title: "Draft saved",
+          description: "Your article has been saved as a draft.",
+        });
+      } else {
         toast({
           title: "Error",
-          description: "Failed to save your draft. Please try again.",
-          variant: "destructive"
+          description: `Failed to save draft: ${result.error || 'Unknown error'}`,
+          variant: "destructive",
         });
-        updateLastStep('error', { error: result.error });
-        setSaveStatus('error');
-        return false;
       }
-      
-      // Update draft ID if this was first save
-      if (!draftId && result.articleId && setDraftId) {
-        setDraftId(result.articleId);
-      }
-      
-      toast({
-        title: "Draft saved",
-        description: "Your draft has been saved successfully.",
-      });
-      
-      setLastSaved(new Date());
-      setSaveStatus('saved');
-      updateLastStep('success', { 
-        articleId: result.articleId,
-        source: 'manual-save'
-      });
-      
-      return true;
-      
     } catch (error) {
-      logger.error(LogSource.EDITOR, 'Exception in manual draft save', { error });
-      updateLastStep('error', { error });
-      setSaveStatus('error');
-      
       toast({
         title: "Error",
-        description: "An unexpected error occurred while saving your draft.",
-        variant: "destructive"
+        description: `An unexpected error occurred while saving the draft.`,
+        variant: "destructive",
       });
-      return false;
-      
-    } finally {
-      if (isMountedRef.current) {
-        setSaving(false);
-      }
-      savingRef.current = false; // Reset the saving flag
     }
-  };
+    
+    const debugStep: DebugStep = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      message: 'Manual save completed',
+      level: 'info',
+      source: 'EDITOR'
+    };
+    addDebugStep(debugStep);
+    
+  }, [toast, addDebugStep, articleId]);
 
-  return { handleSaveDraft };
-}
+  return { handleManualSave };
+};

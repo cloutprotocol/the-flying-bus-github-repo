@@ -1,54 +1,49 @@
 
-import { useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { logger } from '@/utils/logger/logger';
-import { LogLevel, LogSource } from '@/utils/logger/types';
-import { configureLogger } from '@/utils/logger/config';
-import { clearLogsFromStorage } from '@/utils/logger/storage';
+import { LogSource } from '@/utils/logger/types';
 
-export function useAppInitialization() {
-  useEffect(() => {
-    // Clear existing logs to prevent storage issues on startup
-    clearLogsFromStorage();
-    
-    // Configure the logger
-    configureLogger({
-      minLevel: import.meta.env.DEV ? LogLevel.INFO : LogLevel.WARN, // Reduce log level
-      consoleOutput: true,
-      toastOutput: false,
-      persistToStorage: true,
-      sendToServer: import.meta.env.PROD // Only send logs to server in production
-    });
-    
-    logger.info(LogSource.APP, 'Application initialized', {
-      version: '1.0.0',
-      environment: import.meta.env.MODE,
-      buildTime: new Date().toISOString()
-    });
-    
-    // Store original console.error without overriding it
-    // This reduces the risk of causing infinite error loops
-    const originalError = console.error;
-    
-    // Handle uncaught errors
-    window.addEventListener('error', (event) => {
-      logger.error(LogSource.APP, 'Uncaught global error', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno
-      });
-    });
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      logger.error(LogSource.APP, 'Unhandled promise rejection', {
-        reason: event.reason ? (event.reason.message || String(event.reason)) : 'Unknown reason'
-      });
-    });
-    
-    return () => {
-      // Remove event listeners
-      window.removeEventListener('error', () => {});
-      window.removeEventListener('unhandledrejection', () => {});
-    };
-  }, []);
+interface AppInitializationContextType {
+  isInitialized: boolean;
+  initializationError: string | null;
 }
+
+const AppInitializationContext = createContext<AppInitializationContextType | undefined>(undefined);
+
+export const useAppInitialization = () => {
+  const context = useContext(AppInitializationContext);
+  if (context === undefined) {
+    throw new Error('useAppInitialization must be used within an AppInitializationProvider');
+  }
+  return context;
+};
+
+export const AppInitializationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        logger.info(LogSource.SYSTEM, 'Application initializing...');
+        
+        // Add initialization logic here
+        
+        setIsInitialized(true);
+        logger.info(LogSource.SYSTEM, 'Application initialized successfully');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
+        setInitializationError(errorMessage);
+        logger.error(LogSource.SYSTEM, 'Application initialization failed', { error });
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  return (
+    <AppInitializationContext.Provider value={{ isInitialized, initializationError }}>
+      {children}
+    </AppInitializationContext.Provider>
+  );
+};
