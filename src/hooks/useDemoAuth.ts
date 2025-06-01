@@ -2,8 +2,6 @@
 import { useState } from 'react';
 import { getReaderByUsername } from '@/data/readers';
 import { ReaderProfile } from '@/types/ReaderProfile';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 
 export const useDemoAuth = () => {
   const [currentUser, setCurrentUser] = useState<ReaderProfile | null>(null);
@@ -17,10 +15,10 @@ export const useDemoAuth = () => {
     
     const user = getReaderByUsername(username);
     if (user) {
-      logger.info(LogSource.AUTH, 'Demo login successful', { username, displayName: user.display_name });
+      console.log('Demo login successful for:', user.display_name);
       setCurrentUser(user);
     } else {
-      logger.error(LogSource.AUTH, 'Demo user not found', { username });
+      console.error('Demo user not found:', username);
       throw new Error(`Demo user '${username}' not found`);
     }
     

@@ -6,8 +6,6 @@ import { getArticlesByStatus } from '@/services/articleService';
 import { getModerationMetrics } from '@/services/moderationService';
 import { getPendingInvitationsCount } from '@/services/invitationService';
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 
 export interface DashboardMetrics {
   totalArticles: number;
@@ -43,7 +41,7 @@ export const useDashboardMetrics = () => {
         .in('status', ['pending', 'under_review']);
 
       if (pendingArticlesError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching pending articles count', pendingArticlesError);
+        console.error('Error fetching pending articles count:', pendingArticlesError);
       }
 
       // Get pending comments count from flagged content table
@@ -54,7 +52,7 @@ export const useDashboardMetrics = () => {
         .eq('status', 'pending');
 
       if (pendingCommentsError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching pending comments count', pendingCommentsError);
+        console.error('Error fetching pending comments count:', pendingCommentsError);
       }
 
       // Perform all other queries in parallel for better performance
@@ -72,7 +70,7 @@ export const useDashboardMetrics = () => {
       
       // Handle errors
       if (metricsError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching dashboard metrics', metricsError);
+        console.error('Error fetching dashboard metrics:', metricsError);
         setError(new Error('Failed to load dashboard metrics'));
         toast({
           title: "Error",
@@ -83,7 +81,7 @@ export const useDashboardMetrics = () => {
       }
       
       if (articlesError) {
-        logger.error(LogSource.DASHBOARD, 'Error fetching articles', articlesError);
+        console.error('Error fetching articles:', articlesError);
         setError(new Error('Failed to load articles'));
         return;
       }
@@ -110,7 +108,7 @@ export const useDashboardMetrics = () => {
         });
       }
     } catch (err) {
-      logger.error(LogSource.DASHBOARD, 'Exception fetching dashboard metrics', err);
+      console.error('Exception fetching dashboard metrics:', err);
       setError(err instanceof Error ? err : new Error('Unknown error occurred'));
     } finally {
       setLoading(false);

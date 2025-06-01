@@ -22,6 +22,8 @@ export class UnifiedSubmissionService {
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
+      console.log('UnifiedSubmissionService.submitForReview called with shouldHighlight:', formData.shouldHighlight);
+
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
         articleType: formData.articleType,
         hasId: !!formData.id,
@@ -40,7 +42,7 @@ export class UnifiedSubmissionService {
 
       // Handle featured article constraint with detailed logging
       if (formData.shouldHighlight) {
-        logger.debug(LogSource.ARTICLE, 'Article marked as featured, unfeaturing existing featured articles');
+        console.log('Article marked as featured, unfeaturing existing featured articles...');
         
         // First, unfeatured any existing featured articles
         const { error: unfeaturedError } = await supabase
@@ -49,11 +51,11 @@ export class UnifiedSubmissionService {
           .eq('featured', true);
         
         if (unfeaturedError) {
-          logger.error(LogSource.ARTICLE, 'Error unfeaturing existing articles', unfeaturedError);
+          console.error('Error unfeaturing existing articles:', unfeaturedError);
           return { success: false, error: 'Failed to update existing featured article' };
         }
         
-        logger.debug(LogSource.ARTICLE, 'Successfully unfeatured existing articles');
+        console.log('Successfully unfeatured existing articles');
       }
 
       // Map and validate form data with updated field mapping
@@ -62,7 +64,7 @@ export class UnifiedSubmissionService {
       // CRITICAL: Ensure featured field is explicitly set
       mappedData.featured = Boolean(formData.shouldHighlight);
       
-      logger.debug(LogSource.ARTICLE, 'Final mapped data before submission', {
+      console.log('Final mapped data before submission:', {
         featured: mappedData.featured,
         shouldHighlight: mappedData.shouldHighlight,
         title: mappedData.title?.substring(0, 30)
@@ -71,6 +73,7 @@ export class UnifiedSubmissionService {
       const validation = validateMappedData(mappedData);
 
       if (!validation.isValid) {
+        console.error('Validation failed:', validation.errors);
         logger.error(LogSource.ARTICLE, 'Validation failed', { errors: validation.errors });
         return {
           success: false,
@@ -85,9 +88,10 @@ export class UnifiedSubmissionService {
         p_save_draft: true
       });
 
-      logger.debug(LogSource.ARTICLE, 'Database response', { data, error });
+      console.log('Database response:', { data, error });
 
       if (error) {
+        console.error('Database submission failed:', error);
         logger.error(LogSource.ARTICLE, 'Database submission failed', { 
           error: error.message,
           code: error.code 
@@ -117,9 +121,10 @@ export class UnifiedSubmissionService {
       // Handle the response from submit_article_with_validation function
       const result = Array.isArray(data) ? data[0] : data;
       
-      logger.debug(LogSource.ARTICLE, 'Processed result', result);
+      console.log('Processed result:', result);
       
       if (!result?.success) {
+        console.error('Submission validation failed:', result?.error_message);
         logger.error(LogSource.ARTICLE, 'Submission validation failed', { 
           errorMessage: result?.error_message 
         });
@@ -129,6 +134,7 @@ export class UnifiedSubmissionService {
         };
       }
 
+      console.log('Article submitted successfully:', result.article_id);
       logger.info(LogSource.ARTICLE, 'Article submitted successfully', { 
         articleId: result.article_id 
       });
@@ -139,6 +145,7 @@ export class UnifiedSubmissionService {
       };
 
     } catch (error) {
+      console.error('Unexpected submission error:', error);
       logger.error(LogSource.ARTICLE, 'Unexpected submission error', error);
       return {
         success: false,
@@ -152,6 +159,8 @@ export class UnifiedSubmissionService {
    */
   static async saveDraft(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
+      console.log('UnifiedSubmissionService.saveDraft called with shouldHighlight:', formData.shouldHighlight);
+
       logger.info(LogSource.ARTICLE, 'Saving article draft', {
         articleType: formData.articleType,
         hasId: !!formData.id,
@@ -165,7 +174,7 @@ export class UnifiedSubmissionService {
 
       // Handle featured article constraint for drafts too
       if (formData.shouldHighlight) {
-        logger.debug(LogSource.ARTICLE, 'Draft marked as featured, unfeaturing existing featured articles');
+        console.log('Draft marked as featured, unfeaturing existing featured articles...');
         
         const { error: unfeaturedError } = await supabase
           .from('articles')
@@ -173,11 +182,11 @@ export class UnifiedSubmissionService {
           .eq('featured', true);
         
         if (unfeaturedError) {
-          logger.error(LogSource.ARTICLE, 'Error unfeaturing existing articles', unfeaturedError);
+          console.error('Error unfeaturing existing articles:', unfeaturedError);
           return { success: false, error: 'Failed to update existing featured article' };
         }
         
-        logger.debug(LogSource.ARTICLE, 'Successfully unfeatured existing articles for draft');
+        console.log('Successfully unfeatured existing articles for draft');
       }
 
       const mappedData = mapFormDataToDatabase(formData, userId);
@@ -185,7 +194,7 @@ export class UnifiedSubmissionService {
       mappedData.status = ARTICLE_STATUS?.DRAFT || 'draft';
       mappedData.featured = Boolean(formData.shouldHighlight);
 
-      logger.debug(LogSource.ARTICLE, 'Draft save - final mapped data', {
+      console.log('Draft save - final mapped data:', {
         featured: mappedData.featured,
         shouldHighlight: mappedData.shouldHighlight,
         title: mappedData.title?.substring(0, 30)
@@ -196,9 +205,10 @@ export class UnifiedSubmissionService {
         p_article_data: mappedData
       });
 
-      logger.debug(LogSource.ARTICLE, 'Draft save response', { articleId, error });
+      console.log('Draft save response:', { articleId, error });
 
       if (error) {
+        console.error('Draft save failed:', error);
         logger.error(LogSource.ARTICLE, 'Draft save failed', { error: error.message });
         return {
           success: false,
@@ -207,13 +217,14 @@ export class UnifiedSubmissionService {
       }
 
       if (!articleId) {
-        logger.error(LogSource.ARTICLE, 'Draft save returned no article ID');
+        console.error('Draft save returned no article ID');
         return {
           success: false,
           error: 'Failed to save draft - no article ID returned'
         };
       }
 
+      console.log('Draft saved successfully:', articleId);
       logger.info(LogSource.ARTICLE, 'Draft saved successfully', { 
         articleId 
       });
@@ -224,6 +235,7 @@ export class UnifiedSubmissionService {
       };
 
     } catch (error) {
+      console.error('Unexpected draft save error:', error);
       logger.error(LogSource.ARTICLE, 'Unexpected draft save error', error);
       return {
         success: false,

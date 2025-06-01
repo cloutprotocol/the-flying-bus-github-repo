@@ -1,4 +1,3 @@
-
 /**
  * Logger Types
  * Type definitions for the logger system
@@ -33,7 +32,6 @@ export enum LogSource {
   USER = 'user',
   VALIDATION = 'validation',
   TRACKING = 'tracking',
-  SYSTEM = 'system',
   // Added missing log sources
   EDITOR = 'editor',
   CLIENT = 'client',
