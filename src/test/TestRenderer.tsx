@@ -27,6 +27,7 @@ const defaultAuthContext = {
   isLoading: false,
   login: vi.fn(),
   logout: vi.fn(),
+  refreshUserProfile: vi.fn().mockResolvedValue(true),
   checkRoleAccess: vi.fn().mockReturnValue(false),
   session: null,
   user: null
