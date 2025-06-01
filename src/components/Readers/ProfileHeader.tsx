@@ -23,7 +23,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ reader, isOwnProfile }) =
 
   return (
     <div className="relative mb-16">
-      {/* Animated gradient background */}
+      {/* Animated gradient background container */}
       <div className="h-52 rounded-b-3xl overflow-hidden relative">
         <BackgroundGradientAnimation
           gradientBackgroundStart="rgb(139, 92, 246)"
