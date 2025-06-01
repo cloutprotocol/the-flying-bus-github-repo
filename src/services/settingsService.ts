@@ -50,61 +50,6 @@ export async function changePassword(currentPassword: string, newPassword: strin
   }
 }
 
-export async function exportUserData(userId: string) {
-  try {
-    console.log('Exporting user data for:', userId);
-    
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (profileError) {
-      throw profileError;
-    }
-
-    // Get user's articles (if any)
-    const { data: articles, error: articlesError } = await supabase
-      .from('articles')
-      .select('*')
-      .eq('author_id', userId);
-
-    // Get user's comments
-    const { data: comments, error: commentsError } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('user_id', userId);
-
-    const userData = {
-      profile,
-      articles: articles || [],
-      comments: comments || [],
-      exportDate: new Date().toISOString()
-    };
-
-    // Create and download JSON file
-    const dataStr = JSON.stringify(userData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `user-data-${userId}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    console.log('User data exported successfully');
-    return { success: true };
-  } catch (error) {
-    console.error('Error exporting user data:', error);
-    throw error;
-  }
-}
-
 export async function deleteAccount(userId: string) {
   try {
     console.log('Deleting account for user:', userId);

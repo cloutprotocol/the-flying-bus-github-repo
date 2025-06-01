@@ -4,41 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
-import { exportUserData, deleteAccount } from '@/services/settingsService';
+import { deleteAccount } from '@/services/settingsService';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AccountSettings = () => {
   const { currentUser, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleExportData = async () => {
-    if (!currentUser) return;
-    
-    try {
-      setIsExporting(true);
-      
-      await exportUserData(currentUser.id);
-      
-      toast({
-        title: "Data exported",
-        description: "Your data has been downloaded successfully.",
-      });
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      toast({
-        title: "Export failed",
-        description: "Failed to export your data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     if (!currentUser) return;
@@ -70,27 +45,6 @@ const AccountSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Data
-          </CardTitle>
-          <CardDescription>
-            Download a copy of all your data including profile information, articles, and comments.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={handleExportData} 
-            disabled={isExporting}
-            variant="outline"
-          >
-            {isExporting ? 'Exporting...' : 'Export My Data'}
-          </Button>
-        </CardContent>
-      </Card>
-
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
