@@ -34,15 +34,23 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(!isNewArticle);
 
+  console.log('CategorySelector: Rendering with props:', {
+    isNewArticle,
+    resolvedCategoryData,
+    currentCategoryValue: form.watch('categoryId')
+  });
+
   useEffect(() => {
     // For new articles with resolved category data, don't fetch categories
     if (isNewArticle && resolvedCategoryData) {
+      console.log('CategorySelector: Using resolved category data, skipping fetch');
       setLoading(false);
       return;
     }
 
     const fetchCategories = async () => {
       try {
+        console.log('CategorySelector: Fetching categories for existing article');
         setLoading(true);
         const { data, error } = await supabase
           .from('categories')
@@ -50,15 +58,18 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           .order('name');
         
         if (error) {
+          console.error('CategorySelector: Error fetching categories:', error);
           logger.error(LogSource.EDITOR, 'Error fetching categories', error);
           return;
         }
 
         if (data) {
+          console.log('CategorySelector: Categories fetched successfully:', data);
           setCategories(data);
           logger.info(LogSource.EDITOR, 'Categories fetched for existing article');
         }
       } catch (err) {
+        console.error('CategorySelector: Exception fetching categories:', err);
         logger.error(LogSource.EDITOR, 'Exception fetching categories', err);
       } finally {
         setLoading(false);
@@ -68,8 +79,20 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     fetchCategories();
   }, [isNewArticle, resolvedCategoryData]);
 
+  // Track category value changes
+  const currentCategoryId = form.watch('categoryId');
+  
+  useEffect(() => {
+    console.log('CategorySelector: Category value changed:', {
+      categoryId: currentCategoryId,
+      resolvedCategoryId: resolvedCategoryData?.id,
+      matches: currentCategoryId === resolvedCategoryData?.id
+    });
+  }, [currentCategoryId, resolvedCategoryData?.id]);
+
   // For new articles with resolved category data, show read-only display
   if (isNewArticle && resolvedCategoryData) {
+    console.log('CategorySelector: Rendering read-only category display for:', resolvedCategoryData.name);
     return (
       <div className="space-y-3">
         <Label>Category</Label>
@@ -82,11 +105,20 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             </div>
           </AlertDescription>
         </Alert>
+        
+        {/* Debug info for development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-muted-foreground">
+            Debug: Category ID = {resolvedCategoryData.id}
+          </div>
+        )}
       </div>
     );
   }
 
   // For existing articles, show the full selector
+  console.log('CategorySelector: Rendering full category selector with', categories.length, 'categories');
+  
   return (
     <FormField
       control={form.control}
@@ -97,7 +129,10 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           
           <FormControl>
             <RadioGroup
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                console.log('CategorySelector: Radio group value changed to:', value);
+                field.onChange(value);
+              }}
               value={field.value}
               className="grid grid-cols-1 gap-2"
             >
@@ -120,6 +155,13 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             </RadioGroup>
           </FormControl>
           <FormMessage />
+          
+          {/* Debug info for development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-muted-foreground">
+              Debug: Selected = {field.value}, Available = {categories.length}
+            </div>
+          )}
         </FormItem>
       )}
     />

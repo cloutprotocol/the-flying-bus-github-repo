@@ -24,11 +24,25 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
   categorySlug,
   categoryName
 }) => {
+  console.log('StandardArticleForm: Rendering with props:', {
+    articleId,
+    isNewArticle,
+    categorySlug,
+    categoryName
+  });
+
   // Pre-resolve category for new articles
   const { categoryData, isLoading: isCategoryLoading, error: categoryError } = useCategoryResolver(
     isNewArticle ? categorySlug : undefined,
     isNewArticle ? categoryName : undefined
   );
+
+  console.log('StandardArticleForm: Category resolution state:', {
+    categoryData,
+    isCategoryLoading,
+    categoryError,
+    hasCategoryId: !!categoryData?.id
+  });
 
   const form = useForm<StandardArticleFormData>({
     resolver: zodResolver(standardArticleSchema),
@@ -45,6 +59,14 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
       shouldHighlight: false,
       allowVoting: false
     }
+  });
+
+  console.log('StandardArticleForm: Form state:', {
+    formValues: form.getValues(),
+    formErrors: form.formState.errors,
+    isDirty: form.formState.isDirty,
+    isValid: form.formState.isValid,
+    isSubmitting: form.formState.isSubmitting
   });
 
   // Update form with resolved category data
@@ -68,8 +90,17 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
     articleId
   });
 
+  console.log('StandardArticleForm: Form actions state:', {
+    isDirty,
+    isSubmitting,
+    isSaving,
+    errorsCount: Object.keys(errors).length,
+    errors: errors
+  });
+
   // Show loading state while resolving category for new articles
   if (isNewArticle && isCategoryLoading) {
+    console.log('StandardArticleForm: Showing loading state for category resolution');
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -82,6 +113,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
 
   // Show error if category resolution failed
   if (isNewArticle && categoryError) {
+    console.error('StandardArticleForm: Category resolution failed:', categoryError);
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -94,6 +126,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
 
   // Don't render form until we have category data for new articles
   if (isNewArticle && !categoryData) {
+    console.log('StandardArticleForm: Waiting for category data...');
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -132,23 +165,46 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
       return;
     }
     
+    console.log('StandardArticleForm: Form validation passed, calling submission handler...');
+    
     try {
       await onSubmit(data);
+      console.log('StandardArticleForm: Submission completed successfully');
     } catch (error) {
       console.error('Error in form submission:', error);
       // The submission hook should handle error display
     }
   });
 
-  // Simple save draft handler
+  // Enhanced save draft handler with logging
   const handleSaveDraftClick = async () => {
-    console.log('Save draft clicked, current categoryId:', form.getValues('categoryId'));
+    console.log('StandardArticleForm: Save draft clicked, current form state:', {
+      categoryId: form.getValues('categoryId'),
+      title: form.getValues('title'),
+      isValid: form.formState.isValid,
+      errors: form.formState.errors
+    });
+    
     try {
       await handleSaveDraft();
+      console.log('StandardArticleForm: Draft save completed');
     } catch (error) {
       console.error('Error saving draft:', error);
     }
   };
+
+  // Check if form is ready for submission
+  const isFormDisabled = isNewArticle && !categoryData?.id;
+  
+  console.log('StandardArticleForm: Form render decision:', {
+    isFormDisabled,
+    canSubmit: !isFormDisabled && form.formState.isValid,
+    buttonState: {
+      disabled: isFormDisabled,
+      isSubmitting,
+      isSaving
+    }
+  });
 
   return (
     <Form {...form}>
@@ -166,7 +222,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
-          disabled={isNewArticle && !categoryData?.id}
+          disabled={isFormDisabled}
         />
         
         {/* Show validation errors */}
@@ -177,9 +233,28 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
               Please fix the following errors:
               <ul className="mt-2 ml-4 list-disc">
                 {Object.entries(errors).map(([field, error]) => (
-                  <li key={field}>{error?.message}</li>
+                  <li key={field}>{field}: {error?.message}</li>
                 ))}
               </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Debug info for development */}
+        {process.env.NODE_ENV === 'development' && (
+          <Alert>
+            <AlertDescription>
+              <details className="text-xs">
+                <summary>Debug Info (Development Only)</summary>
+                <pre className="mt-2 whitespace-pre-wrap">
+                  {JSON.stringify({
+                    formValues: form.getValues(),
+                    categoryData,
+                    isFormDisabled,
+                    formErrors: errors
+                  }, null, 2)}
+                </pre>
+              </details>
             </AlertDescription>
           </Alert>
         )}
