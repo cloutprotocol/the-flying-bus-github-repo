@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SheetClose } from '@/components/ui/sheet';
@@ -38,7 +37,7 @@ const DrawerNavigation: React.FC<DrawerNavigationProps> = ({ items }) => {
             <li>
               <SheetClose asChild>
                 <Link 
-                  to={`/profile/${currentUser.username}/settings`}
+                  to="/settings"
                   className="flex items-center text-sm font-medium text-gray-800 hover:text-gray-900"
                 >
                   <Settings size={16} className="mr-2" />
