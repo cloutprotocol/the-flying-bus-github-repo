@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { RainbowButton } from '@/components/ui/rainbow-button';
 import { Mail, Users, Shield } from 'lucide-react';
 
@@ -58,10 +59,12 @@ const CallToActionSection = () => {
             
             {/* Action Button */}
             <div className="flex justify-center">
-              <RainbowButton className="text-lg px-8 py-3 text-gray-900 font-semibold">
-                <Mail className="mr-2 h-5 w-5" />
-                Request Invitation
-              </RainbowButton>
+              <Link to="/request-invitation">
+                <RainbowButton className="text-lg px-8 py-3 text-gray-900 font-semibold">
+                  <Mail className="mr-2 h-5 w-5" />
+                  Request Invitation
+                </RainbowButton>
+              </Link>
             </div>
           </div>
         </div>

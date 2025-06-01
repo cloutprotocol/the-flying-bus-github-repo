@@ -12,6 +12,7 @@ import CommentModeration from '@/pages/Admin/CommentModeration';
 import ContentFlagging from '@/pages/Admin/ContentFlagging';
 import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
+import InvitationManagement from '@/pages/Admin/InvitationManagement';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
 export const adminRoutes = [
@@ -62,6 +63,10 @@ export const adminRoutes = [
   { 
     path: "/admin/report-management", 
     element: <ProtectedRoute><ReportManagement /></ProtectedRoute>
+  },
+  { 
+    path: "/admin/invitations", 
+    element: <ProtectedRoute><InvitationManagement /></ProtectedRoute>
   },
   { 
     path: "/admin/analytics", 

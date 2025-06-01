@@ -7,6 +7,7 @@ import CategoryPage from '@/pages/CategoryPage';
 import StoryboardPage from '@/pages/StoryboardPage';
 import StoryboardCategoryPage from '@/pages/StoryboardCategoryPage';
 import StoryboardEpisodePage from '@/pages/StoryboardEpisodePage';
+import RequestInvitation from '@/pages/RequestInvitation';
 import NotFound from '@/pages/NotFound';
 import About from '@/pages/About';
 import ReaderAuth from '@/pages/ReaderAuth';
@@ -26,6 +27,7 @@ export const publicRoutes = [
   { path: "/storyboard", element: <StoryboardCategoryPage /> },
   { path: "/storyboard/:seriesId/episode/:episodeId", element: <StoryboardEpisodePage /> },
   { path: "/about", element: <About /> },
+  { path: "/request-invitation", element: <RequestInvitation /> },
   { path: "/reader-auth", element: <ReaderAuth /> },
   { path: "*", element: <NotFound /> }
 ];

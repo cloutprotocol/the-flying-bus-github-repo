@@ -506,6 +506,63 @@ export type Database = {
           },
         ]
       }
+      invitation_requests: {
+        Row: {
+          child_age: number
+          child_name: string
+          child_user_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          parent_email: string
+          parent_name: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: string
+        }
+        Insert: {
+          child_age: number
+          child_name: string
+          child_user_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          parent_email: string
+          parent_name: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+        }
+        Update: {
+          child_age?: number
+          child_name?: string
+          child_user_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          parent_email?: string
+          parent_name?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_requests_child_user_id_fkey"
+            columns: ["child_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitation_requests_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_assets: {
         Row: {
           alt_text: string | null
