@@ -10,21 +10,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  MessageSquare,
-  FileText,
-  Users,
-  BookOpen,
-  GraduationCap,
-  Sparkles,
-  Play
-} from 'lucide-react';
 
 interface ArticleType {
   id: string;
   name: string;
   description: string;
-  icon: React.ReactNode;
+  iconSrc: string;
   articleType: 'standard' | 'debate' | 'video' | 'storyboard';
   categorySlug: string;
 }
@@ -34,7 +25,7 @@ const articleTypes: ArticleType[] = [
     id: 'headliners',
     name: 'Headliners',
     description: 'Breaking news and major stories that grab attention',
-    icon: <FileText className="h-6 w-6" />,
+    iconSrc: '/headliners-icon.svg',
     articleType: 'standard',
     categorySlug: 'headliners'
   },
@@ -42,7 +33,7 @@ const articleTypes: ArticleType[] = [
     id: 'debates',
     name: 'Debates',
     description: 'Interactive articles with yes/no polling and arguments',
-    icon: <MessageSquare className="h-6 w-6" />,
+    iconSrc: '/debates-icon.svg',
     articleType: 'debate',
     categorySlug: 'debates'
   },
@@ -50,7 +41,7 @@ const articleTypes: ArticleType[] = [
     id: 'neighborhood',
     name: 'In the Neighborhood',
     description: 'Local community stories and neighborhood news',
-    icon: <Users className="h-6 w-6" />,
+    iconSrc: '/neighborhood-icon.svg',
     articleType: 'standard',
     categorySlug: 'neighborhood'
   },
@@ -58,7 +49,7 @@ const articleTypes: ArticleType[] = [
     id: 'learning',
     name: 'Learning',
     description: 'Educational content and learning resources',
-    icon: <BookOpen className="h-6 w-6" />,
+    iconSrc: '/learning-icon.svg',
     articleType: 'standard',
     categorySlug: 'learning'
   },
@@ -66,7 +57,7 @@ const articleTypes: ArticleType[] = [
     id: 'school-news',
     name: 'School News',
     description: 'News and updates from schools and education',
-    icon: <GraduationCap className="h-6 w-6" />,
+    iconSrc: '/school-news-icon.svg',
     articleType: 'standard',
     categorySlug: 'school-news'
   },
@@ -74,7 +65,7 @@ const articleTypes: ArticleType[] = [
     id: 'spice-it-up',
     name: 'Spice It Up',
     description: 'Fun articles that can include optional videos',
-    icon: <Sparkles className="h-6 w-6" />,
+    iconSrc: '/spice-it-up-icon.svg',
     articleType: 'video',
     categorySlug: 'spice-it-up'
   },
@@ -82,7 +73,7 @@ const articleTypes: ArticleType[] = [
     id: 'storyboard',
     name: 'Storyboard',
     description: 'Video series with episodes and storytelling',
-    icon: <Play className="h-6 w-6" />,
+    iconSrc: '/storyboard-icon.svg',
     articleType: 'storyboard',
     categorySlug: 'storyboard'
   }
@@ -130,8 +121,12 @@ const ArticleTypeSelectionModal: React.FC<ArticleTypeSelectionModalProps> = ({
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                    {type.icon}
+                  <div className="p-2 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <img 
+                      src={type.iconSrc} 
+                      alt={`${type.name} icon`}
+                      className="w-6 h-6"
+                    />
                   </div>
                   <CardTitle className="text-lg">{type.name}</CardTitle>
                 </div>
