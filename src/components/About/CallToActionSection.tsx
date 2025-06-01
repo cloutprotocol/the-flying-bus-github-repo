@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { RainbowButton } from '@/components/ui/rainbow-button';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Mail, Users, Shield } from 'lucide-react';
+import { Mail, Users, Shield } from 'lucide-react';
 
 const CallToActionSection = () => {
   return (
@@ -57,20 +56,12 @@ const CallToActionSection = () => {
               </div>
             </div>
             
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            {/* Action Button */}
+            <div className="flex justify-center">
               <RainbowButton className="text-lg px-8 py-3 text-gray-900 font-semibold">
                 <Mail className="mr-2 h-5 w-5" />
                 Request Invitation
               </RainbowButton>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-3 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 bg-white"
-              >
-                Learn More
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
             </div>
           </div>
         </div>
