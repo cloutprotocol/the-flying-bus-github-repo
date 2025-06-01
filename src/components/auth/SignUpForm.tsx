@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { registerUser } from '@/services/auth/authService';
 
 interface SignUpFormProps {
   onSwitchTab: () => void;
@@ -48,39 +47,33 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
     }
     
     try {
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email: signUpForm.email,
-        password: signUpForm.password,
-        options: {
-          data: {
-            username: signUpForm.username,
-            display_name: signUpForm.displayName,
-          }
-        }
-      });
+      // Use the registerUser service function
+      const result = await registerUser(
+        signUpForm.email,
+        signUpForm.password,
+        signUpForm.username,
+        signUpForm.displayName
+      );
       
-      if (error) {
-        console.error('Sign up error:', error);
+      if (!result.success) {
+        console.error('Registration error:', result.error);
         toast({
           title: "Sign up failed",
-          description: error.message,
+          description: result.error?.message || "An error occurred during registration",
           variant: "destructive",
         });
         return;
       }
       
-      if (data) {
-        toast({
-          title: "Account created!",
-          description: "Welcome to The Flying Bus! You're now signed in.",
-        });
-        
-        // Redirect to home or specified path
-        setTimeout(() => {
-          navigate(redirectPath || '/', { replace: true });
-        }, 500);
-      }
+      toast({
+        title: "Account created!",
+        description: "Welcome to The Flying Bus! You're now signed in.",
+      });
+      
+      // Redirect to home or specified path
+      setTimeout(() => {
+        navigate(redirectPath || '/', { replace: true });
+      }, 500);
     } catch (error) {
       console.error('Sign up error:', error);
       toast({
