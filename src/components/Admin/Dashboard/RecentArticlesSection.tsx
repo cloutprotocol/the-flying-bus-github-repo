@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { deleteArticle } from '@/services/articleService';
 import StatusDropdown from '@/components/Admin/Status/StatusDropdown';
 import ArticlePaginationControls from './ArticlePaginationControls';
+import { useArticleTypeSelection } from '@/contexts/ArticleTypeSelectionContext';
 
 interface RecentArticle {
   id: string;
@@ -38,6 +38,7 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
 }) => {
   const [articleToDelete, setArticleToDelete] = useState<string | null>(null);
   const { toast } = useToast();
+  const { openModal } = useArticleTypeSelection();
 
   const handleDelete = async () => {
     if (!articleToDelete) return;
@@ -81,11 +82,9 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
           <div>
             <CardTitle>Recent Articles</CardTitle>
           </div>
-          <Link to="/admin/articles/new">
-            <Button size="sm">
-              New Article
-            </Button>
-          </Link>
+          <Button size="sm" onClick={openModal}>
+            New Article
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -103,9 +102,9 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
           ) : !articles.length ? (
             <div className="py-8 text-center text-muted-foreground">
               <p>No articles found. Create your first article to get started!</p>
-              <Link to="/admin/articles/new" className="mt-4 inline-block">
-                <Button variant="outline" size="sm">Create Article</Button>
-              </Link>
+              <Button variant="outline" size="sm" className="mt-4" onClick={openModal}>
+                Create Article
+              </Button>
             </div>
           ) : (
             <div className="space-y-2">
