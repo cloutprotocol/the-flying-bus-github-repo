@@ -23,21 +23,23 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
 }) => {
   const handleSubmitClick = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit button clicked - calling onSubmit');
+    console.log('SimpleFormActions: Submit button clicked - calling onSubmit');
     try {
       await onSubmit(e);
+      console.log('SimpleFormActions: onSubmit completed successfully');
     } catch (error) {
-      console.error('Submit error in SimpleFormActions:', error);
+      console.error('SimpleFormActions: Submit error:', error);
     }
   };
 
   const handleSaveDraftClick = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Save draft button clicked');
+    console.log('SimpleFormActions: Save draft button clicked');
     try {
       await onSaveDraft();
+      console.log('SimpleFormActions: onSaveDraft completed successfully');
     } catch (error) {
-      console.error('Save draft error in SimpleFormActions:', error);
+      console.error('SimpleFormActions: Save draft error:', error);
     }
   };
 

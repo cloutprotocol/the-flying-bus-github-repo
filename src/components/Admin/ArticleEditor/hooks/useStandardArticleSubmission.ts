@@ -23,7 +23,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   const [isSaving, setIsSaving] = React.useState(false);
 
   const convertToArticleFormData = (data: StandardArticleFormData): ArticleFormData => {
-    console.log('Converting form data:', data);
+    console.log('Converting standard form data:', data);
     
     // Convert form status to ArticleFormData status
     const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
@@ -57,6 +57,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       return;
     }
 
+    console.log('useStandardArticleSubmission.handleSaveDraft called');
     setIsSaving(true);
     try {
       const formData = form.getValues();
@@ -99,7 +100,14 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   };
 
   const handleSubmit = async (data: StandardArticleFormData): Promise<void> => {
+    console.log('useStandardArticleSubmission.handleSubmit called with data:', {
+      title: data.title,
+      categoryId: data.categoryId,
+      articleType: data.articleType
+    });
+
     if (!user?.id) {
+      console.error('No user ID found for submission');
       toast({
         title: "Authentication required",
         description: "You must be logged in to submit articles.",
@@ -108,30 +116,41 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       return;
     }
 
-    console.log('handleSubmit called with data:', data);
+    console.log('User authenticated, proceeding with submission. User ID:', user.id);
     logger.info(LogSource.ARTICLE, 'Starting standard article submission');
 
     try {
       const convertedData = convertToArticleFormData(data);
       
-      console.log('Calling UnifiedSubmissionService.submitForReview with fresh slug:', convertedData.slug);
+      console.log('Converted data for submission:', {
+        title: convertedData.title,
+        categoryId: convertedData.categoryId,
+        articleType: convertedData.articleType,
+        slug: convertedData.slug,
+        status: convertedData.status
+      });
+      
+      console.log('About to call UnifiedSubmissionService.submitForReview...');
       
       const result = await UnifiedSubmissionService.submitForReview(convertedData, user.id);
       
-      console.log('Submission result:', result);
+      console.log('UnifiedSubmissionService.submitForReview completed with result:', result);
       
       if (result.success) {
+        console.log('Submission successful, showing success toast');
         toast({
           title: "Submission successful",
           description: "Your article has been submitted for review!",
         });
+        console.log('Navigating to /admin/my-articles');
         navigate('/admin/my-articles');
       } else {
+        console.error('Submission failed with error:', result.error);
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Submit error', error);
-      console.error('Submission error:', error);
+      console.error('Submission error in useStandardArticleSubmission:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
