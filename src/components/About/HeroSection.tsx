@@ -10,7 +10,7 @@ const HeroSection = () => {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-bold text-flyingbus-purple">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900">
               The Flying Bus
             </h1>
             <p className="text-xl md:text-2xl text-gray-700 font-medium">
@@ -42,7 +42,7 @@ const HeroSection = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <RainbowButton className="text-lg px-8 py-3">
+            <RainbowButton className="text-lg px-8 py-3 text-gray-900 font-semibold">
               Join Our Community
             </RainbowButton>
             <Button variant="outline" size="lg" className="text-lg px-8 py-3">
