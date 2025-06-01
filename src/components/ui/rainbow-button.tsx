@@ -31,9 +31,7 @@ export function RainbowButton({
       }}
       {...props}
     >
-      <span style={{ color: '#111827 !important', position: 'relative', zIndex: 1 }}>
-        {children}
-      </span>
+      {children}
     </button>
   );
 }
