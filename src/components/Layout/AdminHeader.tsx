@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,7 @@ const AdminHeader = () => {
         
         <div className="flex items-center gap-2">
           <Button 
-            variant="default" 
+            variant="outline" 
             size="sm"
             onClick={openModal}
             className="flex items-center gap-2"
