@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, Filter, Edit, Trash2, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,7 +83,7 @@ const UserList = () => {
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="reader">Reader</SelectItem>
               <SelectItem value="author">Author</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>

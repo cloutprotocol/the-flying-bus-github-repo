@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { fetchAllUsers, UserSearchFilters, updateUserProfile, updateUserRole } from '@/services/userService';
@@ -10,7 +9,7 @@ export function useUserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const { toast } = useToast();
@@ -24,7 +23,7 @@ export function useUserManagement() {
       
       const filters: UserSearchFilters = {
         searchTerm: searchTerm || undefined,
-        role: roleFilter || undefined,
+        role: (roleFilter === 'all' || roleFilter === '') ? undefined : roleFilter,
         limit: pageSize,
         offset: currentPage * pageSize,
       };
