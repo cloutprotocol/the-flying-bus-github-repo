@@ -43,10 +43,11 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
     checkFeaturedArticle();
   }, []);
 
-  // Watch for changes to shouldHighlight field
+  // Watch for changes to shouldHighlight field with detailed logging
   const shouldHighlight = form.watch('shouldHighlight');
   
   useEffect(() => {
+    console.log('MetadataFields: shouldHighlight changed:', shouldHighlight);
     setShowFeaturedWarning(shouldHighlight && hasFeaturedArticle);
   }, [shouldHighlight, hasFeaturedArticle]);
 
@@ -62,8 +63,11 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
             <FormItem className="flex items-center space-x-2">
               <FormControl>
                 <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+                  checked={Boolean(field.value)}
+                  onCheckedChange={(checked) => {
+                    console.log('MetadataFields: Switch toggled to:', checked);
+                    field.onChange(checked);
+                  }}
                 />
               </FormControl>
               <FormLabel>Feature this article</FormLabel>
@@ -80,7 +84,7 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
               <FormItem className="flex items-center space-x-2">
                 <FormControl>
                   <Switch
-                    checked={field.value}
+                    checked={Boolean(field.value)}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
@@ -105,6 +109,13 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
       <p className="text-sm text-muted-foreground">
         Article URL will be automatically generated from the title
       </p>
+      
+      {/* Debug info for development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+          Debug: shouldHighlight = {String(shouldHighlight)} | form value = {String(form.getValues('shouldHighlight'))}
+        </div>
+      )}
     </div>
   );
 };

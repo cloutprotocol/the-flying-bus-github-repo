@@ -1,6 +1,6 @@
 
 -- This file contains SQL functions for optimized database operations
--- Updated to handle proper field mapping and status values
+-- Updated to handle proper field mapping and status values with featured field support
 
 -- Function to save and submit an article in a single transaction
 CREATE OR REPLACE FUNCTION public.submit_article_optimized(
@@ -22,6 +22,7 @@ DECLARE
   v_article_title TEXT;
   v_slug TEXT;
   v_result_id UUID;
+  v_featured BOOLEAN;
   v_start_time TIMESTAMPTZ;
   v_end_time TIMESTAMPTZ;
   v_duration_ms INTEGER;
@@ -35,6 +36,7 @@ BEGIN
   v_article_type := COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', 'standard');
   v_article_title := p_article_data->>'title';
   v_slug := p_article_data->>'slug';
+  v_featured := COALESCE((p_article_data->>'featured')::BOOLEAN, (p_article_data->>'shouldHighlight')::BOOLEAN, false);
   
   -- Start a transaction for atomic operations
   BEGIN
@@ -75,7 +77,7 @@ BEGIN
         RETURN;
       END IF;
       
-      -- OPTIMIZATION: Update article inline with proper field mapping
+      -- OPTIMIZATION: Update article inline with proper field mapping including featured
       UPDATE articles
       SET
         title = COALESCE(p_article_data->>'title', title),
@@ -85,12 +87,13 @@ BEGIN
         category_id = COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID, category_id),
         status = 'pending',
         article_type = COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', article_type),
+        featured = v_featured,
         updated_at = now()
       WHERE id = v_article_id
       RETURNING id INTO v_result_id;
       
     ELSE
-      -- OPTIMIZATION: Direct insert for new articles with proper field mapping
+      -- OPTIMIZATION: Direct insert for new articles with proper field mapping including featured
       INSERT INTO articles (
         title,
         content,
@@ -100,7 +103,8 @@ BEGIN
         author_id,
         status,
         article_type,
-        slug
+        slug,
+        featured
       ) VALUES (
         COALESCE(v_article_title, 'Untitled Article'),
         COALESCE(p_article_data->>'content', ''),
@@ -110,7 +114,8 @@ BEGIN
         v_author_id,
         'pending',
         v_article_type,
-        COALESCE(v_slug, 'article-' || floor(extract(epoch from now()))::text)
+        COALESCE(v_slug, 'article-' || floor(extract(epoch from now()))::text),
+        v_featured
       )
       RETURNING id INTO v_result_id;
     END IF;
@@ -164,14 +169,11 @@ BEGIN
 END;
 $$;
 
--- Function to save an article draft efficiently with proper field mapping
-CREATE OR REPLACE FUNCTION public.save_draft_optimized(
-  p_user_id UUID,
-  p_article_data JSONB
-)
-RETURNS TABLE(success BOOLEAN, error_message TEXT, article_id UUID, duration_ms INTEGER)
-LANGUAGE plpgsql
-SECURITY DEFINER
+-- Function to save an article draft efficiently with proper field mapping including featured
+CREATE OR REPLACE FUNCTION public.save_article_draft(p_article_data JSONB)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
 AS $$
 DECLARE
   v_article_id UUID;
@@ -180,29 +182,25 @@ DECLARE
   v_article_title TEXT;
   v_result_id UUID;
   v_existing_article_id UUID;
-  v_start_time TIMESTAMPTZ;
-  v_end_time TIMESTAMPTZ;
-  v_duration_ms INTEGER;
+  v_featured BOOLEAN;
 BEGIN
-  -- Start timing the function execution
-  v_start_time := clock_timestamp();
-  
-  -- Extract data from the input once to avoid repeated parsing
+  -- Extract data from the input
   v_article_id := (p_article_data->>'id')::UUID;
-  v_author_id := COALESCE((p_article_data->>'author_id')::UUID, p_user_id);
-  v_article_type := COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', 'standard');
+  v_author_id := (p_article_data->>'author_id')::UUID;
+  v_article_type := COALESCE(p_article_data->>'articleType', p_article_data->>'article_type', 'standard');
   v_article_title := p_article_data->>'title';
+  v_featured := COALESCE((p_article_data->>'featured')::BOOLEAN, (p_article_data->>'shouldHighlight')::BOOLEAN, false);
   
-  -- OPTIMIZATION: Check for duplicate drafts if no ID is provided in a single query with proper table alias
+  -- IMPORTANT: Check for duplicate drafts if no ID is provided
   IF v_article_id IS NULL AND v_article_title IS NOT NULL AND v_author_id IS NOT NULL THEN
     -- Try to find existing draft with same title and author
-    SELECT a.id INTO v_existing_article_id
-    FROM articles a
+    SELECT id INTO v_existing_article_id
+    FROM articles
     WHERE 
-      a.title = v_article_title 
-      AND a.author_id = v_author_id
-      AND a.status = 'draft'
-    ORDER BY a.created_at DESC
+      title = v_article_title 
+      AND author_id = v_author_id
+      AND status = 'draft'
+    ORDER BY created_at DESC
     LIMIT 1;
     
     -- Use existing article id if found to prevent duplicates
@@ -213,7 +211,7 @@ BEGIN
   
   -- Handle insert or update based on whether article exists
   IF v_article_id IS NULL THEN
-    -- Insert new article with proper field mapping
+    -- Insert new article with featured field
     INSERT INTO articles (
       title,
       content,
@@ -223,9 +221,10 @@ BEGIN
       author_id,
       status,
       article_type,
-      slug
+      slug,
+      featured
     ) VALUES (
-      COALESCE(v_article_title, 'Untitled Draft'),
+      COALESCE(p_article_data->>'title', 'Untitled Draft'),
       COALESCE(p_article_data->>'content', ''),
       p_article_data->>'excerpt',
       COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl'),
@@ -233,11 +232,12 @@ BEGIN
       v_author_id,
       'draft',
       v_article_type,
-      COALESCE(p_article_data->>'slug', 'draft-' || floor(extract(epoch from now()))::text)
+      COALESCE(p_article_data->>'slug', 'draft-' || floor(extract(epoch from now()))::text),
+      v_featured
     )
     RETURNING id INTO v_result_id;
   ELSE
-    -- Update existing article with proper field mapping
+    -- Update existing article with featured field
     UPDATE articles
     SET
       title = COALESCE(p_article_data->>'title', title),
@@ -246,6 +246,7 @@ BEGIN
       cover_image = COALESCE(p_article_data->>'cover_image', p_article_data->>'imageUrl', cover_image),
       category_id = COALESCE((p_article_data->>'category_id')::UUID, (p_article_data->>'categoryId')::UUID, category_id),
       article_type = COALESCE(p_article_data->>'article_type', p_article_data->>'articleType', article_type),
+      featured = v_featured,
       updated_at = now()
     WHERE id = v_article_id
     RETURNING id INTO v_result_id;
@@ -260,7 +261,7 @@ BEGIN
     DO UPDATE SET video_url = EXCLUDED.video_url;
   END IF;
   
-  -- Handle debate article data in same transaction with proper field mapping
+  -- Handle debate article data in same transaction
   IF v_article_type = 'debate' AND p_article_data->'debateSettings' IS NOT NULL THEN
     -- Upsert debate details
     INSERT INTO debate_articles (
@@ -285,17 +286,6 @@ BEGIN
       voting_enabled = EXCLUDED.voting_enabled;
   END IF;
   
-  -- Calculate execution time
-  v_end_time := clock_timestamp();
-  v_duration_ms := EXTRACT(MILLISECONDS FROM (v_end_time - v_start_time))::INTEGER;
-  
-  -- Return success with performance metrics
-  RETURN QUERY SELECT true, NULL::TEXT, v_result_id, v_duration_ms;
-  
-EXCEPTION WHEN OTHERS THEN
-  -- Handle errors with performance metrics
-  v_end_time := clock_timestamp();
-  v_duration_ms := EXTRACT(MILLISECONDS FROM (v_end_time - v_start_time))::INTEGER;
-  RETURN QUERY SELECT false, SQLERRM, NULL::UUID, v_duration_ms;
+  RETURN v_result_id;
 END;
 $$;

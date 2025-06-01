@@ -22,19 +22,13 @@ export class UnifiedSubmissionService {
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
-      console.log('UnifiedSubmissionService.submitForReview called with:', {
-        articleType: formData.articleType,
-        hasId: !!formData.id,
-        title: formData.title?.substring(0, 30),
-        userId,
-        categoryId: formData.categoryId,
-        shouldHighlight: formData.shouldHighlight
-      });
+      console.log('UnifiedSubmissionService.submitForReview called with shouldHighlight:', formData.shouldHighlight);
 
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
         articleType: formData.articleType,
         hasId: !!formData.id,
-        title: formData.title?.substring(0, 30)
+        title: formData.title?.substring(0, 30),
+        shouldHighlight: formData.shouldHighlight
       });
 
       // Validate required fields before processing
@@ -46,7 +40,7 @@ export class UnifiedSubmissionService {
         return { success: false, error: 'Category is required' };
       }
 
-      // Handle featured article constraint
+      // Handle featured article constraint with detailed logging
       if (formData.shouldHighlight) {
         console.log('Article marked as featured, unfeaturing existing featured articles...');
         
@@ -60,12 +54,21 @@ export class UnifiedSubmissionService {
           console.error('Error unfeaturing existing articles:', unfeaturedError);
           return { success: false, error: 'Failed to update existing featured article' };
         }
+        
+        console.log('Successfully unfeatured existing articles');
       }
 
       // Map and validate form data with updated field mapping
       const mappedData = mapFormDataToDatabase(formData, userId);
-      // Add featured field mapping
-      mappedData.featured = formData.shouldHighlight || false;
+      
+      // CRITICAL: Ensure featured field is explicitly set
+      mappedData.featured = Boolean(formData.shouldHighlight);
+      
+      console.log('Final mapped data before submission:', {
+        featured: mappedData.featured,
+        shouldHighlight: mappedData.shouldHighlight,
+        title: mappedData.title?.substring(0, 30)
+      });
       
       const validation = validateMappedData(mappedData);
 
@@ -77,11 +80,6 @@ export class UnifiedSubmissionService {
           error: validation.errors.join(', ')
         };
       }
-
-      console.log('Mapped data for submission:', {
-        ...mappedData,
-        content: mappedData.content?.substring(0, 50) + '...'
-      });
 
       // Use the proven submit_article_with_validation function
       const { data, error } = await supabase.rpc('submit_article_with_validation', {
@@ -161,17 +159,12 @@ export class UnifiedSubmissionService {
    */
   static async saveDraft(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
-      console.log('UnifiedSubmissionService.saveDraft called with:', {
-        articleType: formData.articleType,
-        hasId: !!formData.id,
-        title: formData.title?.substring(0, 30),
-        categoryId: formData.categoryId,
-        shouldHighlight: formData.shouldHighlight
-      });
+      console.log('UnifiedSubmissionService.saveDraft called with shouldHighlight:', formData.shouldHighlight);
 
       logger.info(LogSource.ARTICLE, 'Saving article draft', {
         articleType: formData.articleType,
-        hasId: !!formData.id
+        hasId: !!formData.id,
+        shouldHighlight: formData.shouldHighlight
       });
 
       // Basic validation for drafts
@@ -192,16 +185,19 @@ export class UnifiedSubmissionService {
           console.error('Error unfeaturing existing articles:', unfeaturedError);
           return { success: false, error: 'Failed to update existing featured article' };
         }
+        
+        console.log('Successfully unfeatured existing articles for draft');
       }
 
       const mappedData = mapFormDataToDatabase(formData, userId);
-      // Override status to draft for save operations and add featured mapping
+      // Override status to draft for save operations and ensure featured mapping
       mappedData.status = ARTICLE_STATUS?.DRAFT || 'draft';
-      mappedData.featured = formData.shouldHighlight || false;
+      mappedData.featured = Boolean(formData.shouldHighlight);
 
-      console.log('Mapped data for draft save:', {
-        ...mappedData,
-        content: mappedData.content?.substring(0, 50) + '...'
+      console.log('Draft save - final mapped data:', {
+        featured: mappedData.featured,
+        shouldHighlight: mappedData.shouldHighlight,
+        title: mappedData.title?.substring(0, 30)
       });
 
       // Use the proven save_article_draft function (returns UUID directly)
