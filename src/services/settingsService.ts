@@ -6,7 +6,11 @@ interface ProfileUpdateData {
   username?: string;
   display_name?: string;
   bio?: string;
+  public_bio?: string;
   avatar_url?: string;
+  crypto_wallet_address?: string;
+  badge_display_preferences?: any;
+  favorite_categories?: string[];
 }
 
 export async function updateProfile(userId: string, data: ProfileUpdateData) {
@@ -27,13 +31,11 @@ export async function changePassword(currentPassword: string, newPassword: strin
   try {
     console.log('Attempting to change password');
     
-    // First verify current password by trying to sign in
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) {
       throw new Error('User not found');
     }
 
-    // Update password
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     });
@@ -54,7 +56,6 @@ export async function deleteAccount(userId: string) {
   try {
     console.log('Deleting account for user:', userId);
     
-    // Delete user profile (cascade will handle related data)
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -64,7 +65,6 @@ export async function deleteAccount(userId: string) {
       throw profileError;
     }
 
-    // Delete auth user
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
     
     if (authError) {

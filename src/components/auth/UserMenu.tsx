@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { LogOut, User, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,22 +11,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { User, Settings, LogOut, Shield } from 'lucide-react';
 
 const UserMenu = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, checkRoleAccess } = useAuth();
+  const navigate = useNavigate();
 
-  if (!currentUser) return null;
-
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
   };
 
-  const initials = currentUser.displayName
-    .split(' ')
-    .map(name => name[0])
-    .join('')
-    .toUpperCase();
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase();
+  };
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const canAccessAdmin = checkRoleAccess(['author', 'moderator', 'admin']);
 
   return (
     <DropdownMenu>
@@ -35,8 +43,8 @@ const UserMenu = () => {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
-            <AvatarFallback className="bg-neutral-700 text-white">
-              {initials}
+            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-xs">
+              {getInitials(currentUser.displayName)}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -51,25 +59,22 @@ const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={`/profile/${currentUser.id}`} className="flex items-center">
-            <User className="mr-2 h-4 w-4" />
-            <span>My Profile</span>
-          </Link>
+        <DropdownMenuItem onClick={() => navigate(`/profile/${currentUser.username}`)}>
+          <User className="mr-2 h-4 w-4" />
+          <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/profile/edit" className="flex items-center">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Edit Profile</span>
-          </Link>
+        <DropdownMenuItem onClick={() => navigate('/settings')}>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Settings</span>
         </DropdownMenuItem>
-        {currentUser.role !== 'reader' && (
-          <DropdownMenuItem asChild>
-            <Link to="/admin/dashboard" className="flex items-center">
-              <Settings className="mr-2 h-4 w-4" />
+        {canAccessAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/admin/dashboard')}>
+              <Shield className="mr-2 h-4 w-4" />
               <span>Admin Portal</span>
-            </Link>
-          </DropdownMenuItem>
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievement_types: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description: string
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           activity_type: Database["public"]["Enums"]["activity_type"]
@@ -643,6 +670,8 @@ export type Database = {
       privacy_settings: {
         Row: {
           profile_visibility: string
+          show_achievements: boolean
+          show_badges: boolean
           show_comment_history: boolean
           show_reading_activity: boolean
           updated_at: string
@@ -650,6 +679,8 @@ export type Database = {
         }
         Insert: {
           profile_visibility?: string
+          show_achievements?: boolean
+          show_badges?: boolean
           show_comment_history?: boolean
           show_reading_activity?: boolean
           updated_at?: string
@@ -657,6 +688,8 @@ export type Database = {
         }
         Update: {
           profile_visibility?: string
+          show_achievements?: boolean
+          show_badges?: boolean
           show_comment_history?: boolean
           show_reading_activity?: boolean
           updated_at?: string
@@ -675,33 +708,45 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          badge_display_preferences: Json | null
           bio: string | null
           created_at: string
+          crypto_wallet_address: string | null
           display_name: string
           email: string
+          favorite_categories: string[] | null
           id: string
+          public_bio: string | null
           role: string
           updated_at: string
           username: string
         }
         Insert: {
           avatar_url?: string | null
+          badge_display_preferences?: Json | null
           bio?: string | null
           created_at?: string
+          crypto_wallet_address?: string | null
           display_name: string
           email: string
+          favorite_categories?: string[] | null
           id: string
+          public_bio?: string | null
           role: string
           updated_at?: string
           username: string
         }
         Update: {
           avatar_url?: string | null
+          badge_display_preferences?: Json | null
           bio?: string | null
           created_at?: string
+          crypto_wallet_address?: string | null
           display_name?: string
           email?: string
+          favorite_categories?: string[] | null
           id?: string
+          public_bio?: string | null
           role?: string
           updated_at?: string
           username?: string
