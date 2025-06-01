@@ -24,7 +24,7 @@ import PrivacySettingsSection from './PrivacySettingsSection';
 
 // Define the form schema with zod
 const profileFormSchema = z.object({
-  displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }),
+  display_name: z.string().min(2, { message: "Display name must be at least 2 characters." }),
   username: z.string().min(3, { message: "Username must be at least 3 characters." })
     .regex(/^[a-z0-9_]+$/, { message: "Username can only contain lowercase letters, numbers, and underscores." }),
   bio: z.string().max(250, { message: "Bio must not exceed 250 characters." }).optional(),
@@ -55,7 +55,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      displayName: editedProfile.displayName,
+      display_name: editedProfile.display_name,
       username: editedProfile.username,
       bio: editedProfile.bio || '',
       showCommentHistory: false,
@@ -67,7 +67,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   const onSubmit = (values: ProfileFormValues) => {
     const formEvent = { preventDefault: () => {} } as React.FormEvent;
     // Update the editedProfile with form values
-    editedProfile.displayName = values.displayName;
+    editedProfile.display_name = values.display_name;
     editedProfile.username = values.username;
     editedProfile.bio = values.bio;
     
@@ -87,7 +87,7 @@ const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             <div className="grid gap-6">
               <FormField
                 control={form.control}
-                name="displayName"
+                name="display_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Display Name</FormLabel>

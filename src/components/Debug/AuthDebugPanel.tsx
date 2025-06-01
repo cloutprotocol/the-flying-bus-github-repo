@@ -1,85 +1,47 @@
 
-import React, { useState } from 'react';
-import { User, LogIn, LogOut, Check, X, Info } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const AuthDebugPanel = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const { currentUser, isLoggedIn, isLoading, session } = useAuth();
+  const { currentUser, isLoggedIn, isLoading } = useAuth();
+
+  if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
+    return null;
+  }
 
   return (
-    <div className="bg-slate-100 border-b border-slate-200 w-full py-1 px-4 text-xs">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">Auth Debug:</span>
-          {isLoading ? (
-            <span className="flex items-center gap-1 text-yellow-600">
-              <Info className="h-3 w-3" /> Loading
-            </span>
-          ) : isLoggedIn ? (
-            <span className="flex items-center gap-1 text-green-600">
-              <Check className="h-3 w-3" /> Logged In ({currentUser?.username})
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-red-600">
-              <X className="h-3 w-3" /> Not Logged In
-            </span>
-          )}
+    <Card className="fixed bottom-4 right-4 w-80 bg-yellow-50 border-yellow-200 z-50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          🐛 Auth Debug Panel
+          <Badge variant={isLoggedIn ? "default" : "secondary"} className="text-xs">
+            {isLoggedIn ? "Logged In" : "Logged Out"}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="text-xs space-y-2">
+        <div>
+          <strong>Loading:</strong> {isLoading ? "Yes" : "No"}
         </div>
-        
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-5 text-xs" 
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {isExpanded ? 'Less' : 'More'} details
-        </Button>
-      </div>
-      
-      {isExpanded && (
-        <div className="mt-2 mb-1 space-y-1 bg-white p-2 rounded text-slate-800">
-          <div>
-            <span className="font-semibold">Status: </span>
-            {isLoggedIn ? (
-              <span className="text-green-600">Authenticated</span>
-            ) : (
-              <span className="text-red-600">Not Authenticated</span>
-            )}
-          </div>
-          
-          {isLoggedIn && currentUser && (
-            <>
-              <div>
-                <span className="font-semibold">User: </span>
-                {currentUser.username} ({currentUser.displayName})
-              </div>
-              <div>
-                <span className="font-semibold">Role: </span>
-                {currentUser.role}
-              </div>
-              <div>
-                <span className="font-semibold">ID: </span>
-                {currentUser.id.substring(0, 8)}...
-              </div>
-              <div>
-                <span className="font-semibold">Session: </span>
-                {session ? (
-                  <span className="text-green-600">Active</span>
-                ) : (
-                  <span className="text-red-600">Missing</span>
-                )}
-              </div>
-            </>
-          )}
-          
-          <div className="text-gray-500 italic">
-            This debug panel is only visible during development.
-          </div>
+        <div>
+          <strong>User ID:</strong> {currentUser?.id || "None"}
         </div>
-      )}
-    </div>
+        <div>
+          <strong>Username:</strong> {currentUser?.username || "None"}
+        </div>
+        <div>
+          <strong>Display Name:</strong> {currentUser?.display_name || "None"}
+        </div>
+        <div>
+          <strong>Role:</strong> {currentUser?.role || "None"}
+        </div>
+        <div>
+          <strong>Email:</strong> {currentUser?.email || "None"}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

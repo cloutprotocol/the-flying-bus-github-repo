@@ -14,11 +14,11 @@ import { Upload, X } from 'lucide-react';
 
 interface ProfileFormData {
   username: string;
-  displayName: string;
+  display_name: string;
   bio: string;
-  publicBio: string;
-  avatar: string;
-  favoriteCategories: string[];
+  public_bio: string;
+  avatar_url: string;
+  favorite_categories: string[];
 }
 
 const AVAILABLE_CATEGORIES = [
@@ -40,11 +40,11 @@ const UserProfileSettings = () => {
   const form = useForm<ProfileFormData>({
     defaultValues: {
       username: currentUser?.username || '',
-      displayName: currentUser?.displayName || '',
+      display_name: currentUser?.display_name || '',
       bio: currentUser?.bio || '',
-      publicBio: currentUser?.public_bio || '',
-      avatar: currentUser?.avatar || '',
-      favoriteCategories: currentUser?.favorite_categories || [],
+      public_bio: currentUser?.public_bio || '',
+      avatar_url: currentUser?.avatar_url || '',
+      favorite_categories: currentUser?.favorite_categories || [],
     },
   });
 
@@ -53,11 +53,11 @@ const UserProfileSettings = () => {
       setSelectedCategories(currentUser.favorite_categories || []);
       form.reset({
         username: currentUser.username || '',
-        displayName: currentUser.displayName || '',
+        display_name: currentUser.display_name || '',
         bio: currentUser.bio || '',
-        publicBio: currentUser.public_bio || '',
-        avatar: currentUser.avatar || '',
-        favoriteCategories: currentUser.favorite_categories || [],
+        public_bio: currentUser.public_bio || '',
+        avatar_url: currentUser.avatar_url || '',
+        favorite_categories: currentUser.favorite_categories || [],
       });
     }
   }, [currentUser, form]);
@@ -70,10 +70,10 @@ const UserProfileSettings = () => {
       
       await updateProfile(currentUser.id, {
         username: data.username,
-        display_name: data.displayName,
+        display_name: data.display_name,
         bio: data.bio,
-        public_bio: data.publicBio,
-        avatar_url: data.avatar,
+        public_bio: data.public_bio,
+        avatar_url: data.avatar_url,
         favorite_categories: selectedCategories,
       });
       
@@ -124,16 +124,16 @@ const UserProfileSettings = () => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex items-center gap-6">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={form.watch('avatar')} alt={currentUser?.displayName} />
+            <AvatarImage src={form.watch('avatar_url')} alt={currentUser?.display_name} />
             <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white text-lg">
-              {getInitials(currentUser?.displayName || 'User')}
+              {getInitials(currentUser?.display_name || 'User')}
             </AvatarFallback>
           </Avatar>
           
           <div className="space-y-2 flex-1">
             <FormField
               control={form.control}
-              name="avatar"
+              name="avatar_url"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Avatar URL</FormLabel>
@@ -173,7 +173,7 @@ const UserProfileSettings = () => {
 
           <FormField
             control={form.control}
-            name="displayName"
+            name="display_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Display Name</FormLabel>
@@ -188,7 +188,7 @@ const UserProfileSettings = () => {
 
         <FormField
           control={form.control}
-          name="publicBio"
+          name="public_bio"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Public Bio</FormLabel>

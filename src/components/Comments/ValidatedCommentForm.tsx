@@ -68,9 +68,9 @@ const ValidatedCommentForm: React.FC<CommentFormProps> = ({
     <div className="space-y-4">
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8">
-          <AvatarImage src={currentUser?.avatar} alt={currentUser?.displayName || 'User'} />
+          <AvatarImage src={currentUser?.avatar_url} alt={currentUser?.display_name || 'User'} />
           <AvatarFallback>
-            {currentUser?.displayName?.charAt(0) || 'U'}
+            {currentUser?.display_name?.charAt(0) || 'U'}
           </AvatarFallback>
         </Avatar>
         

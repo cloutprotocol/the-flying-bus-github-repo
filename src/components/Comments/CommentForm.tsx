@@ -27,7 +27,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
   // Get initials for avatar fallback
   const getInitials = () => {
     if (!currentUser) return "GU";
-    return currentUser.displayName
+    return currentUser.display_name
       .split(' ')
       .map(n => n[0])
       .join('')
@@ -39,7 +39,7 @@ const CommentForm: React.FC<CommentFormProps> = ({ onSubmit, isSubmitting = fals
       <Avatar className="h-8 w-8 mt-1">
         {isLoggedIn && currentUser ? (
           <>
-            <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
+            <AvatarImage src={currentUser.avatar_url} alt={currentUser.display_name} />
             <AvatarFallback className="bg-neutral-600 text-white text-xs">
               {getInitials()}
             </AvatarFallback>

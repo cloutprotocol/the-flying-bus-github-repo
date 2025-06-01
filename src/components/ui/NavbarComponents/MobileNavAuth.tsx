@@ -26,16 +26,16 @@ const MobileNavAuth: React.FC = () => {
       <div className="space-y-4 py-2">
         <div className="flex items-center gap-3 px-2 py-3">
           <Avatar className="h-10 w-10 border-2 border-gray-100">
-            <AvatarImage src={currentUser.avatar} alt={currentUser.displayName} />
+            <AvatarImage src={currentUser.avatar_url} alt={currentUser.display_name} />
             <AvatarFallback className="bg-gray-700 text-white">
-              {currentUser.displayName.split(' ')
+              {currentUser.display_name.split(' ')
                 .map(name => name[0])
                 .join('')
                 .toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium text-sm">{currentUser.displayName}</span>
+            <span className="font-medium text-sm">{currentUser.display_name}</span>
             <span className="text-xs text-gray-500">@{currentUser.username}</span>
           </div>
         </div>

@@ -35,9 +35,9 @@ const ProfileEditHeader: React.FC<ProfileEditHeaderProps> = ({
       <div className="absolute left-0 right-0 -mt-16 flex flex-col items-center">
         <div className="relative inline-block">
           <Avatar className="h-32 w-32 border-4 border-white bg-white shadow-md">
-            <AvatarImage src={profile.avatar} alt={profile.displayName} />
+            <AvatarImage src={profile.avatar_url} alt={profile.display_name} />
             <AvatarFallback className="text-3xl bg-purple-50 text-purple-700">
-              {profile.displayName.substring(0, 2).toUpperCase()}
+              {profile.display_name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <Button

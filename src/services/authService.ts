@@ -23,17 +23,17 @@ export async function fetchUserProfile(userId: string): Promise<ReaderProfile | 
     return {
       id: data.id,
       username: data.username,
-      displayName: data.display_name,
+      display_name: data.display_name,
       email: data.email,
       role: data.role,
       bio: data.bio || '',
-      avatar: data.avatar_url || '',
-      joinedDate: new Date(data.created_at),
-      // Handle optional fields that might not exist in the database
-      badges: [], // Default to empty array if not present
-      readingStreak: 0, // Default to 0 if not present
-      commentCount: 0, // Default to 0 if not present
-      achievements: [] // Default to empty array if not present
+      avatar_url: data.avatar_url || '',
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      public_bio: data.public_bio,
+      crypto_wallet_address: data.crypto_wallet_address,
+      badge_display_preferences: data.badge_display_preferences,
+      favorite_categories: data.favorite_categories,
     } as ReaderProfile;
   } catch (e) {
     logger.error(LogSource.AUTH, 'Exception fetching user profile', e);

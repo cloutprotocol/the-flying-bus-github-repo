@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(async () => {
             const profile = await fetchUserProfile(currentSession.user.id);
             if (profile) {
-              console.log('User profile loaded:', profile.displayName);
+              console.log('User profile loaded:', profile.display_name);
               setCurrentUser(profile);
             } else {
               console.error('Could not load user profile');
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTimeout(async () => {
           const profile = await fetchUserProfile(newSession.user.id);
           if (profile) {
-            console.log('User profile updated after auth change:', profile.displayName);
+            console.log('User profile updated after auth change:', profile.display_name);
             setCurrentUser(profile);
           } else {
             console.error('Could not update user profile after auth change');
@@ -173,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await fetchUserProfile(session.user.id);
       
       if (profile) {
-        console.log('Profile refreshed successfully:', profile.displayName);
+        console.log('Profile refreshed successfully:', profile.display_name);
         setCurrentUser(profile);
         return true;
       } else {

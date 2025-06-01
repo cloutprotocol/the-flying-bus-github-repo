@@ -51,101 +51,46 @@ export async function fetchAllUsers(filters: UserSearchFilters = {}) {
     const users: ReaderProfile[] = data?.map(user => ({
       id: user.id,
       username: user.username,
-      displayName: user.display_name,
+      display_name: user.display_name,
       email: user.email,
       role: user.role as 'reader' | 'author' | 'moderator' | 'admin',
       bio: user.bio || '',
-      avatar: user.avatar_url || '',
-      joinedDate: new Date(user.created_at),
+      avatar_url: user.avatar_url || '',
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      public_bio: user.public_bio,
+      crypto_wallet_address: user.crypto_wallet_address,
+      badge_display_preferences: user.badge_display_preferences,
+      favorite_categories: user.favorite_categories,
     })) || [];
 
     return { users, totalCount: count || 0 };
   } catch (error) {
     console.error('Exception in fetchAllUsers:', error);
-    // Re-throw with more context
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch users: ${error.message}`);
-    }
-    throw new Error('Failed to fetch users: Unknown error');
-  }
-}
-
-export async function updateUserProfile(userId: string, data: UserUpdateData) {
-  console.log('Updating user profile:', userId, data);
-  
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update(data)
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Error updating user profile:', error);
-      throw new Error(`Failed to update profile: ${error.message}`);
-    }
-    
-    console.log('Successfully updated user profile');
-  } catch (error) {
-    console.error('Exception updating user profile:', error);
     throw error;
   }
 }
 
-export async function updateUserRole(userId: string, role: string) {
-  console.log('Updating user role:', userId, role);
+export async function updateUserProfile(userId: string, updates: UserUpdateData) {
+  console.log('Updating user profile:', userId, updates);
   
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .update({ role })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Error updating user role:', error);
-      throw new Error(`Failed to update role: ${error.message}`);
-    }
-    
-    console.log('Successfully updated user role');
-  } catch (error) {
-    console.error('Exception updating user role:', error);
-    throw error;
-  }
-}
-
-export async function getUserStatistics(userId: string) {
-  console.log('Fetching user statistics for:', userId);
-  
-  try {
-    // Fetch comment count
-    const { count: commentCount } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    // Fetch reading stats
-    const { data: readingStats } = await supabase
-      .from('user_reading_stats')
-      .select('reading_streak, articles_read')
-      .eq('user_id', userId)
+      .update(updates)
+      .eq('id', userId)
+      .select()
       .single();
 
-    // Fetch achievements
-    const { count: achievementCount } = await supabase
-      .from('user_achievements')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+    if (error) {
+      console.error('Supabase error updating user:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
 
-    const stats = {
-      commentCount: commentCount || 0,
-      readingStreak: readingStats?.reading_streak || 0,
-      articlesRead: readingStats?.articles_read || 0,
-      achievements: achievementCount || 0,
-    };
-    
-    console.log('Successfully fetched user statistics:', stats);
-    return stats;
+    console.log('User profile updated successfully:', data);
+    return data;
   } catch (error) {
-    console.error('Exception fetching user statistics:', error);
+    console.error('Exception in updateUserProfile:', error);
     throw error;
   }
 }

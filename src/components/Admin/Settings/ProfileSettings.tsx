@@ -13,9 +13,9 @@ import { Upload } from 'lucide-react';
 
 interface ProfileFormData {
   username: string;
-  displayName: string;
+  display_name: string;
   bio: string;
-  avatar: string;
+  avatar_url: string;
 }
 
 const ProfileSettings = () => {
@@ -26,9 +26,9 @@ const ProfileSettings = () => {
   const form = useForm<ProfileFormData>({
     defaultValues: {
       username: currentUser?.username || '',
-      displayName: currentUser?.displayName || '',
+      display_name: currentUser?.display_name || '',
       bio: currentUser?.bio || '',
-      avatar: currentUser?.avatar || '',
+      avatar_url: currentUser?.avatar_url || '',
     },
   });
 
@@ -40,9 +40,9 @@ const ProfileSettings = () => {
       
       await updateProfile(currentUser.id, {
         username: data.username,
-        display_name: data.displayName,
+        display_name: data.display_name,
         bio: data.bio,
-        avatar_url: data.avatar,
+        avatar_url: data.avatar_url,
       });
       
       // Refresh the user profile to get the latest data
@@ -77,9 +77,9 @@ const ProfileSettings = () => {
     if (currentUser) {
       form.reset({
         username: currentUser.username || '',
-        displayName: currentUser.displayName || '',
+        display_name: currentUser.display_name || '',
         bio: currentUser.bio || '',
-        avatar: currentUser.avatar || '',
+        avatar_url: currentUser.avatar_url || '',
       });
     }
   }, [currentUser, form]);
@@ -97,16 +97,16 @@ const ProfileSettings = () => {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex items-center gap-6">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={form.watch('avatar')} alt={currentUser?.displayName} />
+            <AvatarImage src={form.watch('avatar_url')} alt={currentUser?.display_name} />
             <AvatarFallback className="bg-neutral-700 text-white text-lg">
-              {getInitials(currentUser?.displayName || 'User')}
+              {getInitials(currentUser?.display_name || 'User')}
             </AvatarFallback>
           </Avatar>
           
           <div className="space-y-2">
             <FormField
               control={form.control}
-              name="avatar"
+              name="avatar_url"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Avatar URL</FormLabel>
@@ -146,7 +146,7 @@ const ProfileSettings = () => {
 
           <FormField
             control={form.control}
-            name="displayName"
+            name="display_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Display Name</FormLabel>
