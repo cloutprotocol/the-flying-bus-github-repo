@@ -1,8 +1,8 @@
+
 import { useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
 import { useArticleDebug } from '@/hooks/useArticleDebug';
-import type { DebugStep } from '@/types/DebugTypes';
 
 export const useManualSaveHandler = (articleId?: string) => {
   const { toast } = useToast();
@@ -32,14 +32,7 @@ export const useManualSaveHandler = (articleId?: string) => {
       });
     }
     
-    const debugStep: DebugStep = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      message: 'Manual save completed',
-      level: 'info',
-      source: 'EDITOR'
-    };
-    addDebugStep(debugStep);
+    addDebugStep('Manual save completed');
     
   }, [toast, addDebugStep, articleId]);
 

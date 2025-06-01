@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -6,14 +7,13 @@ import React, {
   ReactNode
 } from 'react';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { DebugStep } from '@/types/DebugTypes';
 
 interface ArticleEditorContextType {
   formData: ArticleFormData;
   setFormData: (data: ArticleFormData) => void;
-  debugSteps: DebugStep[];
+  debugSteps: string[];
   addDebugStep: (step: string) => void;
-  updateLastStep: (updates: Partial<DebugStep>) => void;
+  updateLastStep: (updates: any) => void;
   clearDebugSteps: () => void;
   submitArticle: (data: any) => Promise<void>;
 }
@@ -34,37 +34,26 @@ export const useArticleEditor = () => {
 
 const ArticleEditorProvider: React.FC<ArticleEditorProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<ArticleFormData>({
-    id: '',
     title: '',
     content: '',
     excerpt: '',
     imageUrl: '',
     categoryId: '',
-    categoryName: '',
     slug: '',
     articleType: 'standard',
     status: 'draft'
   });
-  const [debugSteps, setDebugSteps] = useState<DebugStep[]>([]);
+  const [debugSteps, setDebugSteps] = useState<string[]>([]);
 
   const addDebugStep = useCallback((step: string) => {
-    const debugStep: DebugStep = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      message: step,
-      level: 'info',
-      source: 'EDITOR'
-    };
-    setDebugSteps(prev => [...prev, debugStep]);
+    setDebugSteps(prev => [...prev, step]);
   }, []);
 
-  const updateLastStep = useCallback((updates: Partial<DebugStep>) => {
+  const updateLastStep = useCallback((updates: any) => {
     setDebugSteps(prev => {
       if (prev.length === 0) return prev;
-      const lastStep = prev[prev.length - 1];
-      const updatedStep = { ...lastStep, ...updates };
       const newSteps = [...prev];
-      newSteps[prev.length - 1] = updatedStep;
+      newSteps[prev.length - 1] = updates;
       return newSteps;
     });
   }, []);
@@ -77,7 +66,7 @@ const ArticleEditorProvider: React.FC<ArticleEditorProviderProps> = ({ children 
     console.log('Submitting article:', data);
     
     addDebugStep('Article submitted successfully');
-  }, []);
+  }, [addDebugStep]);
 
   const value: ArticleEditorContextType = {
     formData,
