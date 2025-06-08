@@ -1,0 +1,444 @@
+Cursor Instructions: Integrating Thirdweb Wallets & Token Distribution
+Overall Strategy:
+
+We will leverage Thirdweb's SDKs and potentially Thirdweb Engine. The core logic for wallet creation and interaction will reside within the wallet folder.
+
+Step 1: Initial Setup and Dependencies
+
+Action: Install Thirdweb SDKs and set up environment variables.
+Working Directory: wallet
+Files to Modify/Create:
+* package.json (root of your project)
+* .env (root of your project)
+* third-web-wallet.js (existing file in wallet folder)
+
+Instructions:
+
+Install Thirdweb SDK:
+
+Open your terminal (if working locally) or the terminal within Codespaces.
+Run: npm install @thirdweb-dev/react @thirdweb-dev/sdk ethers
+Self-correction: Ensure these dependencies are added to the package.json at the root of the project.
+Create .env file (if not present):
+
+At the root of your project, create a file named .env.
+Add your Thirdweb client ID and secret (if using Engine for backend operations) to this file. You'll get these from your Thirdweb Dashboard.
+Code snippet
+
+VITE_THIRDWEB_CLIENT_ID=your_thirdweb_client_id_here
+THIRDWEB_SECRET_KEY=YOUR_THIRDWEB_SECRET_KEY # For backend use, keep this secret!
+Note for Vite: For frontend use, client ID must be prefixed with VITE_.
+Security: Emphasize that THIRDWEB_SECRET_KEY should never be exposed on the frontend. It should only be used in a secure backend environment.
+Configure Thirdweb Provider in third-web-wallet.js:
+
+Open src/wallet/third-web-wallet.js.
+We will set up the ThirdwebProvider to wrap your application or relevant components.
+Modify third-web-wallet.js to include the ThirdwebProvider and configure it for In-App Wallets.
+<!-- end list -->
+
+JavaScript
+
+// src/wallet/third-web-wallet.js
+
+import { ThirdwebProvider, localWallet, embeddedWallet } from "@thirdweb-dev/react";
+
+// You might want to define a chainId (e.g., 80001 for Polygon Mumbai, or your preferred chain)
+// Get this from your Thirdweb dashboard or the chain's documentation.
+const activeChain = "mumbai"; // Example: Polygon Mumbai Testnet
+
+const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID; // Your Thirdweb Client ID
+
+if (!clientId) {
+    console.error("Thirdweb Client ID is not set. Please set VITE_THIRDWEB_CLIENT_ID in your .env file.");
+}
+
+export function ThirdwebWalletProvider({ children }) {
+  return (
+    <ThirdwebProvider
+      activeChain={activeChain}
+      clientId={clientId}
+      supportedWallets={[
+        // Other wallets you might want to support
+        // localWallet(),
+        embeddedWallet({
+          auth: {
+            options: [
+              "email", // Allow users to sign in with email
+              "google", // Allow users to sign in with Google
+              "apple", // Allow users to sign in with Apple
+              // "facebook", // If desired
+              // "discord", // If desired
+            ],
+          },
+        }),
+      ]}
+      // Optional: Add a custom RPC URL if needed
+      // sdkOptions={{
+      //   gasless: {
+      //     openzeppelin: {
+      //       relayerUrl: "YOUR_RELAYER_URL", // For gasless transactions
+      //     },
+      //   },
+      // }}
+    >
+      {children}
+    </ThirdwebProvider>
+  );
+}
+Self-correction: Ensure third-web-wallet.js exports a ThirdwebWalletProvider component.
+Step 2: Wallet Creation on User Account Creation (Frontend)
+
+Action: Integrate wallet creation into your user registration flow.
+Working Directory: wallet (and potentially other frontend files where user registration happens, e.g., src/auth/RegisterForm.jsx if you have one).
+Files to Modify/Create:
+* src/wallet/useWalletHook.js (new file)
+* Your user registration component/page.
+
+Instructions:
+
+Create a custom hook useWalletHook.js for wallet management:
+
+Create a new file src/wallet/useWalletHook.js.
+This hook will abstract the Thirdweb wallet connection logic.
+<!-- end list -->
+
+JavaScript
+
+// src/wallet/useWalletHook.js
+
+import { useConnect, useEmbeddedWallet } from "@thirdweb-dev/react";
+
+export function useWalletHook() {
+  const connect = useConnect();
+  const embeddedWallet = useEmbeddedWallet();
+
+  const createAndConnectWallet = async (loginMethod, emailOrSocialToken) => {
+    try {
+      // Check if wallet is already connected
+      if (embeddedWallet.isConnected) {
+        console.log("Wallet already connected.");
+        return embeddedWallet.address;
+      }
+
+      // Connect using the specified method
+      const walletInstance = await connect(embeddedWallet, {
+        // For email:
+        email: loginMethod === "email" ? emailOrSocialToken : undefined,
+        // For social login (e.g., Google, passkey):
+        // The `connect` method often handles the OAuth flow directly.
+        // For passkeys, you might just call connect() without specific params
+        // if embeddedWallet is configured to use passkeys by default.
+        // For social, ensure you have configured it in Thirdweb Dashboard.
+        // Example for Google:
+        // socialLogin: { type: "google", token: emailOrSocialToken },
+      });
+
+      const address = await walletInstance.getAddress();
+      console.log("Wallet created/connected:", address);
+      return address;
+    } catch (error) {
+      console.error("Failed to create/connect wallet:", error);
+      throw error; // Re-throw to handle in the calling component
+    }
+  };
+
+  // You might also want a disconnect function
+  const disconnectWallet = async () => {
+    if (embeddedWallet.isConnected) {
+      await embeddedWallet.disconnect();
+      console.log("Wallet disconnected.");
+    }
+  };
+
+  return { createAndConnectWallet, disconnectWallet, walletAddress: embeddedWallet.address };
+}
+Integrate into User Registration Component:
+
+Locate your user registration component (e.g., src/components/auth/RegisterForm.jsx or similar).
+Import useWalletHook and integrate it into your existing user creation logic.
+<!-- end list -->
+
+JavaScript
+
+// Example: src/components/auth/RegisterForm.jsx (or wherever your user registration form is)
+
+import React, { useState } from 'react';
+import { useWalletHook } from '../wallet/useWalletHook'; // Adjust path as needed
+// Import your existing user creation function (e.g., from Supabase or your backend)
+// import { createUserAccount } from '../../utils/auth'; // Example
+
+function RegisterForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { createAndConnectWallet } = useWalletHook();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // 1. Create your traditional user account (e.g., in Supabase)
+      // const user = await createUserAccount(email, password); // Your existing user creation logic
+
+      // For demonstration, let's assume user creation is successful
+      console.log("User account creation initiated for:", email);
+
+      // 2. Create/Connect Thirdweb In-App Wallet
+      const walletAddress = await createAndConnectWallet("email", email);
+      console.log("Associated wallet address:", walletAddress);
+
+      // 3. Store the walletAddress with your user's record in your database (Supabase)
+      // This is crucial for linking the user's web2 account to their web3 wallet.
+      // You would typically have a backend endpoint for this.
+      // Example: await updateUserProfile(user.id, { walletAddress });
+
+      alert('Account and wallet created successfully!');
+      // Redirect or update UI
+    } catch (error) {
+      console.error('Registration failed:', error);
+      alert(`Registration failed: ${error.message}`);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Your existing form fields */}
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
+      <button type="submit">Register</button>
+    </form>
+  );
+}
+
+export default RegisterForm;
+Crucial: Ensure that after the Thirdweb wallet is created, its address is saved in your user database (e.g., Supabase) linked to the user's ID. This is how you'll retrieve their wallet address later for sending crypto.
+Step 3: Automated Crypto Distribution (Backend)
+
+Action: Implement a secure backend endpoint to distribute tokens.
+Working Directory: wallet (or a dedicated backend/Supabase Functions directory).
+Files to Modify/Create:
+* src/wallet/reward-system-rules.js (Existing file, for defining rules)
+* src/wallet/deploy.js (Existing file, if you use it to deploy your token)
+* New Backend File: src/server/rewardHandler.js (or a Supabase Function, supabase/functions/rewardUser.js)
+
+Instructions:
+
+Deploy an ERC-20 Token (if you don't have one):
+
+If you don't have an ERC-20 token contract deployed, you'll need to create and deploy one using Thirdweb's dashboard or SDK.
+The src/wallet/deploy.js script might already contain logic for deploying contracts. Ensure you have your token's contract address.
+Define Reward Rules (src/wallet/reward-system-rules.js):
+
+This file should define the logic for when and how much crypto a user receives. This is conceptual and will be used by your backend.
+<!-- end list -->
+
+JavaScript
+
+// src/wallet/reward-system-rules.js
+
+export const REWARD_EVENTS = {
+  TASK_COMPLETION: "TASK_COMPLETION",
+  FIRST_LOGIN_BONUS: "FIRST_LOGIN_BONUS",
+  REFERRAL_BONUS: "REFERRAL_BONUS",
+  // Add more event types as needed
+};
+
+export const getRewardAmount = (eventType) => {
+  switch (eventType) {
+    case REWARD_EVENTS.TASK_COMPLETION:
+      return "0.01"; // 0.01 of your token
+    case REWARD_EVENTS.FIRST_LOGIN_BONUS:
+      return "0.1"; // 0.1 of your token
+    case REWARD_EVENTS.REFERRAL_BONUS:
+      return "0.05"; // 0.05 of your token
+    default:
+      return "0";
+  }
+};
+
+export const TOKEN_CONTRACT_ADDRESS = "YOUR_ERC20_TOKEN_CONTRACT_ADDRESS"; // <-- IMPORTANT: Replace with your token's address
+Create a Secure Backend Endpoint for Distribution:
+
+Crucial: Token distribution should always happen from a secure backend environment, not directly from the frontend, to protect your private keys and prevent abuse.
+This example uses a generic Node.js backend. If you're using Supabase, you'd create a Supabase Function.
+Create a new file, e.g., src/server/rewardHandler.js (or adjust if you have a dedicated backend folder).
+<!-- end list -->
+
+JavaScript
+
+// src/server/rewardHandler.js (Example using Node.js/Express)
+// You would integrate this into your main server file (e.g., app.js or server.js)
+
+import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { ethers } from "ethers";
+import { TOKEN_CONTRACT_ADDRESS, getRewardAmount } from '../wallet/reward-system-rules'; // Adjust path
+
+// Initialize Thirdweb SDK in a secure backend environment
+// Use your wallet's private key (NEVER expose this on the frontend!)
+// Ensure you have a funding wallet that holds the tokens.
+const privateKey = process.env.WALLET_PRIVATE_KEY; // Recommended: use environment variable
+const thirdwebSecretKey = process.env.THIRDWEB_SECRET_KEY; // Your Thirdweb Secret Key for SDK
+
+if (!privateKey) {
+  console.error("WALLET_PRIVATE_KEY is not set. Token distribution will not work.");
+}
+if (!thirdwebSecretKey) {
+    console.error("THIRDWEB_SECRET_KEY is not set. Thirdweb SDK may not initialize correctly.");
+}
+
+const sdk = new ThirdwebSDK(
+  new ethers.Wallet(privateKey),
+  {
+    secretKey: thirdwebSecretKey,
+    // Optional: Configure a custom RPC URL if needed
+    // rpcUrl: "[https://polygon-mumbai-bor.public.blastapi.io](https://polygon-mumbai-bor.public.blastapi.io)",
+  }
+);
+
+export async function rewardUser(req, res) {
+  const { userId, eventType } = req.body; // Assuming you pass userId and eventType
+  // In a real application, you'd verify the userId and eventType
+  // and check if the user is eligible for the reward (e.g., from your Supabase DB)
+
+  if (!userId || !eventType) {
+    return res.status(400).json({ error: "Missing userId or eventType" });
+  }
+
+  try {
+    // Fetch user's wallet address from your database (e.g., Supabase) using userId
+    // const userProfile = await getUserProfileFromDB(userId); // Your DB query
+    // const recipientAddress = userProfile.walletAddress;
+
+    // For demonstration, let's assume you have the wallet address
+    // In a real scenario, you'd fetch this from your DB based on userId.
+    const recipientAddress = "0x..."; // REPLACE with actual user wallet address from DB
+
+    if (!recipientAddress) {
+      return res.status(404).json({ error: "User wallet address not found." });
+    }
+
+    const rewardAmount = getRewardAmount(eventType);
+    if (rewardAmount === "0") {
+      return res.status(400).json({ error: "Invalid event type for reward." });
+    }
+
+    const tokenContract = await sdk.getContract(TOKEN_CONTRACT_ADDRESS, "token"); // "token" for ERC-20
+    const amountToMint = ethers.utils.parseUnits(rewardAmount, 18); // Assuming 18 decimals for your token
+
+    // Check if you need to mint new tokens or just transfer existing ones.
+    // If you're distributing existing tokens, use `transfer`.
+    // If you're minting new tokens into existence, use `mintTo`.
+    // For this example, we'll assume `mintTo` (your contract should have minter role set for your backend wallet)
+
+    const tx = await tokenContract.erc20.mintTo(recipientAddress, amountToMint);
+    // Or if transferring existing:
+    // const tx = await tokenContract.erc20.transfer(recipientAddress, amountToMint);
+
+    console.log(`Successfully rewarded ${rewardAmount} tokens to ${recipientAddress} for event: ${eventType}`);
+    return res.status(200).json({ success: true, transactionHash: tx.hash, message: "Tokens rewarded successfully." });
+
+  } catch (error) {
+    console.error("Error rewarding user:", error);
+    return res.status(500).json({ error: "Failed to reward user", details: error.message });
+  }
+}
+
+// Example of how you might use this in an Express app:
+// app.post('/api/reward-user', rewardUser);
+Security Reminder: Your backend must be secured. Use API keys, proper authentication, and environmental variables for sensitive data like WALLET_PRIVATE_KEY and THIRDWEB_SECRET_KEY. NEVER hardcode private keys.
+Supabase Functions: If using Supabase, you would set up a new Edge Function that uses the thirdweb/sdk to perform the token transfer. Ensure your Supabase Function has access to your WALLET_PRIVATE_KEY and THIRDWEB_SECRET_KEY via Supabase secrets.
+Trigger Backend Endpoint from Frontend:
+
+When a user performs an action that should trigger a reward (e.g., clicks a "complete task" button), make an authenticated API call to your backend rewardUser endpoint.
+<!-- end list -->
+
+JavaScript
+
+// Example: In a React component when a task is completed
+import React from 'react';
+// import { useAuth } from './your-auth-context'; // If you have an auth context to get current user ID
+
+function TaskCompletionButton({ taskId }) {
+  // const { currentUser } = useAuth(); // Get the current user ID
+  const currentUser = { id: 'some-user-id' }; // Placeholder for demonstration
+
+  const handleTaskCompletion = async () => {
+    if (!currentUser || !currentUser.id) {
+      alert('Please log in to complete tasks.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/reward-user', { // Adjust API endpoint URL
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${yourAuthToken}` // Include authentication if your API requires it
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          eventType: "TASK_COMPLETION", // As defined in reward-system-rules.js
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert('Task completed and crypto rewarded!');
+        // Update UI to show reward
+      } else {
+        alert(`Failed to reward: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error completing task and rewarding:', error);
+      alert('An error occurred while completing the task.');
+    }
+  };
+
+  return (
+    <button onClick={handleTaskCompletion}>Complete Task {taskId}</button>
+  );
+}
+
+export default TaskCompletionButton;
+Summary of Files and Their Roles in wallet folder:
+
+third-web-wallet.js: Configures the ThirdwebProvider for your React application, setting up the supported wallet types (specifically embeddedWallet).
+useWalletHook.js (new): A custom React hook to simplify the process of creating/connecting to the embedded wallet.
+reward-system-rules.js: Defines the types of reward events and the corresponding token amounts.
+deploy.js (existing): Likely used for deploying your token contract. Ensure your token contract address is updated in reward-system-rules.js.
+src/server/rewardHandler.js (new, or Supabase function): A secure backend endpoint responsible for programmatically sending tokens to user wallets using the Thirdweb SDK. This is where your WALLET_PRIVATE_KEY and THIRDWEB_SECRET_KEY will be used.
+Next Steps for Cursor:
+
+Implement third-web-wallet.js as described.
+Implement useWalletHook.js as described.
+Modify your main App.jsx or root component to wrap your application with ThirdwebWalletProvider.
+JavaScript
+
+// src/App.jsx (or your main entry point)
+import { ThirdwebWalletProvider } from './wallet/third-web-wallet'; // Adjust path
+
+function App() {
+  return (
+    <ThirdwebWalletProvider>
+      {/* Your entire application goes here */}
+      <Routes>
+        <Route path="/register" element={<RegisterForm />} />
+        {/* Other routes */}
+      </Routes>
+    </ThirdwebWalletProvider>
+  );
+}
+Integrate useWalletHook into your user registration component/page (e.g., RegisterForm.jsx).
+Ensure your ERC-20 TOKEN_CONTRACT_ADDRESS is correctly set in reward-system-rules.js.
+Develop the secure backend endpoint (src/server/rewardHandler.js or Supabase Function) to handle token distribution. This involves setting up your WALLET_PRIVATE_KEY and THIRDWEB_SECRET_KEY securely in your environment.
+Integrate API calls to this backend endpoint from your frontend components (e.g., TaskCompletionButton.jsx) when relevant user actions occur.
