@@ -23,12 +23,9 @@ This project includes Thirdweb wallet integration with the following features:
 
 ### Wallet Setup
 
-1. Create a Thirdweb account at [thirdweb.com](https://thirdweb.com)
-2. Get your client ID from the Thirdweb dashboard
-3. Create a `.env` file in the project root with:
-   ```
-   VITE_THIRDWEB_CLIENT_ID=your_thirdweb_client_id_here
-   ```
+1. The project is already configured with Thirdweb credentials
+2. The `.env` file contains the necessary Thirdweb client ID and secret key
+3. No additional setup is required for wallet functionality
 
 ### Reward System
 
@@ -68,8 +65,8 @@ cd <YOUR_PROJECT_NAME>
 npm i
 
 # Step 4: Set up environment variables
-# Create a .env file with your Thirdweb client ID
-echo "VITE_THIRDWEB_CLIENT_ID=your_thirdweb_client_id_here" > .env
+# The .env file is already configured with Thirdweb credentials
+# No additional setup needed
 
 # Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
