@@ -4,7 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ValidationProvider } from './providers/ValidationProvider';
 import { Toaster } from "@/components/ui/toaster"
 import { appRoutes } from './routes/appRoutes';
-import { ThirdwebWalletProvider } from '../wallet/third-web-wallet';
+import { ThirdwebWalletProvider } from '../wallet/third-web-wallet.tsx';
 
 function App() {
   return (

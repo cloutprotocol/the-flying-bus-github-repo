@@ -1,3 +1,4 @@
+import React from 'react';
 import { ThirdwebProvider, localWallet, embeddedWallet } from "@thirdweb-dev/react";
 
 // Using Polygon Mumbai Testnet for development
@@ -9,7 +10,11 @@ if (!clientId) {
     console.error("Thirdweb Client ID is not set. Please set VITE_THIRDWEB_CLIENT_ID in your .env file.");
 }
 
-export function ThirdwebWalletProvider({ children }) {
+interface ThirdwebWalletProviderProps {
+  children: React.ReactNode;
+}
+
+export function ThirdwebWalletProvider({ children }: ThirdwebWalletProviderProps) {
   return (
     <ThirdwebProvider
       activeChain={activeChain}
@@ -29,4 +34,4 @@ export function ThirdwebWalletProvider({ children }) {
       {children}
     </ThirdwebProvider>
   );
-}
+} 
