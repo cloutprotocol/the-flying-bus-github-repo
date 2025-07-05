@@ -1,4 +1,12 @@
-export const REWARD_EVENTS = {
+// Types for reward events
+export type RewardEvent =
+  | "TASK_COMPLETION"
+  | "FIRST_LOGIN_BONUS"
+  | "REFERRAL_BONUS"
+  | "ARTICLE_READ"
+  | "QUIZ_COMPLETION";
+
+export const REWARD_EVENTS: Record<RewardEvent, RewardEvent> = {
   TASK_COMPLETION: "TASK_COMPLETION",
   FIRST_LOGIN_BONUS: "FIRST_LOGIN_BONUS",
   REFERRAL_BONUS: "REFERRAL_BONUS",
@@ -6,7 +14,7 @@ export const REWARD_EVENTS = {
   QUIZ_COMPLETION: "QUIZ_COMPLETION",
 };
 
-export const getRewardAmount = (eventType) => {
+export function getRewardAmount(eventType: RewardEvent): string {
   switch (eventType) {
     case REWARD_EVENTS.TASK_COMPLETION:
       return "0.01"; // 0.01 tokens
@@ -21,7 +29,7 @@ export const getRewardAmount = (eventType) => {
     default:
       return "0";
   }
-};
+}
 
 // Replace this with your actual token contract address after deployment
-export const TOKEN_CONTRACT_ADDRESS = "YOUR_ERC20_TOKEN_CONTRACT_ADDRESS";
+export const TOKEN_CONTRACT_ADDRESS = "0x1F48F3471f7534E8b8dbd4fCecE30CAFED03DC02"; 

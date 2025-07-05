@@ -1,35 +1,14 @@
-import React from 'react';
-import { ThirdwebProvider, localWallet, embeddedWallet } from "@thirdweb-dev/react";
+import React from "react";
+import { ThirdwebProvider } from "thirdweb/react";
+import { client } from "./client";
 
-// Using Polygon Mumbai Testnet for development
-const activeChain = "mumbai";
+const activeChain = "polygon"; // Use "mumbai" for testnet if needed
 
-const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID;
-
-if (!clientId) {
-    console.error("Thirdweb Client ID is not set. Please set VITE_THIRDWEB_CLIENT_ID in your .env file.");
-}
-
-interface ThirdwebWalletProviderProps {
-  children: React.ReactNode;
-}
-
-export function ThirdwebWalletProvider({ children }: ThirdwebWalletProviderProps) {
+export function ThirdwebWalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThirdwebProvider
+      client={client}
       activeChain={activeChain}
-      clientId={clientId}
-      supportedWallets={[
-        embeddedWallet({
-          auth: {
-            options: [
-              "email",
-              "google",
-              "apple",
-            ],
-          },
-        }),
-      ]}
     >
       {children}
     </ThirdwebProvider>
