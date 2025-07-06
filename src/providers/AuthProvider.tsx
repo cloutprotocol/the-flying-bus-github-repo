@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect } from 'react';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +10,7 @@ import {
   loginWithEmailPassword,
   logoutUser
 } from '@/services/authService';
+import { inAppWallet } from 'thirdweb/wallets';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -110,6 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "You've successfully signed in",
         });
         
+        await inAppWallet().disconnect();
+        
         return true;
       }
       
@@ -149,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Signed out",
           description: "You've been successfully signed out",
         });
+        await inAppWallet().disconnect();
       }
     } catch (error) {
       console.error('Logout error:', error);
