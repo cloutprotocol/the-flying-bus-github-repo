@@ -20,6 +20,11 @@ export function WalletTest() {
     isCreatingWallet 
   } = useWalletIntegration();
 
+  // New logic for linked wallet
+  const backendWallet = currentUser?.crypto_wallet_address;
+  const hasLinkedWallet = !!backendWallet;
+  const isWalletMatch = hasLinkedWallet && walletAddress && backendWallet?.toLowerCase() === walletAddress.toLowerCase();
+
   if (userLoading) {
     return <div>Loading user...</div>;
   }
@@ -86,9 +91,19 @@ export function WalletTest() {
             <div className="space-y-2">
               <p><strong>User:</strong> {currentUser.display_name}</p>
               <p><strong>Email:</strong> {currentUser.email}</p>
-              <p><strong>Has Linked Wallet:</strong> {hasWallet ? "Yes" : "No"}</p>
-              {hasWallet && (
-                <p><strong>Linked Wallet:</strong> {userWalletAddress?.slice(0, 6)}...{userWalletAddress?.slice(-4)}</p>
+              <p><strong>Has Linked Wallet:</strong> {hasLinkedWallet ? "Yes" : "No"}</p>
+              {hasLinkedWallet && (
+                <p><strong>Linked Wallet:</strong> {backendWallet?.slice(0, 6)}...{backendWallet?.slice(-4)}</p>
+              )}
+              {hasLinkedWallet && isConnected && !isWalletMatch && (
+                <p className="text-yellow-700 bg-yellow-100 p-2 rounded mt-2">
+                  Warning: The connected wallet does not match your linked wallet!
+                </p>
+              )}
+              {isConnected && !hasLinkedWallet && (
+                <Button onClick={handleLinkWallet} className="mt-2" variant="outline">
+                  Link Connected Wallet
+                </Button>
               )}
             </div>
           </CardContent>
@@ -126,20 +141,20 @@ export function WalletTest() {
           <CardContent className="space-y-3">
             <Button
               onClick={handleCreateWallet}
-              disabled={isCreatingWallet || hasWallet}
+              disabled={isCreatingWallet || hasLinkedWallet}
               variant="default"
               className="w-full"
             >
-              {isCreatingWallet ? "Creating..." : hasWallet ? "Wallet Already Created" : "Create Wallet for Account"}
+              {isCreatingWallet ? "Creating..." : hasLinkedWallet ? "Wallet Already Created" : "Create Wallet for Account"}
             </Button>
             
             <Button
               onClick={handleLinkWallet}
-              disabled={!isConnected || hasWallet}
+              disabled={!isConnected || hasLinkedWallet}
               variant="outline"
               className="w-full"
             >
-              {hasWallet ? "Wallet Already Linked" : "Link Connected Wallet"}
+              {hasLinkedWallet ? "Wallet Already Linked" : "Link Connected Wallet"}
             </Button>
           </CardContent>
         </Card>
@@ -168,7 +183,7 @@ export function WalletTest() {
           </Card>
         )}
 
-        {hasWallet && (
+        {hasLinkedWallet && (
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="text-blue-800">Account Wallet Linked!</CardTitle>
@@ -178,7 +193,7 @@ export function WalletTest() {
               <div className="space-y-4">
                 <div className="text-sm">
                   <span className="font-semibold">Linked Wallet Address:</span>
-                  <p className="text-xs break-all mt-1 bg-blue-50 p-2 rounded">{userWalletAddress}</p>
+                  <p className="text-xs break-all mt-1 bg-blue-50 p-2 rounded">{backendWallet}</p>
                 </div>
                 <p className="text-sm text-gray-600">
                   This wallet is automatically linked to your account and will be used for rewards and transactions.
