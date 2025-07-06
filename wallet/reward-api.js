@@ -2,10 +2,12 @@ import express from 'express';
 import { ThirdwebSDK } from '@thirdweb-dev/sdk';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // --- Provider Setup ---
@@ -19,7 +21,7 @@ const sdk = new ThirdwebSDK(wallet, {
 });
 
 // --- Token Contract ---
-const TOKEN_CONTRACT_ADDRESS = "0x1F48F3471f7534E8b8dbd4fCecE30CAFED03DC02"; // Your POL token address
+const TOKEN_CONTRACT_ADDRESS = "0x1401FCDe7ed44b5BE2E448bab2254Ab0709258b8"; // Your POL token address
 
 // --- Reward Amounts (imported or hardcoded) ---
 const REWARD_AMOUNTS = {
