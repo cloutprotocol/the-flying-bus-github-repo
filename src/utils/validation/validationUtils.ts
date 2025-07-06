@@ -1,12 +1,9 @@
-
 /**
  * Common Validation Utilities
  * Shared validation functions and helpers
  */
 
 import { z } from 'zod';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
 
 /**
  * Try to validate data against a schema, returning the validated data or null if validation fails
@@ -21,22 +18,11 @@ export const validateData = <T>(
     return { isValid: true, data: validatedData, errors: null };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      // Log validation errors
-      logger.warn(
-        LogSource.CLIENT, 
-        `Validation error in ${context}: ${JSON.stringify(error.errors)}`,
-        { errors: error.errors }
-      );
+      console.warn(`Validation error in ${context}:`, error.errors);
       return { isValid: false, data: null, errors: error };
     }
     
-    // Log unexpected errors
-    logger.error(
-      LogSource.CLIENT, 
-      `Unexpected validation error in ${context}`,
-      error
-    );
-    
+    console.error(`Unexpected validation error in ${context}:`, error);
     return { isValid: false, data: null, errors: null };
   }
 };
@@ -110,4 +96,4 @@ export const validateForm = <T>(
     data: result.data,
     errors: result.errors ? formatZodErrors(result.errors) : {}
   };
-};
+}; 
