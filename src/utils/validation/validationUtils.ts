@@ -8,11 +8,10 @@ import { z } from 'zod';
 /**
  * Try to validate data against a schema, returning the validated data or null if validation fails
  */
-export const validateData = <T>(
-  schema: z.ZodType<T>, 
-  data: unknown, 
-  context: string
-): { isValid: boolean; data: T | null; errors: z.ZodError | null } => {
+export function validate<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): { isValid: boolean; data: T | null; errors: z.ZodError | null } {
   try {
     const validatedData = schema.parse(data);
     return { isValid: true, data: validatedData, errors: null };
@@ -25,7 +24,7 @@ export const validateData = <T>(
     console.error(`Unexpected validation error in ${context}:`, error);
     return { isValid: false, data: null, errors: null };
   }
-};
+}
 
 /**
  * Convert Zod errors to a more user-friendly format for form display
@@ -51,7 +50,7 @@ export const validateAndFormatErrors = <T>(
   data: unknown,
   context: string
 ): { isValid: boolean; data: T | null; formErrors: Record<string, string> } => {
-  const result = validateData(schema, data, context);
+  const result = validate(schema, data);
   
   return {
     isValid: result.isValid,
@@ -83,7 +82,7 @@ export const validateForm = <T>(
   options?: { toast?: (message: string) => void; context?: string }
 ): { isValid: boolean; data: T | null; errors: Record<string, string> } => {
   const context = options?.context || 'form';
-  const result = validateData(schema, data, context);
+  const result = validate(schema, data);
   
   if (!result.isValid && result.errors && options?.toast) {
     // Show error toast with first error message
