@@ -74,7 +74,7 @@ The `wallet` module provides seamless Web3 wallet integration for the Kids News 
 ### 1. Environment Setup
 - Add to your `.env`:
   ```env
-  VITE_THIRDWEB_CLIENT_ID=your_thirdweb_client_id_here
+  THIRDWEB_CLIENT_ID=your_thirdweb_client_id_here
   # For backend reward API:
   POLYGON_RPC_URL=your_rpc_url
   WALLET_PRIVATE_KEY=your_private_key
