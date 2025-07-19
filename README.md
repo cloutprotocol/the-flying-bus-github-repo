@@ -129,3 +129,4 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 - Use environment variables for sensitive data
 - Implement proper authentication before wallet operations
 - Test thoroughly on testnet before mainnet deployment
+#this is neels demo text 2nd
