@@ -1,0 +1,34 @@
+{
+  "enabled": true,
+  "name": "Codebase Change Tracker",
+  "description": "Monitors all file changes in the codebase and automatically updates NEEL_UPDATES.md with a clear summary of modifications, including new files, code edits, and config changes. Also updates README.md when changes impact system functionality or usage.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*",
+      "*.md",
+      "*.json",
+      "*.js",
+      "*.ts",
+      "*.tsx",
+      "*.css",
+      "*.sql",
+      "package.json",
+      "tsconfig.json",
+      "vite.config.ts",
+      "tailwind.config.ts",
+      "eslint.config.js",
+      "components.json",
+      "supabase/**/*",
+      "scripts/**/*",
+      "public/**/*",
+      "docs/**/*",
+      "wallet/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the file changes and update NEEL_UPDATES.md with a clear summary of what was modified, including:\n\n1. **New Files Created**: List any new files with brief description of their purpose\n2. **Code Changes**: Summarize edits to existing files, focusing on functionality changes\n3. **Configuration Updates**: Note any changes to config files, dependencies, or build settings\n4. **Development Actions**: Document meaningful development activities\n\nFor each change, provide:\n- File path and type of change\n- Brief description of what was modified\n- Impact on functionality (if significant)\n\nAdditionally, if any changes affect:\n- How the system works\n- How someone would use the codebase  \n- Setup or installation instructions\n- New features or breaking changes\n\nThen also update the README.md file to reflect these changes in the appropriate sections.\n\nFormat the NEEL_UPDATES.md entry with a timestamp and organize changes logically. Keep descriptions clear and concise for easy tracking of development progress."
+  }
+}
