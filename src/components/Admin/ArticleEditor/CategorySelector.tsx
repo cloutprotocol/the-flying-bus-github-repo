@@ -124,7 +124,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
         </Alert>
         
         {/* Debug info for development */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="text-xs text-muted-foreground">
             Debug: Category ID = {displayCategory.id}, isNewArticle = {isNewArticle.toString()}
           </div>
@@ -174,7 +174,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
           <FormMessage />
           
           {/* Debug info for development */}
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <div className="text-xs text-muted-foreground">
               Debug: Selected = {field.value}, Available = {categories.length}
             </div>

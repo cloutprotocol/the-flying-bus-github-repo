@@ -11,6 +11,7 @@ import PublicProfile from '@/pages/PublicProfile';
 import Settings from '@/pages/Settings';
 import ReaderAuth from '@/pages/ReaderAuth';
 import RequestInvitation from '@/pages/RequestInvitation';
+import InvitationClaimPage from '@/pages/InvitationClaimPage';
 
 export const publicRoutes = [
   { path: "/", element: <Index /> },
@@ -18,6 +19,7 @@ export const publicRoutes = [
   { path: "/article/:slug", element: <ArticlePage /> },
   { path: "/reader-auth", element: <ReaderAuth /> },
   { path: "/request-invitation", element: <RequestInvitation /> },
+  { path: "/claim-invitation/:token", element: <InvitationClaimPage /> },
   
   // Direct category routes matching the navigation URLs
   { path: "/headliners", element: <CategoryPage /> },

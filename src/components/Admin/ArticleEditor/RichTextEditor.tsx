@@ -20,7 +20,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   disabled = false
 }) => {
   const [view, setView] = useState<'write' | 'preview'>('write');
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  const debounceTimeoutRef = useRef<number>();
   
   // Debounced onChange handler to prevent excessive calls
   const debouncedOnChange = useCallback((content: string) => {

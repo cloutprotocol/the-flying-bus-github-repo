@@ -310,7 +310,7 @@ const StandardArticleForm: React.FC<StandardArticleFormProps> = ({
         )}
         
         {/* Debug info for development */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <Alert>
             <AlertDescription>
               <details className="text-xs">

@@ -13,50 +13,68 @@ import {
   User, 
   Calendar,
   MessageCircle,
-  Filter
+  Filter,
+  RefreshCw,
+  Eye,
+  AlertTriangle,
+  SortAsc,
+  SortDesc,
+  UserCheck
 } from 'lucide-react';
 import { 
-  getInvitationRequests, 
   updateInvitationRequestStatus,
   InvitationRequest 
 } from '@/services/invitationService';
+import { 
+  EnhancedInvitationService,
+  type EnhancedInvitationRequest 
+} from '@/services/enhancedInvitationService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import InvitationStatusBadge from '@/components/Admin/InvitationStatusBadge';
+import InvitationTimeline from '@/components/Admin/InvitationTimeline';
+import InvitationNotificationHistory from '@/components/Admin/InvitationNotificationHistory';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const InvitationManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [invitations, setInvitations] = useState<InvitationRequest[]>([]);
+  const [invitations, setInvitations] = useState<EnhancedInvitationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied' | 'needs_attention'>('all');
+  const [sortBy, setSortBy] = useState<'created_at' | 'status' | 'notification_status'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [selectedInvitation, setSelectedInvitation] = useState<EnhancedInvitationRequest | null>(null);
 
   useEffect(() => {
     loadInvitations();
-  }, [filterStatus]);
+  }, [filterStatus, sortBy, sortOrder]);
 
   const loadInvitations = async () => {
     setIsLoading(true);
     try {
-      const result = await getInvitationRequests(
-        filterStatus === 'all' ? undefined : filterStatus
-      );
+      let result;
+      
+      if (filterStatus === 'needs_attention') {
+        result = await EnhancedInvitationService.getInvitationsNeedingAttention();
+      } else {
+        result = await EnhancedInvitationService.getEnhancedInvitationRequests(
+          filterStatus === 'all' ? undefined : filterStatus,
+          sortBy,
+          sortOrder
+        );
+      }
       
       if (result.error) {
         toast({
           title: "Error loading invitations",
-          description: result.error.message,
+          description: result.error.message || 'Failed to load invitations',
           variant: "destructive",
         });
         return;
       }
 
-      // Type-safe mapping to ensure status is properly typed
-      const typedInvitations = (result.data || []).map(invitation => ({
-        ...invitation,
-        status: invitation.status as 'pending' | 'approved' | 'denied'
-      }));
-
-      setInvitations(typedInvitations);
+      setInvitations(result.data || []);
     } catch (error) {
       console.error('Error loading invitations:', error);
       toast({
@@ -109,6 +127,60 @@ const InvitationManagement = () => {
     }
   };
 
+  const handleRegenerateToken = async (invitationId: string) => {
+    setProcessingIds(prev => new Set(prev).add(invitationId));
+    
+    try {
+      const result = await EnhancedInvitationService.regenerateInvitationToken(invitationId);
+      
+      if (result.error) {
+        toast({
+          title: "Error regenerating token",
+          description: result.error.message || 'Failed to regenerate token',
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Token regenerated",
+        description: "A new invitation token has been generated and will be sent via email.",
+      });
+
+      // Reload invitations to reflect changes
+      loadInvitations();
+    } catch (error) {
+      console.error('Error regenerating token:', error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate invitation token.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(invitationId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRetryEmail = async (notificationId: string) => {
+    // This would integrate with the email notification service
+    toast({
+      title: "Feature coming soon",
+      description: "Email retry functionality will be implemented in the next phase.",
+    });
+  };
+
+  const handleViewNotificationDetails = (notification: any) => {
+    // This would show detailed notification information
+    toast({
+      title: "Notification Details",
+      description: `${notification.email_type} email - Status: ${notification.delivery_status}`,
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -141,19 +213,45 @@ const InvitationManagement = () => {
             <p className="text-gray-600 mt-1">Review and manage parent invitation requests</p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <Select value={filterStatus} onValueChange={(value: 'all' | 'pending' | 'approved' | 'denied') => setFilterStatus(value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Requests</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="denied">Denied</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-4">
+            {/* Filter Controls */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <Select value={filterStatus} onValueChange={(value: typeof filterStatus) => setFilterStatus(value)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Requests</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="denied">Denied</SelectItem>
+                  <SelectItem value="needs_attention">Needs Attention</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created_at">Date Created</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="notification_status">Email Status</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -181,10 +279,10 @@ const InvitationManagement = () => {
                         Invitation for {invitation.child_name}
                       </CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
-                        Submitted {formatDate(invitation.created_at!)}
+                        Submitted {formatDate(invitation.created_at)}
                       </p>
                     </div>
-                    {getStatusBadge(invitation.status!)}
+                    <InvitationStatusBadge invitation={invitation} />
                   </div>
                 </CardHeader>
                 
@@ -204,6 +302,17 @@ const InvitationManagement = () => {
                           <strong>Email:</strong> {invitation.parent_email}
                         </span>
                       </div>
+
+                      {/* Email notification status */}
+                      {invitation.notifications.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm">
+                            <strong>Email Status:</strong> {invitation.notification_status}
+                            {invitation.notification_sent_at && ` (${formatDate(invitation.notification_sent_at)})`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-3">
@@ -220,6 +329,26 @@ const InvitationManagement = () => {
                           <strong>Age:</strong> {invitation.child_age} years old
                         </span>
                       </div>
+
+                      {/* Linked user information */}
+                      {invitation.linkedUser && (
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-green-500" />
+                          <span className="text-sm">
+                            <strong>Linked User:</strong> {invitation.linkedUser.display_name} (@{invitation.linkedUser.username})
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Token expiry information */}
+                      {invitation.token && !invitation.token.used_at && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm">
+                            <strong>Token Expires:</strong> {formatDate(invitation.token.expires_at)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -235,33 +364,75 @@ const InvitationManagement = () => {
                     </div>
                   )}
                   
-                  {invitation.status === 'pending' && (
-                    <div className="flex gap-2 pt-4 border-t">
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                    {invitation.status === 'pending' && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleStatusUpdate(invitation.id, 'approved')}
+                          disabled={processingIds.has(invitation.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleStatusUpdate(invitation.id, 'denied')}
+                          disabled={processingIds.has(invitation.id)}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Deny
+                        </Button>
+                      </>
+                    )}
+
+                    {/* Token regeneration for approved invitations */}
+                    {invitation.status === 'approved' && invitation.token && !invitation.invitation_claimed_at && (
                       <Button
                         size="sm"
-                        onClick={() => handleStatusUpdate(invitation.id!, 'approved')}
-                        disabled={processingIds.has(invitation.id!)}
-                        className="bg-green-600 hover:bg-green-700"
+                        variant="outline"
+                        onClick={() => handleRegenerateToken(invitation.id)}
+                        disabled={processingIds.has(invitation.id)}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Regenerate Token
                       </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleStatusUpdate(invitation.id!, 'denied')}
-                        disabled={processingIds.has(invitation.id!)}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Deny
-                      </Button>
-                    </div>
-                  )}
+                    )}
+
+                    {/* View details dialog */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline">
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>
+                            Invitation Details - {invitation.child_name}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-6">
+                          <InvitationTimeline invitation={invitation} />
+                          <InvitationNotificationHistory 
+                            notifications={invitation.notifications}
+                            onRetryEmail={handleRetryEmail}
+                            onViewDetails={handleViewNotificationDetails}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   
                   {invitation.reviewed_at && (
                     <div className="text-xs text-gray-500 pt-2 border-t">
-                      Reviewed on {formatDate(invitation.reviewed_at)}
+                      Reviewed on {formatDate(invitation.reviewed_at)} 
+                      {invitation.reviewer && ` by ${invitation.reviewer.display_name}`}
                     </div>
                   )}
                 </CardContent>

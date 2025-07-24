@@ -27,6 +27,7 @@ const defaultPreferences: Preference[] = [
   { id: 'activityFeed', label: 'Activity Feed', enabled: true },
   { id: 'recentArticles', label: 'Recent Articles', enabled: true },
   { id: 'invitationRequests', label: 'Invitation Requests', enabled: true },
+  { id: 'invitationMetrics', label: 'Invitation Analytics', enabled: true },
 ];
 
 interface DashboardPreferencesProps {

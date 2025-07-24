@@ -26,7 +26,7 @@ const ArticleEditorDebugPanel: React.FC<ArticleEditorDebugPanelProps> = ({
   isNewArticle
 }) => {
   // Only show in development
-  if (process.env.NODE_ENV !== 'development') {
+  if (import.meta.env.PROD) {
     return null;
   }
 

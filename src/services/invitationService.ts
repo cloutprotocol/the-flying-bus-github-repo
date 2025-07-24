@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { EmailNotificationService } from './emailNotificationService';
+import { EmailQueueService } from './emailQueueService';
 
 export interface InvitationRequest {
   id?: string;
@@ -83,9 +85,11 @@ export async function getInvitationRequests(status?: 'pending' | 'approved' | 'd
 export async function updateInvitationRequestStatus(
   id: string, 
   status: 'approved' | 'denied', 
-  reviewerId: string
+  reviewerId: string,
+  denialReason?: string
 ) {
   try {
+    // First, update the invitation request status
     const { data, error } = await supabase
       .from('invitation_requests')
       .update({
@@ -100,6 +104,47 @@ export async function updateInvitationRequestStatus(
     if (error) {
       console.error('Error updating invitation request:', error);
       return { error };
+    }
+
+    // After successful status update, queue email notification for background processing
+    try {
+      const emailType = status === 'approved' ? 'approval' : 'denial';
+      const queueResult = await EmailQueueService.addEmailJob({
+        invitationId: id,
+        emailType,
+        recipientEmail: data.parent_email,
+        priority: 'high', // Status change emails are high priority
+        denialReason
+      });
+
+      if (queueResult.success) {
+        console.log(`Email job queued successfully: ${queueResult.jobId}`);
+      } else {
+        console.error('Failed to queue email job:', queueResult.error);
+        // Fallback to direct email sending if queue fails
+        console.log('Attempting direct email send as fallback...');
+        if (status === 'approved') {
+          await EmailNotificationService.sendApprovalEmail(id);
+        } else if (status === 'denied') {
+          await EmailNotificationService.sendDenialEmail(id, denialReason);
+        }
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the status update
+      console.error('Error queuing email notification:', emailError);
+      // Try direct email sending as fallback
+      try {
+        console.log('Attempting direct email send as fallback...');
+        if (status === 'approved') {
+          await EmailNotificationService.sendApprovalEmail(id);
+        } else if (status === 'denied') {
+          await EmailNotificationService.sendDenialEmail(id, denialReason);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback email sending also failed:', fallbackError);
+        // At this point, the status update succeeded but email failed
+        // This should be logged for admin attention
+      }
     }
 
     return { data };

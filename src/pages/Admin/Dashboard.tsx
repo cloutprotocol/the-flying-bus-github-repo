@@ -7,7 +7,11 @@ import {
   Eye, 
   MessageSquare, 
   BarChart3,
-  AlertCircle 
+  AlertCircle,
+  Users,
+  UserCheck,
+  Mail,
+  TrendingUp
 } from 'lucide-react';
 import useActivityFeed from '@/hooks/useActivityFeed';
 import ActivityFeed from '@/components/Admin/Activity/ActivityFeed';
@@ -166,6 +170,82 @@ const Dashboard: React.FC = () => {
               </Card>
             )}
           </div>
+        )}
+
+        {/* Invitation Analytics Section */}
+        {isMetricVisible('invitationMetrics') && (
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Invitation Analytics</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Invitations</p>
+                      <p className="text-3xl font-bold">{metrics?.totalInvitations || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {metrics?.pendingInvitations || 0} pending
+                      </p>
+                    </div>
+                    <div className="bg-blue-100 p-2 rounded-full">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
+                      <p className="text-3xl font-bold">{metrics?.invitationConversionRate || 0}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {metrics?.claimedInvitations || 0} claimed
+                      </p>
+                    </div>
+                    <div className="bg-green-100 p-2 rounded-full">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Email Delivery</p>
+                      <p className="text-3xl font-bold">{metrics?.emailDeliveryRate || 0}%</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Success rate
+                      </p>
+                    </div>
+                    <div className="bg-purple-100 p-2 rounded-full">
+                      <Mail className="h-5 w-5 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Active Authors</p>
+                      <p className="text-3xl font-bold">{metrics?.approvedInvitations || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        From invitations
+                      </p>
+                    </div>
+                    <div className="bg-orange-100 p-2 rounded-full">
+                      <UserCheck className="h-5 w-5 text-orange-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
         )}
 
         {isMetricVisible('activityFeed') && (

@@ -111,7 +111,7 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
       </p>
       
       {/* Debug info for development */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
           Debug: shouldHighlight = {String(shouldHighlight)} | form value = {String(form.getValues('shouldHighlight'))}
         </div>

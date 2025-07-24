@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 const AuthDebugPanel = () => {
   const { currentUser, isLoggedIn, isLoading } = useAuth();
 
-  if (!process.env.NODE_ENV || process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     return null;
   }
 

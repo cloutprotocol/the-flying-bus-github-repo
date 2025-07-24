@@ -62,7 +62,7 @@ class ErrorBoundary extends Component<Props, State> {
             We encountered an error loading this component.
           </p>
           
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <div className="bg-gray-100 p-3 rounded text-xs font-mono mb-4 overflow-auto max-h-[200px]">
               {this.state.error.toString()}
             </div>

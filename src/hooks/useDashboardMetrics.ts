@@ -5,6 +5,7 @@ import { getDashboardMetrics } from '@/services/dashboardService';
 import { getArticlesByStatus } from '@/services/articleService';
 import { getModerationMetrics } from '@/services/moderationService';
 import { getPendingInvitationsCount } from '@/services/invitationService';
+import { invitationAnalyticsService } from '@/services/invitationAnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface DashboardMetrics {
@@ -22,6 +23,12 @@ export interface DashboardMetrics {
   pendingComments: number;
   flaggedContent: number;
   pendingInvitations: number;
+  // Invitation analytics
+  totalInvitations: number;
+  approvedInvitations: number;
+  claimedInvitations: number;
+  invitationConversionRate: number;
+  emailDeliveryRate: number;
 }
 
 export const useDashboardMetrics = () => {
@@ -56,17 +63,19 @@ export const useDashboardMetrics = () => {
       }
 
       // Perform all other queries in parallel for better performance
-      const [metricsPromise, moderationPromise, articlesPromise, invitationsPromise] = await Promise.all([
+      const [metricsPromise, moderationPromise, articlesPromise, invitationsPromise, invitationAnalyticsPromise] = await Promise.all([
         getDashboardMetrics(),
         getModerationMetrics(),
         getArticlesByStatus('all', undefined, page, limit),
-        getPendingInvitationsCount()
+        getPendingInvitationsCount(),
+        invitationAnalyticsService.getDashboardMetrics()
       ]);
       
       const { data: metricsData, error: metricsError } = metricsPromise;
       const { stats: moderationStats, error: moderationError } = moderationPromise;
       const { articles, count, error: articlesError } = articlesPromise;
       const { count: invitationsCount, error: invitationsError } = invitationsPromise;
+      const { data: invitationAnalytics, error: invitationAnalyticsError } = invitationAnalyticsPromise;
       
       // Handle errors
       if (metricsError) {
@@ -104,7 +113,13 @@ export const useDashboardMetrics = () => {
           pendingComments: pendingCommentsCount || 0,
           flaggedContent: moderationStats?.flaggedContent || 0,
           // Add invitation count with fallback to 0
-          pendingInvitations: invitationsCount || 0
+          pendingInvitations: invitationsCount || 0,
+          // Add invitation analytics with fallbacks
+          totalInvitations: invitationAnalytics?.totalInvitations || 0,
+          approvedInvitations: invitationAnalytics?.approvedInvitations || 0,
+          claimedInvitations: invitationAnalytics?.claimedInvitations || 0,
+          invitationConversionRate: invitationAnalytics?.conversionRate || 0,
+          emailDeliveryRate: invitationAnalytics?.emailDeliveryRate || 0
         });
       }
     } catch (err) {

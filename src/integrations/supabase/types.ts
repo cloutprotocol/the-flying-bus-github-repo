@@ -540,7 +540,10 @@ export type Database = {
           child_user_id: string | null
           created_at: string
           id: string
+          invitation_claimed_at: string | null
           message: string | null
+          notification_sent_at: string | null
+          notification_status: string
           parent_email: string
           parent_name: string
           reviewed_at: string | null
@@ -553,7 +556,10 @@ export type Database = {
           child_user_id?: string | null
           created_at?: string
           id?: string
+          invitation_claimed_at?: string | null
           message?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
           parent_email: string
           parent_name: string
           reviewed_at?: string | null
@@ -566,7 +572,10 @@ export type Database = {
           child_user_id?: string | null
           created_at?: string
           id?: string
+          invitation_claimed_at?: string | null
           message?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
           parent_email?: string
           parent_name?: string
           reviewed_at?: string | null
@@ -586,6 +595,82 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitation_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invitation_request_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          invitation_request_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitation_request_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_tokens_invitation_request_id_fkey"
+            columns: ["invitation_request_id"]
+            isOneToOne: false
+            referencedRelation: "invitation_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_notifications: {
+        Row: {
+          created_at: string
+          delivery_status: Database["public"]["Enums"]["delivery_status"]
+          email_type: Database["public"]["Enums"]["email_type"]
+          error_message: string | null
+          id: string
+          invitation_request_id: string
+          recipient_email: string
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          email_type: Database["public"]["Enums"]["email_type"]
+          error_message?: string | null
+          id?: string
+          invitation_request_id: string
+          recipient_email: string
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          email_type?: Database["public"]["Enums"]["email_type"]
+          error_message?: string | null
+          id?: string
+          invitation_request_id?: string
+          recipient_email?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_invitation_request_id_fkey"
+            columns: ["invitation_request_id"]
+            isOneToOne: false
+            referencedRelation: "invitation_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -1067,6 +1152,25 @@ export type Database = {
           article_id: string
         }[]
       }
+      validate_invitation_token: {
+        Args: { token_input: string }
+        Returns: {
+          is_valid: boolean
+          invitation_id: string
+          parent_email: string
+          child_name: string
+          expires_at: string
+          used_at: string | null
+        }[]
+      }
+      use_invitation_token: {
+        Args: { token_input: string; user_id_input: string }
+        Returns: boolean
+      }
+      cleanup_expired_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       activity_type:
@@ -1079,6 +1183,8 @@ export type Database = {
         | "article_reviewed"
         | "article_approved"
         | "article_rejected"
+      email_type: "approval" | "denial" | "welcome" | "expiry_warning"
+      delivery_status: "pending" | "sent" | "failed" | "bounced"
     }
     CompositeTypes: {
       [_ in never]: never
