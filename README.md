@@ -11,6 +11,8 @@
 - Crypto wallet support
 - Token rewards system
 - Social authentication (Email, Google, Apple)
+- Parent invitation approval workflow system
+- Comprehensive admin management portal
 
 ## Web3 Integration
 
@@ -35,6 +37,47 @@ The project includes a token reward system for various user actions:
 - Referral bonus: 0.05 tokens
 - Article read: 0.02 tokens
 - Quiz completion: 0.03 tokens
+
+## Database Setup
+
+This project uses Supabase as the database backend. The invitation approval workflow system requires specific database migrations to be applied.
+
+### Required Migrations
+
+1. **User Profiles Table**: Run the migration in `supabase/migrations/20250118_create_profiles_table.sql`
+   - Creates the foundational `profiles` table for user management
+   - Implements role-based access control ('reader', 'author', 'moderator', 'admin')
+   - Includes Web3 wallet address support for token rewards
+   - Automatic profile creation on user signup via database triggers
+   - Row Level Security (RLS) policies for secure profile access
+
+2. **Invitation Requests Table**: Run the migration in `supabase/migrations/20250119_create_invitation_requests_table.sql`
+   - Creates the core `invitation_requests` table for parent invitation requests
+   - Implements Row Level Security (RLS) policies for data protection
+   - Adds performance indexes for efficient querying
+   - Establishes proper foreign key relationships with the profiles table
+
+### Database Configuration
+
+1. Set up your Supabase project and obtain the project URL and API keys
+2. Update the `.env` file with your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
+3. Apply the database migrations in order using the Supabase CLI or SQL Editor:
+   - First: `20250118_create_profiles_table.sql` (user profiles and authentication)
+   - Second: `20250119_create_invitation_requests_table.sql` (invitation system)
+4. Verify the setup using the verification script in `scripts/verify-invitation-system.sql`
+
+### Invitation System
+
+The platform includes a comprehensive invitation approval workflow:
+- Parents can request invitations for their children to become authors
+- Admins review and approve/deny requests through the admin portal
+- Automated email notifications for approval/denial decisions
+- Secure token-based invitation claiming system
+- Account creation and upgrade functionality for approved invitations
 
 ## How can I edit this code?
 
@@ -95,6 +138,7 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (PostgreSQL database)
 - Thirdweb SDK
 - Ethers.js
 - Polygon Mumbai Testnet
