@@ -61,7 +61,13 @@ export async function loginWithEmailPassword(
       password,
     });
     
-    return { session: data.session, error };
+    if (error) {
+      logger.error(LogSource.AUTH, 'Login failed', error);
+      return { session: null, error };
+    }
+    
+    logger.info(LogSource.AUTH, 'Login successful', { userId: data.user?.id });
+    return { session: data.session, error: null };
   } catch (error) {
     logger.error(LogSource.AUTH, 'Exception during login', error);
     return { session: null, error };

@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { registerUser } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
+import { RegistrationErrorDisplay } from './RegistrationErrorDisplay';
+import { useRegistrationError } from '@/hooks/useRegistrationError';
+import { RegistrationErrorDetails } from '@/types/RegistrationErrorTypes';
 
 interface SignUpFormProps {
   onSwitchTab: () => void;
@@ -16,6 +19,13 @@ interface SignUpFormProps {
 const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { register } = useAuth();
+  const { 
+    registrationError, 
+    setRegistrationError, 
+    clearError, 
+    handleRegistrationError 
+  } = useRegistrationError();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signUpForm, setSignUpForm] = useState({
@@ -34,61 +44,73 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    clearError(); // Clear any previous errors
     
     // Basic validation
     if (signUpForm.password !== signUpForm.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
+      const validationError: RegistrationErrorDetails = {
+        code: 'VALIDATION_FAILED',
+        type: 'validation',
+        message: "Passwords don't match",
+        userMessage: "Please make sure your passwords match.",
+        retryable: false,
+        suggestedAction: "Check that both password fields contain the same value."
+      };
+      setRegistrationError(validationError);
       setIsSubmitting(false);
       return;
     }
     
     try {
-      // Use the registerUser service function
-      const result = await registerUser(
+      // Use the register method from auth context (includes auto-login)
+      const success = await register(
         signUpForm.email,
         signUpForm.password,
         signUpForm.username,
         signUpForm.displayName
       );
       
-      if (!result.success) {
-        console.error('Registration error:', result.error);
+      if (success) {
+        // Registration and auto-login successful - show success message and redirect
         toast({
-          title: "Sign up failed",
-          description: result.error?.message || "An error occurred during registration",
-          variant: "destructive",
+          title: "Welcome to The Flying Bus!",
+          description: "Your account has been created and you're now signed in.",
         });
-        return;
+        
+        // Redirect after a brief delay to show the success message
+        setTimeout(() => {
+          navigate(redirectPath || '/', { replace: true });
+        }, 1000);
       }
-      
-      toast({
-        title: "Account created!",
-        description: "Welcome to The Flying Bus! You're now signed in.",
-      });
-      
-      // Redirect to home or specified path
-      setTimeout(() => {
-        navigate(redirectPath || '/', { replace: true });
-      }, 500);
+      // If success is false, error handling is done in the auth context
     } catch (error) {
       console.error('Sign up error:', error);
-      toast({
-        title: "An error occurred",
-        description: "Please try again later.",
-        variant: "destructive",
+      handleRegistrationError(error as Error, {
+        email: signUpForm.email,
+        registrationType: 'standard'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleRetry = () => {
+    clearError();
+    handleSignUp(new Event('submit') as any);
+  };
+
   return (
     <form onSubmit={handleSignUp}>
       <CardContent className="space-y-4 mt-4">
+        {/* Error Display */}
+        {registrationError && (
+          <RegistrationErrorDisplay
+            error={registrationError}
+            onRetry={registrationError.retryable ? handleRetry : undefined}
+            onDismiss={clearError}
+            className="mb-4"
+          />
+        )}
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>
           <div className="relative">
@@ -180,7 +202,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
       
       <CardFooter className="flex flex-col gap-4">
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating Account...' : 'Create Account'}
+          {isSubmitting ? 'Creating Account & Signing In...' : 'Create Account'}
         </Button>
         <Button 
           type="button" 

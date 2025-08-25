@@ -2,14 +2,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { getArticlesByOwnership, ArticleWithOwnership } from './articleOwnershipService';
 
-export interface UserArticle {
-  id: string;
-  title: string;
-  status: string;
+export interface UserArticle extends ArticleWithOwnership {
   article_type: string;
-  created_at: string;
-  updated_at: string;
   excerpt: string | null;
   cover_image: string | null;
   category?: {
@@ -28,7 +24,7 @@ export const getUserArticles = async (
   error: any;
 }> => {
   try {
-    logger.info(LogSource.ARTICLE, 'Fetching user articles', { page, limit });
+    logger.info(LogSource.ARTICLE, 'Fetching user articles with ownership controls', { page, limit });
     
     // Get current user session with error handling
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -48,20 +44,27 @@ export const getUserArticles = async (
     
     console.log('Fetching articles for user:', userId.substring(0, 8));
     
-    // Calculate pagination offsets
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    // Use the ownership service to get articles with permission flags
+    const ownershipResult = await getArticlesByOwnership(userId, page, limit);
     
-    // Fetch user articles with count
-    const { data, error, count } = await supabase
+    if (ownershipResult.error) {
+      logger.error(LogSource.ARTICLE, 'Error from ownership service', ownershipResult.error);
+      return { articles: [], count: 0, error: new Error(ownershipResult.error) };
+    }
+    
+    // Get additional article data (excerpt, cover_image, category, article_type)
+    const articleIds = ownershipResult.articles.map(a => a.id);
+    
+    if (articleIds.length === 0) {
+      logger.info(LogSource.ARTICLE, 'No articles found for user - this is not an error', { userId: userId.substring(0, 8) });
+      return { articles: [], count: ownershipResult.count, error: null };
+    }
+    
+    const { data: additionalData, error: additionalError } = await supabase
       .from('articles')
       .select(`
-        id, 
-        title, 
-        status,
-        article_type, 
-        created_at,
-        updated_at,
+        id,
+        article_type,
         excerpt,
         cover_image,
         categories (
@@ -69,24 +72,34 @@ export const getUserArticles = async (
           name,
           color
         )
-      `, { count: 'exact' })
-      .eq('author_id', userId)
-      .order('updated_at', { ascending: false })
-      .range(from, to);
+      `)
+      .in('id', articleIds);
     
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Database error fetching user articles', error);
-      return { articles: [], count: 0, error };
+    if (additionalError) {
+      logger.error(LogSource.ARTICLE, 'Error fetching additional article data', additionalError);
+      // Continue without additional data rather than failing completely
     }
     
-    logger.info(LogSource.ARTICLE, 'User articles fetched successfully', { 
-      count: count || 0,
-      articlesCount: data?.length || 0 
+    // Merge ownership data with additional data
+    const articles: UserArticle[] = ownershipResult.articles.map(article => {
+      const additional = additionalData?.find(a => a.id === article.id);
+      return {
+        ...article,
+        article_type: additional?.article_type || 'standard',
+        excerpt: additional?.excerpt || null,
+        cover_image: additional?.cover_image || null,
+        category: additional?.categories || null
+      };
+    });
+    
+    logger.info(LogSource.ARTICLE, 'User articles fetched successfully with ownership controls', { 
+      count: ownershipResult.count,
+      articlesCount: articles.length 
     });
     
     return { 
-      articles: data as UserArticle[] || [], 
-      count: count || 0, 
+      articles, 
+      count: ownershipResult.count, 
       error: null 
     };
   } catch (e) {

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ArticleCard, { ArticleProps } from './ArticleCard';
 import { ArrowRight } from 'lucide-react';
@@ -11,8 +11,7 @@ import {
 } from '@/components/ui/custom-carousel';
 import { getCategoryColor } from '@/utils/categoryColors';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { logger } from '@/utils/logger/logger';
-import { LogSource } from '@/utils/logger/types';
+import { logger, LogSource } from '@/utils/logger';
 
 interface CategorySectionProps {
   title: string;
@@ -21,11 +20,12 @@ interface CategorySectionProps {
   color: string;
 }
 
-const CategorySection = ({ title, slug, articles, color }: CategorySectionProps) => {
+const CategorySection = React.memo(({ title, slug, articles, color }: CategorySectionProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   
-  const getCategoryIcon = (category: string): string => {
+  // Memoize category icon lookup to prevent recalculation
+  const getCategoryIcon = useMemo(() => (category: string): string => {
     const categoryMap: Record<string, string> = {
       'Headliners': '/headliners-icon.svg',
       'Debates': '/debates-icon.svg',
@@ -37,9 +37,10 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     };
     
     return categoryMap[category] || '/placeholder.svg';
-  };
+  }, []);
 
-  const getCategoryDescription = (category: string): string => {
+  // Memoize category description lookup
+  const getCategoryDescription = useMemo(() => (category: string): string => {
     const descriptionMap: Record<string, string> = {
       'Headliners': 'Breaking news and important stories from around the world',
       'Debates': 'Explore different sides of important topics and share your opinion',
@@ -51,10 +52,22 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
     };
     
     return descriptionMap[category] || 'Discover interesting articles in this category';
-  };
+  }, []);
 
-  const getColorClass = () => {
+  // Memoize color class calculation
+  const getColorClass = useMemo(() => {
     const categoryColorClass = getCategoryColor(title);
+    
+    // Handle case where getCategoryColor returns empty string or undefined
+    if (!categoryColorClass || !categoryColorClass.includes('-')) {
+      // Default to blue if no color mapping found
+      return {
+        border: 'border-flyingbus-blue',
+        text: 'text-flyingbus-blue',
+        bg: 'bg-flyingbus-blue'
+      };
+    }
+    
     const colorName = categoryColorClass.split('-')[1].split(' ')[0];
     
     return {
@@ -62,28 +75,28 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
       text: `text-flyingbus-${colorName}`,
       bg: `bg-flyingbus-${colorName}`
     };
-  };
+  }, [title]);
   
-  const colorClasses = getColorClass();
+  const colorClasses = getColorClass;
   const svgPath = getCategoryIcon(title);
   
-  const getCategoryUrl = () => {
-    return `/${slug.toLowerCase()}`;
-  };
+  // Memoize category URL
+  const categoryUrl = useMemo(() => `/${slug.toLowerCase()}`, [slug]);
 
-  const handleCategoryNavigate = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  // Memoize navigation handler
+  const handleCategoryNavigate = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const categoryUrl = getCategoryUrl();
     logger.info(LogSource.APP, 'Navigating to category', { 
       category: title,
       url: categoryUrl
     });
     navigate(categoryUrl);
-  };
+  }, [title, categoryUrl, navigate]);
 
-  const handleArticleClick = (articleId: string) => {
+  // Memoize article click handler
+  const handleArticleClick = useCallback((articleId: string) => {
     logger.info(LogSource.ARTICLE, 'Article clicked in carousel', { articleId, category: title });
-  };
+  }, [title]);
 
   return (
     <section className="py-8">
@@ -97,7 +110,7 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
           </div>
           
           <Link 
-            to={getCategoryUrl()} 
+            to={categoryUrl} 
             onClick={handleCategoryNavigate}
             className="flex items-center text-sm font-medium hover:text-gray-800 hover:underline self-start"
           >
@@ -142,6 +155,8 @@ const CategorySection = ({ title, slug, articles, color }: CategorySectionProps)
       </div>
     </section>
   );
-};
+});
+
+CategorySection.displayName = 'CategorySection';
 
 export default CategorySection;

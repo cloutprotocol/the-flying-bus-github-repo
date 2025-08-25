@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Button } from '@/components/ui/button';
@@ -13,61 +13,35 @@ import {
   User, 
   Calendar,
   MessageCircle,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
 import { 
-  getInvitationRequests, 
   updateInvitationRequestStatus,
   InvitationRequest 
 } from '@/services/invitationService';
+import { useAdminInvitationRequests } from '@/hooks/useAdminDataIndependence';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const InvitationManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [invitations, setInvitations] = useState<InvitationRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadInvitations();
-  }, [filterStatus]);
+  // Use independent data loading for invitation requests
+  const { 
+    data: invitationsData, 
+    isLoading, 
+    error, 
+    refetch: refetchInvitations 
+  } = useAdminInvitationRequests(filterStatus);
 
-  const loadInvitations = async () => {
-    setIsLoading(true);
-    try {
-      const result = await getInvitationRequests(
-        filterStatus === 'all' ? undefined : filterStatus
-      );
-      
-      if (result.error) {
-        toast({
-          title: "Error loading invitations",
-          description: result.error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Type-safe mapping to ensure status is properly typed
-      const typedInvitations = (result.data || []).map(invitation => ({
-        ...invitation,
-        status: invitation.status as 'pending' | 'approved' | 'denied'
-      }));
-
-      setInvitations(typedInvitations);
-    } catch (error) {
-      console.error('Error loading invitations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load invitation requests.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Transform data to ensure proper typing
+  const invitations = (invitationsData || []).map(invitation => ({
+    ...invitation,
+    status: invitation.status as 'pending' | 'approved' | 'denied'
+  }));
 
   const handleStatusUpdate = async (id: string, status: 'approved' | 'denied') => {
     if (!user?.id) return;
@@ -92,7 +66,7 @@ const InvitationManagement = () => {
       });
 
       // Reload invitations to reflect changes
-      loadInvitations();
+      await refetchInvitations();
     } catch (error) {
       console.error('Error updating status:', error);
       toast({
@@ -157,8 +131,21 @@ const InvitationManagement = () => {
           </div>
         </div>
 
+        {error && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-red-600 mb-4">Error loading invitation requests: {error.message}</p>
+              <Button onClick={() => refetchInvitations()} variant="outline">
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {isLoading ? (
-          <div className="text-center py-8">Loading invitation requests...</div>
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         ) : invitations.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">

@@ -74,7 +74,8 @@ export const useCommentModeration = () => {
     }, 500);
   }, []);
 
-  const fetchComments = useCallback(async (currentPage = 1, shouldAppend = false) => {
+  // Separate fetch logic to avoid circular dependencies
+  const performFetch = async (currentPage = 1, shouldAppend = false, currentFilter = filter, currentSearchTerm = searchTerm) => {
     // If we're in the middle of fetching, cancel that request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -88,7 +89,7 @@ export const useCommentModeration = () => {
     
     try {
       const { data, error } = await withErrorHandling(
-        () => getFlaggedComments(filter, searchTerm, currentPage, limit),
+        () => getFlaggedComments(currentFilter, currentSearchTerm, currentPage, limit),
         {
           errorMessage: "Could not load comments for moderation",
           logSource: LogSource.MODERATION,
@@ -116,7 +117,7 @@ export const useCommentModeration = () => {
         logger.debug(LogSource.MODERATION, 'Comments fetched successfully', { 
           count, 
           commentsFound: fetchedComments.length,
-          filter
+          filter: currentFilter
         });
       }
       
@@ -130,29 +131,37 @@ export const useCommentModeration = () => {
         abortControllerRef.current = null;
       }
     }
-  }, [filter, searchTerm, limit]);
+  };
 
-  // Separate useEffect hooks for the three sources of refetch
-  
-  // 1. Filter changes
+  // Create stable callback for external use
+  const fetchComments = useCallback(async (currentPage = 1, shouldAppend = false) => {
+    await performFetch(currentPage, shouldAppend);
+  }, [limit]);
+
+  // Initial fetch on mount
   useEffect(() => {
-    fetchComments(1, false);
-  }, [filter, fetchComments]);
+    performFetch(1, false);
+  }, [limit]);
   
-  // 2. Search term changes
+  // Fetch when filter changes
+  useEffect(() => {
+    performFetch(1, false, filter, searchTerm);
+  }, [filter, limit]);
+  
+  // Fetch when search term changes
   useEffect(() => {
     if (searchTerm !== '') {
-      fetchComments(1, false);
+      performFetch(1, false, filter, searchTerm);
     }
-  }, [searchTerm, fetchComments]);
+  }, [searchTerm, limit]);
   
-  // 3. Page changes for pagination
+  // Fetch when page changes for pagination
   useEffect(() => {
     // Only fetch if this isn't the initial render for page 1
     if (page > 1) {
-      fetchComments(page, true);
+      performFetch(page, true, filter, searchTerm);
     }
-  }, [page, fetchComments]);
+  }, [page, limit]);
 
   const loadMoreComments = useCallback(() => {
     if (!loading) {
@@ -208,8 +217,8 @@ export const useCommentModeration = () => {
     
     setPage(1);
     setComments([]);
-    fetchComments(1, false);
-  }, [fetchComments]);
+    performFetch(1, false);
+  }, [limit]);
 
   return {
     filter,

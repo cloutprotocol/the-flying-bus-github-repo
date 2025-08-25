@@ -11,7 +11,7 @@ import FilterPanel from './FilterPanel';
 import SelectionToolbar from './SelectionToolbar';
 import { MediaUploader } from '@/components/Common/MediaUploader';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import useMediaManager from '@/hooks/useMediaManager';
+import { useSimpleMediaManager } from '@/hooks/useSimpleMediaManager';
 import { Input } from '@/components/ui/input';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -33,7 +33,7 @@ const MediaManager = () => {
     totalCount,
     fetchMedia,
     handleDelete
-  } = useMediaManager();
+  } = useSimpleMediaManager();
   
   const handleMediaSelect = (id: string) => {
     if (selectedMedia.includes(id)) {

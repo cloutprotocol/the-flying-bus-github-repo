@@ -41,7 +41,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   if (!isOpen) return null
   
   return (
-    <div className="md:hidden fixed inset-0 z-30 bg-white border-t border-gray-200 overflow-y-auto">
+    <div 
+      className="md:hidden fixed inset-0 z-30 bg-white border-t border-gray-200 overflow-y-auto"
+      role="navigation"
+      aria-label="Mobile navigation menu"
+    >
       <div className="p-4">
         <nav>
           <ul className="space-y-4">
