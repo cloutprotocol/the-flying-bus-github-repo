@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { MediaAsset, getMediaAssets, deleteMedia, updateMediaMetadata } from '@/services/mediaService';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/utils/logger/logger';
@@ -13,12 +13,31 @@ export const useMediaManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  const fetchMedia = useCallback(async () => {
+  // Separate fetch logic to avoid circular dependencies
+  const performFetch = async (currentFilter = filter, currentSearchTerm = searchTerm) => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    
+    if (!isMountedRef.current) return;
+    
     setLoading(true);
+    setError(null);
+    
     try {
-      logger.info(LogSource.MEDIA, 'Fetching media', { filter, searchTerm });
-      const { assets, count, error } = await getMediaAssets(filter, searchTerm);
+      logger.info(LogSource.MEDIA, 'Fetching media', { filter: currentFilter, searchTerm: currentSearchTerm });
+      const { assets, count, error } = await getMediaAssets(currentFilter, currentSearchTerm);
+      
+      // Check if request was aborted
+      if (abortControllerRef.current?.signal.aborted || !isMountedRef.current) {
+        return;
+      }
       
       if (error) {
         throw error;
@@ -28,6 +47,11 @@ export const useMediaManager = () => {
       setTotalCount(count);
       setError(null);
     } catch (e) {
+      // Don't set error if request was aborted
+      if (abortControllerRef.current?.signal.aborted || !isMountedRef.current) {
+        return;
+      }
+      
       setError(e as Error);
       toast({
         title: "Error",
@@ -35,13 +59,41 @@ export const useMediaManager = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
     }
-  }, [filter, searchTerm, toast]);
+  };
 
+  // Create stable callback for external use
+  const fetchMedia = useCallback(async () => {
+    await performFetch();
+  }, [toast]);
+
+  // Initial fetch on mount
   useEffect(() => {
-    fetchMedia();
-  }, [fetchMedia]);
+    performFetch();
+  }, [toast]);
+
+  // Fetch when filter changes
+  useEffect(() => {
+    performFetch(filter, searchTerm);
+  }, [filter, toast]);
+
+  // Fetch when search term changes
+  useEffect(() => {
+    performFetch(filter, searchTerm);
+  }, [searchTerm, toast]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {

@@ -29,13 +29,13 @@ const recentLogCounts = {
   lastReset: Date.now()
 };
 
-// Reset recent log counts every minute
-setInterval(() => {
-  recentLogCounts.totalCount = 0;
-  recentLogCounts.bySource = {};
-  recentLogCounts.byMessage = {};
-  recentLogCounts.lastReset = Date.now();
-}, 60000);
+// Reset recent log counts every minute - DISABLED to prevent infinite loops
+// setInterval(() => {
+//   recentLogCounts.totalCount = 0;
+//   recentLogCounts.bySource = {};
+//   recentLogCounts.byMessage = {};
+//   recentLogCounts.lastReset = Date.now();
+// }, 60000);
 
 /**
  * Check if we should rate limit this log message
@@ -56,7 +56,8 @@ function shouldRateLimit(source: LogSource, message: string): boolean {
   recentLogCounts.bySource[source] = (recentLogCounts.bySource[source] || 0) + 1;
   
   // Use truncated message as key to handle slightly different messages with same meaning
-  const messageKey = message.slice(0, 50);
+  const messageStr = typeof message === 'string' ? message : String(message);
+  const messageKey = messageStr.slice(0, 50);
   recentLogCounts.byMessage[messageKey] = (recentLogCounts.byMessage[messageKey] || 0) + 1;
   
   // Rate limit if:
@@ -102,10 +103,7 @@ export function logMessage(
     
     // Apply rate limiting for non-error logs to prevent filling up storage
     if (level !== LogLevel.ERROR && level !== LogLevel.FATAL && shouldRateLimit(source, message)) {
-      // If rate limited, still output critical rate limiting warnings to console
-      if (recentLogCounts.totalCount % 50 === 0) {
-        originalConsole.warn(`[LOGGER] Rate limiting applied, suppressed ${recentLogCounts.totalCount} logs in the last minute`);
-      }
+      // Silently suppress logs to prevent feedback loops
       isLogging = false;
       return;
     }

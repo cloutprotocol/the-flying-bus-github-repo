@@ -21,6 +21,7 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
   const location = useLocation();
   const prevCategoryRef = useRef<string | null>(null);
   const categorySetOnceRef = useRef(false);
+  const locationKeyRef = useRef<string | null>(null);
   
   const pathCategory = location.pathname.split('/')[1];
   const routeCategory = getCategoryByPath(location.pathname);
@@ -85,6 +86,22 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
     handleClearFilters
   } = useCategoryFilters(clearFilters);
 
+  // Reset category tracking when location key changes (navigation occurred)
+  useEffect(() => {
+    if (location.key !== locationKeyRef.current) {
+      logger.info(LogSource.APP, 'Location key changed, resetting category tracking', {
+        oldKey: locationKeyRef.current,
+        newKey: location.key,
+        pathname: location.pathname
+      });
+      
+      // Reset tracking refs when navigating to allow fresh category setting
+      categorySetOnceRef.current = false;
+      prevCategoryRef.current = null;
+      locationKeyRef.current = location.key;
+    }
+  }, [location.key, location.pathname]);
+
   useEffect(() => {
     // Only set category if we have valid category data and it's different from before
     if (categoryData?.id && (!categorySetOnceRef.current || prevCategoryRef.current !== categoryData.id)) {
@@ -94,12 +111,13 @@ const CategoryPageContainer: React.FC<CategoryPageContainerProps> = ({ category:
       logger.info(LogSource.APP, `Setting category: ${displayCategory}`, {
         categoryId: categoryData.id,
         displayName: displayCategory,
-        isFirstSet: !prevCategoryRef.current
+        isFirstSet: !prevCategoryRef.current,
+        locationKey: location.key
       });
       
       setCategory(categoryData.id);
     }
-  }, [categoryData?.id, displayCategory, setCategory]);
+  }, [categoryData?.id, displayCategory, setCategory, location.key]);
 
   useEffect(() => {
     // Log when articles are received

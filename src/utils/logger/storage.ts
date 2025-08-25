@@ -149,17 +149,21 @@ async function processLogBuffer(): Promise<void> {
     );
     
     if (errorLogs.length > 0) {
-      // Store error logs in article_views as a temporary solution
-      // This is just a fallback until a proper logs table is created
-      await Promise.all(errorLogs.map(log => 
-        supabase.from('article_views').insert({
-          article_id: 'system-log', // Special identifier for system logs
-          ip_address: log.level, // Misusing this field to store log level
-          user_id: log.userId
-        }).then(null, () => {
-          // Silently handle failure - we don't want to cause more errors from logging
-        })
-      ));
+      // TODO: Store error logs in a proper logs table when available
+      // For now, we'll just log to console to avoid database errors
+      console.warn(`[Logger] ${errorLogs.length} error logs not persisted - proper logs table needed`);
+      
+      // Optionally log the errors to console for debugging
+      if (process.env.NODE_ENV === 'development') {
+        errorLogs.forEach(log => {
+          console.error('[Stored Error Log]', {
+            level: log.level,
+            source: log.source,
+            message: log.message,
+            timestamp: log.timestamp
+          });
+        });
+      }
     }
     
   } catch (error) {
@@ -187,27 +191,27 @@ export async function sendLogToServer(entry: LogEntry): Promise<void> {
   }
 }
 
-// Set up periodic flushing of the log buffer (every 30 seconds)
+// Set up periodic flushing of the log buffer (every 30 seconds) - DISABLED to prevent infinite loops
 if (typeof window !== 'undefined') {
-  setInterval(() => {
-    void processLogBuffer();
-  }, 30000);
+  // setInterval(() => {
+  //   void processLogBuffer();
+  // }, 30000);
   
-  // Also set up periodic cleaning of localStorage logs (every 5 minutes)
-  setInterval(() => {
-    try {
-      if (storageErrorReported) {
-        // Try to recover by clearing logs completely
-        clearLogsFromStorage();
-      } else {
-        // Just trim old logs
-        const logs = getLogsFromStorage().filter(
-          log => new Date(log.timestamp).getTime() > Date.now() - 3600000 // Keep last hour
-        );
-        localStorage.setItem('app_logs', JSON.stringify(logs));
-      }
-    } catch (error) {
-      storageErrorReported = true;
-    }
-  }, 300000);
+  // Also set up periodic cleaning of localStorage logs (every 5 minutes) - DISABLED
+  // setInterval(() => {
+  //   try {
+  //     if (storageErrorReported) {
+  //       // Try to recover by clearing logs completely
+  //       clearLogsFromStorage();
+  //     } else {
+  //       // Just trim old logs
+  //       const logs = getLogsFromStorage().filter(
+  //         log => new Date(log.timestamp).getTime() > Date.now() - 3600000 // Keep last hour
+  //       );
+  //       localStorage.setItem('app_logs', JSON.stringify(logs));
+  //     }
+  //   } catch (error) {
+  //     storageErrorReported = true;
+  //   }
+  // }, 300000);
 }

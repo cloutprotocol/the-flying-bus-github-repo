@@ -1,66 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import ApprovalQueueList, { ArticleReviewItem } from '@/components/Admin/ApprovalQueue/ApprovalQueueList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Loader2 } from 'lucide-react';
-import { getArticlesForApproval } from '@/services/approvalService';
+import { useSimpleApprovalQueue } from '@/hooks/useSimpleApprovalQueue';
 import { useToast } from '@/components/ui/use-toast';
 import { reviewArticle } from '@/services/articleService';
 import ErrorDisplay from '@/components/Admin/Common/ErrorDisplay';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { StatusType } from '@/components/Admin/Status/StatusBadge';
 
 const ApprovalQueue = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('pending');
-  const [articles, setArticles] = useState<ArticleReviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const { toast } = useToast();
   
-  const fetchArticles = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      logger.info(LogSource.APPROVAL, 'Fetching approval queue', {
-        status: statusFilter,
-        category: categoryFilter,
-        search: searchTerm
-      });
-      
-      const { articles: fetchedArticles, error: fetchError } = await getArticlesForApproval(
-        statusFilter, 
-        categoryFilter, 
-        searchTerm
-      );
-      
-      if (fetchError) {
-        logger.error(LogSource.APPROVAL, 'Error fetching approval queue', fetchError);
-        throw new Error(fetchError.message || 'Could not load the approval queue');
-      }
-      
-      setArticles(fetchedArticles);
-      
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An unknown error occurred');
-      setError(error);
-      
-      // Log the error for debugging
-      logger.error(LogSource.APPROVAL, 'Exception fetching approval queue', err);
-      
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use simple data loading for approval queue
+  const { 
+    data: articlesData, 
+    isLoading: loading, 
+    error, 
+    refetch: refetchArticles 
+  } = useSimpleApprovalQueue(statusFilter);
   
-  useEffect(() => {
-    fetchArticles();
-  }, [statusFilter, categoryFilter, searchTerm]);
+  // Transform and filter articles data
+  const articles = useMemo(() => {
+    if (!articlesData) return [];
+    
+    let filteredArticles = articlesData;
+    
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filteredArticles = filteredArticles.filter(article => 
+        article.categories?.name === categoryFilter
+      );
+    }
+    
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredArticles = filteredArticles.filter(article =>
+        article.title.toLowerCase().includes(searchLower) ||
+        article.profiles?.display_name?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Transform to ArticleReviewItem format
+    return filteredArticles.map(article => {
+      // Assign priority based on age of submission
+      const submissionDate = new Date(article.updated_at);
+      const now = new Date();
+      const daysDifference = Math.floor((now.getTime() - submissionDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let priority: 'low' | 'medium' | 'high' = 'low';
+      if (daysDifference >= 7) priority = 'high';
+      else if (daysDifference >= 3) priority = 'medium';
+      
+      return {
+        id: article.id,
+        title: article.title,
+        author: article.profiles?.display_name || 'Unknown',
+        status: article.status as StatusType,
+        submittedAt: new Date(article.updated_at),
+        category: article.categories?.name || 'Uncategorized',
+        priority
+      };
+    });
+  }, [articlesData, categoryFilter, searchTerm]);
 
   const handleStatusChange = async (articleId: string, newStatus: 'published' | 'rejected' | 'draft' | 'archived') => {
     setProcessingIds(prev => [...prev, articleId]);
@@ -76,10 +87,8 @@ const ApprovalQueue = () => {
       });
       
       if (success) {
-        // Update local state
-        setArticles(prevArticles => 
-          prevArticles.filter(article => article.id !== articleId)
-        );
+        // Refetch articles to update the list
+        await refetchArticles();
         
         toast({
           title: `Article ${newStatus}`,
@@ -168,9 +177,9 @@ const ApprovalQueue = () => {
               {error ? (
                 <ErrorDisplay
                   title="Failed to load articles"
-                  message={error.message}
-                  details={error.stack}
-                  onRetry={fetchArticles}
+                  message={error?.message || 'Unknown error occurred'}
+                  details={error?.stack}
+                  onRetry={() => refetchArticles()}
                   className="mb-4"
                 />
               ) : loading ? (

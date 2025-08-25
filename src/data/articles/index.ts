@@ -4,6 +4,7 @@ import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { StoryboardArticleProps } from '@/data/articles/storyboard';
 import logger from '@/utils/logger';
 import { LogSource } from '@/utils/logger';
+import { ComponentLifecycleManager } from '@/utils/componentLifecycleManager';
 
 // Mock data for related articles and functionality that isn't connected to Supabase yet
 export const mockArticles: ArticleProps[] = [
@@ -73,10 +74,11 @@ export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
     }
 
     if (!data) {
+      // No featured article is normal, don't log as warning
       return null;
     }
 
-    return {
+    const result = {
       id: data.id,
       title: data.title,
       excerpt: data.excerpt || '',
@@ -88,6 +90,11 @@ export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
       date: new Date(data.published_at || data.created_at).toLocaleDateString(),
       publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : null
     };
+
+    // Only log successful headline fetch
+    logger.info(LogSource.ARTICLE, `Fetched headline article: ${result.title}`);
+
+    return result;
   } catch (error) {
     logger.error(LogSource.ARTICLE, 'Exception fetching headline article', error);
     return null;
@@ -96,21 +103,19 @@ export const getHeadlineArticle = async (): Promise<ArticleProps | null> => {
 
 export const getCategoryArticles = async (categoryName: string): Promise<ArticleProps[]> => {
   try {
-    // First get the category ID matching the provided name
+    // First get category ID
     const { data: categoryData, error: categoryError } = await supabase
       .from('categories')
-      .select('id')
+      .select('id, name, description')
       .eq('name', categoryName)
       .single();
 
     if (categoryError || !categoryData) {
-      logger.error(LogSource.ARTICLE, `Error finding category with name ${categoryName}`, categoryError);
+      logger.error(LogSource.ARTICLE, `Category verification failed for ${categoryName}`, categoryError);
       return [];
     }
-
-    const categoryId = categoryData.id;
     
-    // Then fetch articles belonging to this category
+    // Fetch articles for this category
     const { data, error } = await supabase
       .from('articles')
       .select(`
@@ -121,9 +126,11 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
         categories(id, name), 
         profiles!articles_author_id_fkey(id, display_name),
         created_at,
-        published_at
+        published_at,
+        status,
+        featured
       `)
-      .eq('category_id', categoryId)
+      .eq('category_id', categoryData.id)
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(6);
@@ -134,21 +141,33 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
     }
 
     if (!data || data.length === 0) {
+      // Only log if it's an unexpected empty result (not normal for some categories)
       return [];
     }
 
-    return data.map(article => ({
-      id: article.id,
-      title: article.title,
-      excerpt: article.excerpt || '',
-      imageUrl: article.cover_image,
-      category: article.categories?.name || '',
-      readingLevel: 'Intermediate', // Default for now
-      readTime: 5, // Default reading time
-      author: article.profiles?.display_name || 'Unknown',
-      date: new Date(article.published_at || article.created_at).toLocaleDateString(),
-      publishDate: article.published_at ? new Date(article.published_at).toLocaleDateString() : null
-    }));
+    // Process and validate article data
+    const results = data
+      .filter(article => article.id && article.title)
+      .map(article => ({
+        id: article.id,
+        title: article.title,
+        excerpt: article.excerpt || '',
+        imageUrl: article.cover_image,
+        category: article.categories?.name || categoryName,
+        readingLevel: 'Intermediate', // Default for now
+        readTime: 5, // Default reading time
+        author: article.profiles?.display_name || 'Unknown',
+        date: new Date(article.published_at || article.created_at).toLocaleDateString(),
+        publishDate: article.published_at ? new Date(article.published_at).toLocaleDateString() : null,
+        commentCount: 0 // Default for now
+      }));
+
+    // Only log successful fetches with results to reduce noise
+    if (results.length > 0) {
+      logger.info(LogSource.ARTICLE, `Fetched ${results.length} articles for ${categoryName}`);
+    }
+
+    return results;
   } catch (error) {
     logger.error(LogSource.ARTICLE, `Exception fetching articles for category ${categoryName}`, error);
     return [];

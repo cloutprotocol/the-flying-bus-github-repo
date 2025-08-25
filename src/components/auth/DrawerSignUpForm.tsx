@@ -1,10 +1,13 @@
 
 import React, { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { registerUser } from '@/services/auth/authService';
+import { useAuth } from '@/hooks/useAuth';
 import SignUpFormFields from './SignUpFormFields';
 import DrawerFormActions from './DrawerFormActions';
 import { validateSignUpForm } from './utils/formValidation';
+import { RegistrationErrorDisplay } from './RegistrationErrorDisplay';
+import { useRegistrationError } from '@/hooks/useRegistrationError';
+import { RegistrationErrorDetails } from '@/types/RegistrationErrorTypes';
 
 interface DrawerSignUpFormProps {
   isSubmitting: boolean;
@@ -26,6 +29,13 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
   onSuccess
 }) => {
   const { toast } = useToast();
+  const { register } = useAuth();
+  const { 
+    registrationError, 
+    setRegistrationError, 
+    clearError, 
+    handleRegistrationError 
+  } = useRegistrationError();
   const [signUpForm, setSignUpForm] = useState(initialFormState);
 
   const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,62 +50,74 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    clearError(); // Clear any previous errors
     
     // Validate form
     const validationResult = validateSignUpForm(signUpForm.password, signUpForm.confirmPassword);
     if (!validationResult.valid) {
-      toast({
-        title: "Validation Error",
-        description: validationResult.errorMessage,
-        variant: "destructive",
-      });
+      const validationError: RegistrationErrorDetails = {
+        code: 'VALIDATION_FAILED',
+        type: 'validation',
+        message: validationResult.errorMessage || "Validation failed",
+        userMessage: validationResult.errorMessage || "Please check your input and try again.",
+        retryable: false,
+        suggestedAction: "Check that both password fields contain the same value."
+      };
+      setRegistrationError(validationError);
       setIsSubmitting(false);
       return;
     }
     
     try {
-      // Use the registerUser service function
-      const result = await registerUser(
+      // Use the register method from auth context (includes auto-login)
+      const success = await register(
         signUpForm.email,
         signUpForm.password,
         signUpForm.username,
         signUpForm.displayName
       );
       
-      if (!result.success) {
-        console.error('Registration error:', result.error);
+      if (success) {
         toast({
-          title: "Sign up failed",
-          description: result.error?.message || "An error occurred during registration",
-          variant: "destructive",
+          title: "Welcome to The Flying Bus!",
+          description: "Your account has been created and you're now signed in.",
         });
-        return;
+        
+        // Reset form
+        resetForm();
+        
+        // Close drawer
+        onSuccess();
       }
-      
-      toast({
-        title: "Account created!",
-        description: "Welcome to The Flying Bus! You're now signed in.",
-      });
-      
-      // Reset form
-      resetForm();
-      
-      // Close drawer
-      onSuccess();
+      // If success is false, error handling is done in the auth context
     } catch (error) {
       console.error('Sign up error:', error);
-      toast({
-        title: "An error occurred",
-        description: "Please try again later.",
-        variant: "destructive",
+      handleRegistrationError(error as Error, {
+        email: signUpForm.email,
+        registrationType: 'standard'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleRetry = () => {
+    clearError();
+    handleSignUp(new Event('submit') as any);
+  };
+
   return (
     <form onSubmit={handleSignUp} className="space-y-4 p-4">
+      {/* Error Display */}
+      {registrationError && (
+        <RegistrationErrorDisplay
+          error={registrationError}
+          onRetry={registrationError.retryable ? handleRetry : undefined}
+          onDismiss={clearError}
+          className="mb-4"
+        />
+      )}
+      
       <SignUpFormFields
         formValues={signUpForm}
         onValueChange={handleSignUpChange}
@@ -105,7 +127,7 @@ const DrawerSignUpForm: React.FC<DrawerSignUpFormProps> = ({
       <DrawerFormActions
         isSubmitting={isSubmitting}
         submitLabel="Create Account"
-        submittingLabel="Creating Account..."
+        submittingLabel="Creating Account & Signing In..."
         onCancel={resetForm}
       />
     </form>

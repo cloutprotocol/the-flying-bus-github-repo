@@ -134,8 +134,19 @@ const MyArticlesContent = () => {
     }
   };
 
-  // Show error state if there are critical issues
-  if (error && !isLoading) {
+  // Show authentication loading state
+  if (!currentUser) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <p>Please log in to view your articles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there are critical issues (but not for empty results)
+  if (error && !isLoading && error.message !== 'Please log in to view your articles') {
     return (
       <div className="p-6">
         <ErrorDisplay
@@ -242,19 +253,23 @@ const MyArticlesContent = () => {
                       </TooltipContent>
                     </Tooltip>
                     
-                    <Link to={`/admin/articles/${article.id}`}>
-                      <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                    {article.can_edit && (
+                      <Link to={`/admin/articles/${article.id}`}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    )}
                     
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => setArticleToDelete(article.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {article.can_delete && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => setArticleToDelete(article.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
