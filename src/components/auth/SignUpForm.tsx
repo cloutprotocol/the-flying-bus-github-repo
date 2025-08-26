@@ -7,7 +7,6 @@ import { CardContent, CardFooter } from '@/components/ui/card';
 import { Mail, Key, User } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { RegistrationErrorDisplay } from './RegistrationErrorDisplay';
 import { useRegistrationError } from '@/hooks/useRegistrationError';
 import { RegistrationErrorDetails } from '@/types/RegistrationErrorTypes';
 
@@ -21,10 +20,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
   const { toast } = useToast();
   const { register } = useAuth();
   const { 
-    registrationError, 
-    setRegistrationError, 
+    error: registrationError, 
+    setError: setRegistrationError, 
     clearError, 
-    handleRegistrationError 
+    handleError: handleRegistrationError 
   } = useRegistrationError();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,12 +103,19 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
       <CardContent className="space-y-4 mt-4">
         {/* Error Display */}
         {registrationError && (
-          <RegistrationErrorDisplay
-            error={registrationError}
-            onRetry={registrationError.retryable ? handleRetry : undefined}
-            onDismiss={clearError}
-            className="mb-4"
-          />
+          <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
+            <p className="text-sm text-red-600">{registrationError.userMessage}</p>
+            {registrationError.retryable && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetry}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            )}
+          </div>
         )}
         <div className="space-y-2">
           <Label htmlFor="username">Username</Label>

@@ -11,7 +11,6 @@ import {
   FileText,
   Clock,
   CheckCircle,
-  MessageCircle,
   Folder
 } from 'lucide-react';
 import { CardContent } from '@/components/ui/card';
@@ -31,8 +30,6 @@ interface DashboardMetrics {
   totalUsers?: number;
   commentCount?: number;
   pendingReviews?: number;
-  pendingComments?: number;
-  pendingInvitations?: number;
   myArticles?: number;
   myArticleViews?: number;
   myComments?: number;
