@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { User, Settings, LogOut, Shield } from 'lucide-react';
+import { useKanaCoinBalance } from '../../../wallet/useWalletHook';
 
 const UserMenu = () => {
   const { currentUser, logout, checkRoleAccess } = useAuth();
@@ -35,6 +36,10 @@ const UserMenu = () => {
   }
 
   const canAccessAdmin = checkRoleAccess(['author', 'moderator', 'admin']);
+
+  // Kana Coin balance logic
+  const walletAddress = currentUser.crypto_wallet_address;
+  const { balance, isLoading, error } = useKanaCoinBalance(walletAddress);
 
   return (
     <DropdownMenu>
@@ -62,9 +67,15 @@ const UserMenu = () => {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate('/wallet-test')}>
+        <DropdownMenuItem onClick={() => navigate('/wallet-dashboard')}>
           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11m5 0-5 5m0 0V3m0 2h2a2 2 0 0 1 2 2v2" /></svg>
-          <span>Wallet</span>
+          {(!walletAddress || error) ? (
+            <span>Wallet</span>
+          ) : isLoading ? (
+            <span>Loading...</span>
+          ) : (
+            <span>{balance ? Number(balance).toFixed(2) : '0.00'} Kana Coins</span>
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/settings')}>
           <Settings className="mr-2 h-4 w-4" />

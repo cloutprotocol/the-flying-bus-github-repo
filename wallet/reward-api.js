@@ -25,11 +25,16 @@ const TOKEN_CONTRACT_ADDRESS = "0x1401FCDe7ed44b5BE2E448bab2254Ab0709258b8"; // 
 
 // --- Reward Amounts (imported or hardcoded) ---
 const REWARD_AMOUNTS = {
+  COMMENT_APPROVED: "1",
+  WRITE_ARTICLE: "3",
+  VIDEO_ARTICLE: "4",
+  ART_ARTICLE: "2",
+  SHARE_ARTICLE: "0.5",
   TASK_COMPLETION: "0.01",
   FIRST_LOGIN_BONUS: "0.1",
   REFERRAL_BONUS: "0.05",
-  ARTICLE_READ: "0.005",
-  QUIZ_COMPLETION: "0.02",
+  ARTICLE_READ: "0.02",
+  QUIZ_COMPLETION: "0.03",
 };
 
 // --- Reward API Endpoint ---
