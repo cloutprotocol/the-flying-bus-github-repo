@@ -377,7 +377,7 @@ export const AuthorArticleManager: React.FC<AuthorArticleManagerProps> = ({ clas
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.location.href = `/articles/${article.id}`}
+                    onClick={() => window.location.href = `/article/${article.id}`}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View

@@ -62,7 +62,7 @@ const ArticleSidebar: React.FC<ArticleSidebarProps> = ({
               <h3 className="font-bold text-lg mb-3">Related Articles</h3>
               <div className="space-y-4">
                 {relatedArticles.map((related) => (
-                  <Link key={related.id} to={`/articles/${related.id}`} className="block group">
+                  <Link key={related.id} to={`/article/${related.id}`} className="block group">
                     <div className="flex gap-2">
                       <div className="w-16 h-16 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
                         {related.imageUrl && (
