@@ -13,7 +13,7 @@ import ReportManagement from '@/pages/Admin/ReportManagement';
 import AnalyticsDashboard from '@/pages/Admin/AnalyticsDashboard';
 import InvitationManagement from '@/pages/Admin/InvitationManagement';
 import Settings from '@/pages/Admin/Settings';
-import ProtectedRoute from '@/components/Auth/ProtectedRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export const adminRoutes = [
   { 

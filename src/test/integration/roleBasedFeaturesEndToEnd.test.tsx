@@ -7,7 +7,7 @@ import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AuthorDashboard } from '@/components/Admin/Author/AuthorDashboard';
 import { AuthorArticleManager } from '@/components/Admin/Author/AuthorArticleManager';
 import { ArticleReviewQueue } from '@/components/Admin/Reviews/ArticleReviewQueue';
-import { RouteGuard } from '@/components/Auth/RouteGuard';
+import { RouteGuard } from '@/components/auth/RouteGuard';
 import { AdminPermissionMiddleware } from '@/components/Admin/AdminPermissionMiddleware';
 
 // Mock Supabase client

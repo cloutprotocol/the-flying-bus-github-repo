@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthProvider } from '@/providers/AuthProvider';
-import { RouteGuard } from '@/components/Auth/RouteGuard';
+import { RouteGuard } from '@/components/auth/RouteGuard';
 import { AdminPermissionMiddleware } from '@/components/Admin/AdminPermissionMiddleware';
 import { FeatureFlag } from '@/components/Common/FeatureFlag';
 import { hasAuthorPrivileges, hasAdminPrivileges, hasModeratorPrivileges } from '@/services/roleService';
