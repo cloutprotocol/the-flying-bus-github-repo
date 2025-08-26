@@ -258,7 +258,7 @@ const ArticleReview = () => {
             
             <Button 
               variant="outline" 
-              onClick={() => window.open(`/articles/${articleId}`, '_blank')}
+              onClick={() => window.open(`/article/${articleId}`, '_blank')}
             >
               <Eye className="h-4 w-4 mr-2" />
               Preview

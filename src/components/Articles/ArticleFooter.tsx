@@ -11,7 +11,7 @@ interface ArticleFooterProps {
 
 const ArticleFooter: React.FC<ArticleFooterProps> = ({ article }) => {
   // Create the full URL for the article
-  const articleUrl = `/articles/${article.id}`;
+  const articleUrl = `/article/${article.id}`;
   
   return (
     <>

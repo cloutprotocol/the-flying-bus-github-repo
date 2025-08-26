@@ -134,7 +134,7 @@ const RecentArticlesSection: React.FC<RecentArticlesSectionProps> = ({
                               asChild={isViewable(article.status)}
                             >
                               {isViewable(article.status) ? (
-                                <Link to={`/articles/${article.id}`}>
+                                <Link to={`/article/${article.id}`}>
                                   <Eye className="h-4 w-4" />
                                 </Link>
                               ) : (

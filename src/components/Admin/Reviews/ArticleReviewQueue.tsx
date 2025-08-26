@@ -261,7 +261,7 @@ export const ArticleReviewQueue: React.FC<ArticleReviewQueueProps> = ({ classNam
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open(`/articles/${article.id}`, '_blank')}
+                    onClick={() => window.open(`/article/${article.id}`, '_blank')}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Preview
