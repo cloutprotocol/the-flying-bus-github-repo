@@ -12,7 +12,7 @@ import { hasAuthorPrivileges } from '@/services/roleService';
 import { useRoleManagement } from '@/hooks/useRoleManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useRegistrationError } from '@/hooks/useRegistrationError';
-import { RegistrationErrorDisplay } from '@/components/auth/RegistrationErrorDisplay';
+import { RegistrationErrorDisplay } from '@/components/Auth/RegistrationErrorDisplay';
 import type { InvitationTokenData } from '@/services/invitationService';
 
 type ActivationState = 'loading' | 'ready' | 'activating' | 'success' | 'error';

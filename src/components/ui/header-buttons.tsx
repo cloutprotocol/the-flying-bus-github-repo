@@ -4,7 +4,7 @@ import { User, BookOpen, Loader2 } from "lucide-react"
 import { NavButton } from "./nav-button"
 import { RainbowButton } from "./rainbow-button"
 import { useAuth } from "@/contexts/AuthContext"
-import UserMenu from "@/components/auth/UserMenu"
+import UserMenu from "@/components/Auth/UserMenu"
 import { DrawerAuth } from "@/components/ui/drawer-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 

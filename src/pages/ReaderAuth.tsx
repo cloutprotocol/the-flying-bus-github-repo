@@ -4,9 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import SignUpForm from '@/components/auth/SignUpForm';
-import SignInForm from '@/components/auth/SignInForm';
-import AuthCardHeader from '@/components/auth/AuthCardHeader';
+import SignUpForm from '@/components/Auth/SignUpForm';
+import SignInForm from '@/components/Auth/SignInForm';
+import AuthCardHeader from '@/components/Auth/AuthCardHeader';
 import { useAuth } from '@/hooks/useAuth';
 
 const ReaderAuth = () => {
