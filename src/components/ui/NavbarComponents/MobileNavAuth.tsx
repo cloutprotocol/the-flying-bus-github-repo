@@ -8,6 +8,7 @@ import { RainbowButton } from '@/components/ui/rainbow-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useKanaCoinBalance } from '../../../../wallet/useWalletHook';
 
 const MobileNavAuth: React.FC = () => {
   const { isLoggedIn, currentUser, logout, isLoading } = useAuth();
@@ -22,6 +23,9 @@ const MobileNavAuth: React.FC = () => {
   }
 
   if (isLoggedIn && currentUser) {
+    // Kana Coin balance logic
+    const walletAddress = currentUser.crypto_wallet_address;
+    const { balance, isLoading, error } = useKanaCoinBalance(walletAddress);
     return (
       <div className="space-y-4 py-2">
         <div className="flex items-center gap-3 px-2 py-3">
@@ -39,7 +43,6 @@ const MobileNavAuth: React.FC = () => {
             <span className="text-xs text-gray-500">@{currentUser.username}</span>
           </div>
         </div>
-        
         <div className="space-y-3">
           <SheetClose asChild>
             <Link 
@@ -50,7 +53,21 @@ const MobileNavAuth: React.FC = () => {
               <span>My Profile</span>
             </Link>
           </SheetClose>
-          
+          <SheetClose asChild>
+            <Link 
+              to="/wallet-dashboard"
+              className="flex items-center text-base py-2"
+            >
+              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11m5 0-5 5m0 0V3m0 2h2a2 2 0 0 1 2 2v2" /></svg>
+              {(!walletAddress || error) ? (
+                <span>Wallet</span>
+              ) : isLoading ? (
+                <span>Loading...</span>
+              ) : (
+                <span>{balance ? Number(balance).toFixed(2) : '0.00'} Kana Coins</span>
+              )}
+            </Link>
+          </SheetClose>
           <SheetClose asChild>
             <Link 
               to={`/profile/${currentUser.username}/edit`}
@@ -60,7 +77,6 @@ const MobileNavAuth: React.FC = () => {
               <span>Edit Profile</span>
             </Link>
           </SheetClose>
-          
           <button 
             onClick={() => logout()}
             className="flex items-center text-base py-2 w-full text-left"
