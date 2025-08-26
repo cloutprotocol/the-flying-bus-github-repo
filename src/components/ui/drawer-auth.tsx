@@ -10,8 +10,8 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DrawerSignInForm from "@/components/auth/DrawerSignInForm";
-import DrawerSignUpForm from "@/components/auth/DrawerSignUpForm";
+import DrawerSignInForm from "@/components/Auth/DrawerSignInForm";
+import DrawerSignUpForm from "@/components/Auth/DrawerSignUpForm";
 import { useAuth } from "@/hooks/useAuth";
 
 interface DrawerAuthProps {
