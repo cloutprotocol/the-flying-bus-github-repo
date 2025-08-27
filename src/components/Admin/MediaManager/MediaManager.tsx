@@ -157,13 +157,25 @@ const MediaManager = () => {
               </div>
             ) : viewMode === 'grid' ? (
               <MediaGrid 
-                media={media} 
+                media={media.map(item => ({
+                  id: item.id,
+                  url: item.url,
+                  title: item.filename,
+                  type: item.file_type, // This maps 'image' or 'video' correctly
+                  date: new Date(item.created_at).toLocaleDateString()
+                }))} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />
             ) : (
               <MediaList 
-                media={media} 
+                media={media.map(item => ({
+                  id: item.id,
+                  url: item.url,
+                  title: item.filename,
+                  type: item.file_type, // This maps 'image' or 'video' correctly
+                  date: new Date(item.created_at).toLocaleDateString()
+                }))} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />

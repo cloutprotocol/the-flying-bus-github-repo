@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FolderOpen, Upload } from 'lucide-react';
 import { 
@@ -27,6 +27,14 @@ const MediaGalleryDialog: React.FC<MediaGalleryDialogProps> = ({
   onOpenChange,
   onSelectMedia
 }) => {
+  const [activeTab, setActiveTab] = useState('gallery');
+
+  const handleUploadComplete = (url: string, isVideo: boolean) => {
+    // Switch to gallery tab to show the newly uploaded media
+    setActiveTab('gallery');
+    // Call the original callback
+    onSelectMedia(url, isVideo);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
@@ -43,7 +51,7 @@ const MediaGalleryDialog: React.FC<MediaGalleryDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="gallery" className="mt-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="gallery">
               <FolderOpen className="mr-2 h-4 w-4" />
@@ -58,7 +66,7 @@ const MediaGalleryDialog: React.FC<MediaGalleryDialogProps> = ({
             <MediaGallery onSelectMedia={onSelectMedia} />
           </TabsContent>
           <TabsContent value="upload" className="border rounded-md p-4 mt-4">
-            <MediaUploader onUploadComplete={onSelectMedia} />
+            <MediaUploader onUploadComplete={handleUploadComplete} />
           </TabsContent>
         </Tabs>
         

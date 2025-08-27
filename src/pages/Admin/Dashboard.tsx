@@ -15,15 +15,13 @@ import {
 } from 'lucide-react';
 import { CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { getRecentActivities, Activity as ActivityType } from '@/services/activityService';
 
-interface Activity {
-  id: string;
-  type: string;
-  description: string;
-  timestamp: string;
-}
+// Use the Activity type from the service
+type Activity = ActivityType;
 
 interface DashboardMetrics {
   totalArticles?: number;
@@ -184,22 +182,36 @@ const Dashboard: React.FC = () => {
       // Simple activity feed
       try {
         if (userRole === 'admin' || userRole === 'moderator') {
-          const activitiesResult = await supabase
-            .from('profiles')
-            .select('id, username, created_at')
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (activitiesResult.data && !activitiesResult.error) {
-            const simpleActivities: Activity[] = activitiesResult.data.map((profile, index) => ({
-              id: profile.id || `activity-${index}`,
-              type: 'user_registration',
-              description: `New user ${profile.username || 'Unknown'} registered`,
-              timestamp: profile.created_at || new Date().toISOString()
-            }));
-            setActivities(simpleActivities);
+          const activitiesResult = await getRecentActivities(5);
+          
+          if (activitiesResult.activities && !activitiesResult.error) {
+            setActivities(activitiesResult.activities);
           } else {
-            setActivities([]);
+            // Fallback to user registration activities if no activities exist
+            const profilesResult = await supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url, created_at')
+              .order('created_at', { ascending: false })
+              .limit(5);
+
+            if (profilesResult.data && !profilesResult.error) {
+              const fallbackActivities: Activity[] = profilesResult.data.map((profile, index) => ({
+                id: profile.id || `activity-${index}`,
+                user_id: profile.id,
+                activity_type: 'article_created' as const,
+                entity_type: 'user',
+                entity_id: profile.id,
+                metadata: { description: `New user ${profile.username || profile.display_name || 'unknown'} registered` },
+                created_at: profile.created_at || new Date().toISOString(),
+                profile: {
+                  display_name: profile.display_name || profile.username || 'Unknown User',
+                  avatar_url: profile.avatar_url
+                }
+              }));
+              setActivities(fallbackActivities);
+            } else {
+              setActivities([]);
+            }
           }
         } else {
           setActivities([]);
@@ -439,25 +451,37 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {activities.map((activity) => (
-                  <div key={activity.id} className="flex space-x-3 p-2 rounded-lg hover:bg-gray-50">
-                    <div className="flex-shrink-0">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">
-                          {activity.type?.charAt(0)?.toUpperCase() || 'A'}
-                        </span>
+                {activities.map((activity) => {
+                  // Get user info from profile or fallback
+                  const displayName = activity.profile?.display_name || 'Unknown User';
+                  const avatarUrl = activity.profile?.avatar_url;
+                  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  
+                  // Create description from metadata or fallback
+                  const description = activity.metadata?.description || 
+                    `${displayName} performed ${activity.activity_type?.replace('_', ' ') || 'an action'}`;
+                  
+                  return (
+                    <div key={activity.id} className="flex space-x-3 p-2 rounded-lg hover:bg-gray-50">
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={avatarUrl} alt={displayName} />
+                          <AvatarFallback className="text-xs font-medium">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {description}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(activity.created_at).toLocaleString()}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {activity.description}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(activity.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

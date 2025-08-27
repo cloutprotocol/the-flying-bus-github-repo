@@ -149,8 +149,13 @@ const AdminHeader = () => {
           </Link>
           
           <Avatar>
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarImage src={currentUser?.avatar_url} />
+            <AvatarFallback>
+              {currentUser?.display_name 
+                ? currentUser.display_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                : 'U'
+              }
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>
