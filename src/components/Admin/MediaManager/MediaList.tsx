@@ -44,11 +44,20 @@ const MediaList: React.FC<MediaListProps> = ({
               <img 
                 src={item.url} 
                 alt={item.title} 
-                className="object-cover w-full h-full" 
+                className="object-cover w-full h-full"
+                loading="lazy"
+                onError={(e) => {
+                  // Fallback for broken images
+                  e.currentTarget.style.display = 'none';
+                }}
               />
-            ) : (
+            ) : item.type === 'video' ? (
               <div className="bg-blue-100 h-full flex items-center justify-center">
                 <Video className="h-8 w-8 text-blue-500" />
+              </div>
+            ) : (
+              <div className="bg-gray-100 h-full flex items-center justify-center">
+                <span className="text-xs text-gray-500">Unknown</span>
               </div>
             )}
           </div>
