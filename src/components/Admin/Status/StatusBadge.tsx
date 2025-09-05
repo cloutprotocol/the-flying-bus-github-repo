@@ -3,7 +3,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Check, XCircle, Archive, EyeOff } from 'lucide-react';
 
-export type StatusType = 'draft' | 'pending' | 'published' | 'rejected' | 'archived';
+export type StatusType = 'draft' | 'pending' | 'pending_review' | 'published' | 'rejected' | 'archived';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -18,6 +18,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'default' }) =
       icon: <EyeOff className="h-3.5 w-3.5 mr-1" />
     },
     pending: {
+      label: 'Pending Review',
+      color: 'bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-200',
+      icon: <Clock className="h-3.5 w-3.5 mr-1" />
+    },
+    pending_review: {
       label: 'Pending Review',
       color: 'bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-200',
       icon: <Clock className="h-3.5 w-3.5 mr-1" />

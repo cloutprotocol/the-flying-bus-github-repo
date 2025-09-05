@@ -22,7 +22,13 @@ export class UnifiedSubmissionService {
    */
   static async submitForReview(formData: ArticleFormData, userId: string): Promise<SubmissionResult> {
     try {
-      console.log('UnifiedSubmissionService.submitForReview called with shouldHighlight:', formData.shouldHighlight);
+      console.log('🚀 UnifiedSubmissionService.submitForReview called with data:', {
+        title: formData.title,
+        articleType: formData.articleType,
+        videoUrl: formData.videoUrl,
+        storyboardEpisodes: formData.storyboardEpisodes?.length,
+        shouldHighlight: formData.shouldHighlight
+      });
 
       logger.info(LogSource.ARTICLE, 'Starting unified article submission', {
         articleType: formData.articleType,
@@ -85,7 +91,7 @@ export class UnifiedSubmissionService {
       const { data, error } = await supabase.rpc('submit_article_with_validation', {
         p_user_id: userId,
         p_article_data: mappedData,
-        p_save_draft: true
+        p_save_draft: false
       });
 
       console.log('Database response:', { data, error });

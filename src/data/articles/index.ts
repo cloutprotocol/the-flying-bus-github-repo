@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
-import { StoryboardArticleProps } from '@/data/articles/storyboard';
+import { StoryboardArticleProps, storyboardArticles } from '@/data/articles/storyboard';
 import logger from '@/utils/logger';
 import { LogSource } from '@/utils/logger';
 import { ComponentLifecycleManager } from '@/utils/componentLifecycleManager';
@@ -175,9 +175,76 @@ export const getCategoryArticles = async (categoryName: string): Promise<Article
 };
 
 // Get article by ID
-export const getArticleById = (id: string): ArticleProps | StoryboardArticleProps | undefined => {
-  // For now, we'll use mock data. Later this will fetch from Supabase
-  return mockArticles.find(article => article.id === id);
+export const getArticleById = async (id: string): Promise<ArticleProps | StoryboardArticleProps | undefined> => {
+  // First check mock data (regular articles)
+  const regularArticle = mockArticles.find(article => article.id === id);
+  if (regularArticle) {
+    return regularArticle;
+  }
+  
+  // Then check storyboard mock articles
+  const storyboardArticle = storyboardArticles.find(article => article.id === id);
+  if (storyboardArticle) {
+    return storyboardArticle;
+  }
+
+  // If not found in mock data, try fetching from Supabase
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .select(`
+        id, 
+        title, 
+        excerpt, 
+        content,
+        cover_image, 
+        categories(id, name), 
+        profiles!articles_author_id_fkey(id, display_name),
+        created_at,
+        published_at,
+        article_type
+      `)
+      .eq('id', id)
+      .eq('status', 'published')
+      .single();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    // Convert database article to our format
+    const article: ArticleProps = {
+      id: data.id,
+      title: data.title,
+      excerpt: data.excerpt || '',
+      imageUrl: data.cover_image,
+      category: data.categories?.name || '',
+      readingLevel: 'Intermediate', // Default for now
+      readTime: 5, // Default reading time
+      author: data.profiles?.display_name || 'Unknown',
+      date: new Date(data.published_at || data.created_at).toLocaleDateString(),
+      publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : null,
+      commentCount: 0 // Default for now
+    };
+
+    return article;
+  } catch (error) {
+    logger.error(LogSource.ARTICLE, 'Error fetching article by ID', error);
+    return undefined;
+  }
+};
+
+// Synchronous version for backward compatibility with existing code
+export const getArticleByIdSync = (id: string): ArticleProps | StoryboardArticleProps | undefined => {
+  // First check regular articles
+  const regularArticle = mockArticles.find(article => article.id === id);
+  if (regularArticle) {
+    return regularArticle;
+  }
+  
+  // Then check storyboard articles
+  const storyboardArticle = storyboardArticles.find(article => article.id === id);
+  return storyboardArticle;
 };
 
 // Check if an article is a storyboard article

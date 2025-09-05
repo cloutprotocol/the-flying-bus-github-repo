@@ -35,7 +35,7 @@ export const mapFormDataToDatabase = (formData: ArticleFormData, userId: string)
     allowVoting: formData.allowVoting,
     debateSettings: formData.debateSettings,
     storyboardEpisodes: formData.storyboardEpisodes,
-    videoUrl: (formData as any).videoUrl
+    videoUrl: formData.videoUrl
   };
   
   console.log('mapFormDataToDatabase: Mapped data:', {

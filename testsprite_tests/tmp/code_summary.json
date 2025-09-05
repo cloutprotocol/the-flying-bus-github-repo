@@ -1,0 +1,246 @@
+{
+    "tech_stack": [
+        "TypeScript",
+        "React 18",
+        "Vite 5.4.1",
+        "Tailwind CSS",
+        "shadcn/ui",
+        "Supabase",
+        "PostgreSQL",
+        "Thirdweb SDK v5",
+        "Ethers.js v5",
+        "React Router DOM v6",
+        "React Query (TanStack Query)",
+        "React Hook Form",
+        "Zod validation",
+        "Vitest",
+        "React Testing Library",
+        "Polygon Mumbai Testnet",
+        "Resend API",
+        "Framer Motion",
+        "React Quill",
+        "Recharts"
+    ],
+    "features": [
+        {
+            "name": "Authentication System",
+            "description": "Email and password authentication system with invitation-based author registration and auto-login flows. Secure user account management for the platform.",
+            "files": [
+                "src/components/Auth/SignInForm.tsx",
+                "src/components/Auth/SignUpForm.tsx",
+                "src/components/Auth/UserMenu.tsx",
+                "src/components/Auth/ProtectedRoute.tsx",
+                "src/contexts/AuthContext.tsx",
+                "src/services/authService.ts",
+                "src/services/invitationService.ts"
+            ]
+        },
+        {
+            "name": "Article Management System",
+            "description": "Comprehensive content management with rich text editing, multiple article types (standard, debate, video, storyboard), draft system, and publishing workflow.",
+            "files": [
+                "src/components/Articles/ArticleCard.tsx",
+                "src/components/Articles/ArticleContent.tsx",
+                "src/components/Articles/ArticleHeader.tsx",
+                "src/components/Articles/VideoPlayer.tsx",
+                "src/services/articleService.ts",
+                "src/hooks/useArticleData.ts",
+                "src/hooks/useArticleForm.ts"
+            ]
+        },
+        {
+            "name": "Web3 Integration & Rewards",
+            "description": "Optional crypto wallet connection for authenticated users using Thirdweb SDK. Token reward system on Polygon Mumbai testnet for user engagement rewards tied to Flying Bus accounts.",
+            "files": [
+                "src/components/WalletTest.tsx",
+                "src/hooks/useWalletIntegration.ts",
+                "src/services/rewardService.ts",
+                "src/services/tokenService.ts",
+                "src/services/walletIntegrationService.ts"
+            ]
+        },
+        {
+            "name": "Comment System",
+            "description": "Threaded comment system with moderation, likes, replies, and community-driven content flagging.",
+            "files": [
+                "src/components/Comments/CommentForm.tsx",
+                "src/components/Comments/CommentList.tsx",
+                "src/components/Comments/CommentItem.tsx",
+                "src/components/Comments/CommentsSection.tsx",
+                "src/services/commentService.ts",
+                "src/hooks/useComments.tsx"
+            ]
+        },
+        {
+            "name": "Debate Voting System",
+            "description": "Interactive voting system for debate articles with real-time results and user engagement tracking.",
+            "files": [
+                "src/components/Articles/DebateVote/useVoting.ts",
+                "src/hooks/useDebateVoting.ts",
+                "src/utils/voteUtils.ts",
+                "src/utils/errors/handleVoteError.ts"
+            ]
+        },
+        {
+            "name": "Admin Portal",
+            "description": "Comprehensive administrative interface for content management, user management, analytics, and moderation tools.",
+            "files": [
+                "src/components/Admin/Dashboard/",
+                "src/components/Admin/ArticleEditor/",
+                "src/components/Admin/UserManagement/",
+                "src/components/Admin/Analytics/",
+                "src/pages/Admin/Dashboard.tsx",
+                "src/services/dashboardService.ts"
+            ]
+        },
+        {
+            "name": "Category System",
+            "description": "Content categorization with filtering, pagination, and category-specific layouts for Headliners, Debates, Learning, Neighborhood, School News, Spice It Up, and Storyboard.",
+            "files": [
+                "src/components/Category/CategoryPageContainer.tsx",
+                "src/components/Category/ArticlesGrid.tsx",
+                "src/components/Category/CategoryFilter.tsx",
+                "src/utils/categoryUtils.ts",
+                "src/hooks/category/useCategoryData.ts"
+            ]
+        },
+        {
+            "name": "User Profile System",
+            "description": "User profiles with activity tracking, achievements, reading statistics, and privacy settings.",
+            "files": [
+                "src/components/Profile/ProfileHero.tsx",
+                "src/components/Profile/ProfileStats.tsx",
+                "src/components/Profile/ProfileActivity.tsx",
+                "src/components/Readers/ReaderProfilePage.tsx",
+                "src/pages/ProfilePage.tsx"
+            ]
+        },
+        {
+            "name": "Storyboard System",
+            "description": "Episodic content management for serialized stories with series navigation and episode tracking.",
+            "files": [
+                "src/components/Storyboard/EpisodeCard.tsx",
+                "src/components/Storyboard/EpisodeDetails.tsx",
+                "src/components/Storyboard/SeriesHeader.tsx",
+                "src/pages/StoryboardPage.tsx",
+                "src/services/storyboardService.ts"
+            ]
+        },
+        {
+            "name": "Content Moderation",
+            "description": "Multi-layer content moderation with approval workflows, flagging system, and safety features for child-appropriate content.",
+            "files": [
+                "src/components/Admin/Moderation/",
+                "src/components/Admin/ApprovalQueue/",
+                "src/services/moderationService.ts",
+                "src/hooks/useModeration.ts",
+                "src/services/safety/"
+            ]
+        },
+        {
+            "name": "Media Management",
+            "description": "File upload, image optimization, and media asset management with CDN integration.",
+            "files": [
+                "src/components/Common/MediaUploader/",
+                "src/components/Admin/MediaManager/",
+                "src/services/mediaService.ts",
+                "src/hooks/useMediaManager.ts"
+            ]
+        },
+        {
+            "name": "Navigation System",
+            "description": "Responsive navigation with mobile menu, breadcrumbs, and category filtering.",
+            "files": [
+                "src/components/Layout/Header.tsx",
+                "src/components/Layout/ModernHeader.tsx",
+                "src/components/Navigation/CategoryFilter.tsx",
+                "src/components/Navigation/Breadcrumb.tsx",
+                "src/contexts/NavigationContext.tsx"
+            ]
+        },
+        {
+            "name": "Error Handling & Recovery",
+            "description": "Comprehensive error boundary system with graceful error recovery and user-friendly error messages.",
+            "files": [
+                "src/components/ErrorBoundary/ErrorBoundary.tsx",
+                "src/components/ErrorBoundary/AdminErrorBoundary.tsx",
+                "src/utils/errorHandling.ts",
+                "src/utils/userFriendlyErrors.ts",
+                "src/hooks/useErrorHandler.ts"
+            ]
+        },
+        {
+            "name": "Performance Monitoring",
+            "description": "Performance tracking, optimization, and monitoring with analytics and metrics collection.",
+            "files": [
+                "src/services/performanceMonitoringService.ts",
+                "src/services/performanceOptimizationService.ts",
+                "src/hooks/usePerformanceMonitoring.ts",
+                "src/hooks/usePerformanceOptimization.ts"
+            ]
+        },
+        {
+            "name": "Email System",
+            "description": "Server-side email system using Resend API via Supabase Edge Functions for invitation management and notifications.",
+            "files": [
+                "src/services/invitationService.ts",
+                "src/services/emailMonitoringService.ts",
+                "supabase/functions/send-email/",
+                "supabase/functions/send-invitation-approved/"
+            ]
+        },
+        {
+            "name": "Video Integration",
+            "description": "YouTube video integration with metadata extraction and video article support.",
+            "files": [
+                "src/components/Articles/VideoPlayer.tsx",
+                "src/utils/video/youtubeUtils.ts",
+                "src/utils/articles/videoUtils.ts",
+                "src/components/Debug/VideoDebugComponent.tsx"
+            ]
+        },
+        {
+            "name": "Form Validation",
+            "description": "Comprehensive form validation using React Hook Form with Zod schemas for type-safe validation.",
+            "files": [
+                "src/utils/validation/articleFormSchema.ts",
+                "src/utils/validation/commentValidation.ts",
+                "src/utils/validation/userValidation.ts",
+                "src/hooks/useZodForm.ts",
+                "src/components/Common/ValidatedForm.tsx"
+            ]
+        },
+        {
+            "name": "Security & Sanitization",
+            "description": "Input sanitization, XSS protection, and security measures for child-safe content.",
+            "files": [
+                "src/utils/security/sanitize.ts",
+                "src/services/inputSanitizationService.ts",
+                "src/utils/tokenSecurity.ts",
+                "src/services/securityMonitoringService.ts"
+            ]
+        },
+        {
+            "name": "Analytics & Metrics",
+            "description": "User engagement tracking, content analytics, and dashboard metrics for administrators.",
+            "files": [
+                "src/components/Admin/Analytics/",
+                "src/services/dashboardService.ts",
+                "src/hooks/useDashboardMetrics.ts",
+                "src/hooks/useActivityFeed.ts"
+            ]
+        },
+        {
+            "name": "Testing Infrastructure",
+            "description": "Comprehensive testing setup with unit tests, integration tests, and test utilities.",
+            "files": [
+                "src/test/setup.ts",
+                "src/test/TestRenderer.tsx",
+                "src/test/integration/",
+                "src/components/**/__tests__/",
+                "src/services/__tests__/",
+                "src/hooks/__tests__/"
+            ]
+        }
+    ]
+}

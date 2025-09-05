@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { StoryboardArticleProps } from '@/data/articles/storyboard';
-import { getArticleById } from '@/data/articles';
+import { getArticleByIdSync } from '@/data/articles';
 import VideoPlayer from '@/components/Articles/VideoPlayer';
 import EpisodeHeader from '@/components/Storyboard/EpisodeHeader';
 import EpisodeDetails from '@/components/Storyboard/EpisodeDetails';
@@ -15,7 +15,7 @@ const StoryboardEpisodePage = () => {
   const { seriesId, episodeId } = useParams<{ seriesId: string, episodeId: string }>();
   
   // Get the series (storyboard article)
-  const series = getArticleById(seriesId || '') as StoryboardArticleProps | undefined;
+  const series = getArticleByIdSync(seriesId || '') as StoryboardArticleProps | undefined;
   
   if (!series || !series.episodes) {
     return (

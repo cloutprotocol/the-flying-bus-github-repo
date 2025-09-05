@@ -11,7 +11,8 @@ export const fetchArticleById = async (articleId: string): Promise<ArticleProps 
   try {
     logger.info(LogSource.ARTICLE, `Fetching article with ID ${articleId}`);
     
-    const { data, error } = await supabase
+    // First, get the article data
+    const { data: articleData, error: articleError } = await supabase
       .from('articles')
       .select(`
         id, 
@@ -30,15 +31,43 @@ export const fetchArticleById = async (articleId: string): Promise<ArticleProps 
       .eq('status', 'published')
       .single();
 
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error fetching article by ID:', error);
+    if (articleError) {
+      logger.error(LogSource.ARTICLE, 'Error fetching article by ID:', articleError);
       return null;
     }
 
-    if (!data) {
+    if (!articleData) {
       logger.warn(LogSource.ARTICLE, `Article not found with ID: ${articleId}`);
       return null;
     }
+
+    // Separately fetch video data if it's a video article
+    let videoUrl: string | undefined;
+    let duration: number | undefined;
+    
+    if (articleData.article_type === 'video') {
+      const { data: videoData, error: videoError } = await supabase
+        .from('video_articles')
+        .select('video_url, video_duration')
+        .eq('article_id', articleId)
+        .single();
+      
+      if (!videoError && videoData) {
+        videoUrl = videoData.video_url;
+        duration = videoData.video_duration;
+      }
+    }
+
+    const data = articleData;
+
+
+
+    logger.info(LogSource.ARTICLE, `Article fetched successfully`, {
+      articleId: data.id,
+      category: data.categories?.name,
+      hasVideo: !!videoUrl,
+      videoUrl: videoUrl || 'none'
+    });
 
     return {
       id: data.id,
@@ -56,7 +85,9 @@ export const fetchArticleById = async (articleId: string): Promise<ArticleProps 
       authorAvatar: data.profiles?.avatar_url || '',
       date: new Date(data.published_at || data.created_at).toLocaleDateString(),
       publishDate: new Date(data.published_at || data.created_at).toLocaleDateString(),
-      articleType: data.article_type
+      articleType: data.article_type,
+      videoUrl: videoUrl || undefined,
+      duration: duration || undefined
     };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception in fetchArticleById:', e);
