@@ -46,16 +46,21 @@ export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) =>
     let unsubscribe: (() => void) | null = null;
     
     const initializeVotes = async () => {
+      console.log('Initializing votes for debate:', debateId);
+      
       // Check if user has already voted
       const result = await checkIfUserHasVoted(debateId);
       if (result.hasVoted) {
         setHasVoted(true);
         setUserChoice(result.userChoice);
         setResultsVisible(true);
+        console.log('User has already voted:', result.userChoice);
       }
       
-      // Fetch initial vote counts from backend
+      // Always fetch the latest vote counts from the database to ensure accuracy
+      console.log('Fetching latest vote counts from database...');
       const currentVotes = await fetchVoteCounts(debateId);
+      console.log('Current votes from database:', currentVotes);
       setVotes(currentVotes);
       
       // Subscribe to real-time vote updates

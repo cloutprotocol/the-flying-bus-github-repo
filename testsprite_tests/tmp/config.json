@@ -1,0 +1,24 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8080",
+  "loginUser": "neelsarode@icloud.com",
+  "loginPassword": "Temporary123",
+  "executionArgs": {
+    "projectName": "the-flying-bus-github-repo",
+    "projectPath": "/Users/neelsarode/the-flying-bus-github-repo",
+    "testIds": [
+      "TC001",
+      "TC002",
+      "TC003",
+      "TC004",
+      "TC005"
+    ],
+    "additionalInstruction": "Focus on testing the core functionality of the interactive news platform for kids, including authentication, article management, commenting system, and Web3 wallet integration. Pay special attention to child safety features and content moderation workflows.",
+    "envs": {
+      "API_KEY": "sk-user-_6ubW0FhPss4q-6CQwnLBL1q-vcJ1iiAAeTdGmgB4syN7hAyVUU8xdYR32Wlsthnt8OICdsaUHwDbuvUyxJx_hYcg_F1kPt5ElfKvnSsKQaJSUuZ3mD6Ktj96hDliROVaM4"
+    }
+  },
+  "proxy": "http://ecd41d6b-3041-41ca-9a6d-b6657b6f27c6:gaAevOBCZFzI2C7Hnnzy47QN3KsWbZAo@tun.testsprite.com:8080"
+}

@@ -15,7 +15,8 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
       .select(`
         *,
         profiles!articles_author_id_fkey(*),
-        categories:category_id(*)
+        categories:category_id(*),
+        video_articles(video_url, video_duration)
       `)
       .eq('id', articleId)
       .single();
@@ -29,6 +30,18 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
       logger.error(LogSource.ARTICLE, 'Article not found');
       return { article: null, error: new Error('Article not found') };
     }
+    
+    // Extract video information if available
+    const videoData = data.video_articles?.[0];
+    const videoUrl = videoData?.video_url;
+    const duration = videoData?.video_duration;
+
+    logger.info(LogSource.ARTICLE, `Article fetched successfully in service`, {
+      articleId: data.id,
+      category: data.categories?.name,
+      hasVideo: !!videoUrl,
+      videoUrl: videoUrl || 'none'
+    });
     
     // Transform the database response into the expected ArticleProps format
     const article: ArticleProps = {
@@ -47,7 +60,9 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
       authorAvatar: data.profiles?.avatar_url || '',
       date: new Date(data.published_at || data.created_at).toLocaleDateString(),
       publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : '',
-      articleType: data.article_type || 'standard'
+      articleType: data.article_type || 'standard',
+      videoUrl: videoUrl || undefined,
+      duration: duration || undefined
     };
 
     return { article, error: null };

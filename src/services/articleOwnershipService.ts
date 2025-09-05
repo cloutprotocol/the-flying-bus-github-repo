@@ -383,6 +383,7 @@ export const ownershipUIUtils = {
   getStatusBadgeColor: (status: string): string => {
     switch (status) {
       case 'draft': return 'gray';
+      case 'pending': return 'yellow';
       case 'pending_review': return 'yellow';
       case 'approved': return 'green';
       case 'rejected': return 'red';
@@ -397,6 +398,7 @@ export const ownershipUIUtils = {
   getStatusText: (status: string): string => {
     switch (status) {
       case 'draft': return 'Draft';
+      case 'pending': return 'Pending Review';
       case 'pending_review': return 'Pending Review';
       case 'approved': return 'Approved';
       case 'rejected': return 'Rejected';

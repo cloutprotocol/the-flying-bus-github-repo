@@ -7,7 +7,7 @@ import VideoPlayer from '@/components/Articles/VideoPlayer';
 import DOMPurify from 'dompurify';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { isDebateArticle } from '@/utils/articles';
+import { isDebateArticle, isVideoArticle, shouldDisplayVideo } from '@/utils/articles';
 
 interface ArticleContentProps {
   article: ArticleProps;
@@ -24,9 +24,32 @@ interface ArticleContentProps {
 }
 
 const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent, debateSettings }) => {
-  // Enhanced debate article detection
+  // Enhanced article type detection
   const isDebate = isDebateArticle(article.articleType);
-  const isSpiceItUpWithVideo = article.category === 'Spice It Up' && article.videoUrl;
+  const isVideo = isVideoArticle(article.articleType);
+  const shouldShowVideo = shouldDisplayVideo(article);
+  
+  // Log video information for debugging
+  React.useEffect(() => {
+    // Always log for debugging purposes
+    console.log('ArticleContent - Full article object:', article);
+    console.log('ArticleContent - Video URL:', article.videoUrl);
+    console.log('ArticleContent - Category:', article.category);
+    console.log('ArticleContent - Article Type:', article.articleType);
+    console.log('ArticleContent - Should show video:', shouldShowVideo);
+    
+    if (article.category === 'Spice It Up' || isVideo) {
+      logger.info(LogSource.ARTICLE, 'Video article detected', {
+        articleId: article.id,
+        category: article.category,
+        articleType: article.articleType,
+        isVideoType: isVideo,
+        hasVideoUrl: !!article.videoUrl,
+        videoUrl: article.videoUrl || 'none',
+        willShowVideo: shouldShowVideo
+      });
+    }
+  }, [article, isVideo, shouldShowVideo]);
   
   // Sanitize the HTML content and log its length
   const sanitizedContent = DOMPurify.sanitize(articleContent || '');
@@ -59,16 +82,15 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ article, articleContent
   
   return (
     <div className="lg:col-span-8">
-      {isSpiceItUpWithVideo && (
+      {shouldShowVideo && (
         <VideoPlayer 
           videoUrl={article.videoUrl!} 
           title={article.title} 
-          duration={article.duration} 
         />
       )}
       
       {article.imageUrl && (
-        <div className={`mb-6 rounded-xl overflow-hidden ${isSpiceItUpWithVideo ? 'mt-6' : ''}`}>
+        <div className={`mb-6 rounded-xl overflow-hidden ${shouldShowVideo ? 'mt-6' : ''}`}>
           <AspectRatio ratio={16/9} className="bg-gray-100">
             <img 
               src={article.imageUrl} 

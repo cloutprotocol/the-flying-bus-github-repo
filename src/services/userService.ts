@@ -86,16 +86,19 @@ export async function updateUserProfile(userId: string, updates: UserUpdateData)
       .from('profiles')
       .update(updates)
       .eq('id', userId)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Supabase error updating user:', error);
       throw new Error(`Database error: ${error.message}`);
     }
 
-    console.log('User profile updated successfully:', data);
-    return data;
+    if (!data || data.length === 0) {
+      throw new Error('User not found or no changes made');
+    }
+
+    console.log('User profile updated successfully:', data[0]);
+    return data[0];
   } catch (error) {
     console.error('Exception in updateUserProfile:', error);
     throw error;

@@ -21,9 +21,18 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
   isSaving,
   disabled = false
 }) => {
+  console.log('SimpleFormActions: Component rendered with props:', {
+    hasOnSaveDraft: typeof onSaveDraft,
+    hasOnSubmit: typeof onSubmit,
+    isSubmitting,
+    isDirty,
+    isSaving,
+    disabled
+  });
   const handleSubmitClick = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('SimpleFormActions: Submit button clicked - calling onSubmit');
+    console.log('SimpleFormActions: onSubmit function type:', typeof onSubmit);
     try {
       await onSubmit(e);
       console.log('SimpleFormActions: onSubmit completed successfully');
@@ -66,10 +75,17 @@ const SimpleFormActions: React.FC<SimpleFormActionsProps> = ({
           </Button>
           
           <Button
-            type="submit"
-            onClick={handleSubmitClick}
+            type="button"
+            onClick={(e) => {
+              console.log('🎯 SimpleFormActions: Button physically clicked!', Date.now());
+              console.log('📝 SimpleFormActions: Event details:', e);
+              console.log('🚫 SimpleFormActions: Button disabled?', isSubmitting || isSaving || disabled);
+              handleSubmitClick(e);
+            }}
             disabled={isSubmitting || isSaving || disabled}
             className="flex items-center gap-2"
+            onMouseDown={() => console.log('SimpleFormActions: Button mouse down!')}
+            onMouseUp={() => console.log('SimpleFormActions: Button mouse up!')}
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

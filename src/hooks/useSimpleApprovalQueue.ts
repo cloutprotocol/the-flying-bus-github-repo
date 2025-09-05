@@ -57,7 +57,12 @@ export function useSimpleApprovalQueue(statusFilter = 'pending') {
 
       // Apply status filter
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        if (statusFilter === 'pending') {
+          // Handle both 'pending' and 'pending_review' statuses for backward compatibility
+          query = query.in('status', ['pending', 'pending_review']);
+        } else {
+          query = query.eq('status', statusFilter);
+        }
       }
 
       // Order by updated_at descending

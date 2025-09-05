@@ -85,7 +85,10 @@ export const useVideoArticleSubmission = ({ form, articleId }: UseVideoArticleSu
   };
 
   const handleSubmit = async (data: VideoArticleFormData): Promise<void> => {
+    console.log('🚀 useVideoArticleSubmission: handleSubmit called with data:', data);
+    
     if (!user?.id) {
+      console.error('❌ useVideoArticleSubmission: No user ID');
       toast({
         title: "Authentication required",
         description: "You must be logged in to submit articles.",
@@ -99,18 +102,31 @@ export const useVideoArticleSubmission = ({ form, articleId }: UseVideoArticleSu
     try {
       const formData = convertToArticleFormData(data);
       
+      console.log('🎯 useVideoArticleSubmission: Converted form data:', {
+        title: formData.title,
+        articleType: formData.articleType,
+        videoUrl: formData.videoUrl,
+        categoryId: formData.categoryId
+      });
+      
+      console.log('📡 useVideoArticleSubmission: Calling UnifiedSubmissionService.submitForReview');
       const result = await UnifiedSubmissionService.submitForReview(formData, user.id);
       
+      console.log('📥 useVideoArticleSubmission: Submission result:', result);
+      
       if (result.success) {
+        console.log('✅ useVideoArticleSubmission: Submission successful');
         toast({
           title: "Submission successful",
           description: "Your video article has been submitted for review!",
         });
         navigate('/admin/my-articles');
       } else {
+        console.error('❌ useVideoArticleSubmission: Submission failed:', result.error);
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {
+      console.error('💥 useVideoArticleSubmission: Submission error:', error);
       logger.error(LogSource.ARTICLE, 'Submit error', error);
       toast({
         title: "Submission failed",

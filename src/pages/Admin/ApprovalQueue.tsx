@@ -154,12 +154,13 @@ const ApprovalQueue = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Headliners">Headliners</SelectItem>
                 <SelectItem value="Debates">Debates</SelectItem>
+                <SelectItem value="Headliners">Headliners</SelectItem>
+                <SelectItem value="Learning">Learning</SelectItem>
+                <SelectItem value="Neighborhood">Neighborhood</SelectItem>
+                <SelectItem value="School News">School News</SelectItem>
                 <SelectItem value="Spice It Up">Spice It Up</SelectItem>
                 <SelectItem value="Storyboard">Storyboard</SelectItem>
-                <SelectItem value="School News">School News</SelectItem>
-                <SelectItem value="Learning">Learning</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -25,8 +25,8 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   const convertToArticleFormData = (data: StandardArticleFormData): ArticleFormData => {
     console.log('Converting standard form data:', data);
     
-    // Convert form status to ArticleFormData status
-    const convertedStatus = data.status === 'pending_review' ? 'pending' : data.status;
+    // Keep the original status - no conversion needed
+    const convertedStatus = data.status;
     
     // Always generate a fresh slug for submission to avoid duplicates
     const submissionSlug = generateSubmissionSlug(data.title || '');

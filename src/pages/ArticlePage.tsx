@@ -8,6 +8,7 @@ import ArticleSidebar from '@/components/Articles/ArticleSidebar';
 import ArticleFooter from '@/components/Articles/ArticleFooter';
 import ArticleLoadingSkeleton from '@/components/Articles/ArticleLoadingSkeleton';
 import ArticleNotFound from '@/components/Articles/ArticleNotFound';
+import VideoDebugComponent from '@/components/Debug/VideoDebugComponent';
 import { useArticleData } from '@/hooks/useArticleData';
 import { isStoryboardArticle, isDebateArticle } from '@/utils/articles';
 import { logger } from '@/utils/logger/logger';

@@ -45,7 +45,7 @@ export function useAdminApprovalQueue(
   // Apply status filter
   if (status !== 'all') {
     if (status === 'pending') {
-      filters.status = 'pending'; // Only pending, not draft
+      filters.status = ['pending', 'pending_review']; // Handle both 'pending' and 'pending_review' statuses for backward compatibility
     } else {
       filters.status = status;
     }
@@ -191,7 +191,7 @@ export function useAdminQueryExecutor() {
     
     if (status !== 'all') {
       if (status === 'pending') {
-        filters.status = ['draft', 'pending'];
+        filters.status = ['pending', 'pending_review']; // Handle both 'pending' and 'pending_review' statuses for backward compatibility
       } else {
         filters.status = status;
       }

@@ -24,6 +24,12 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
   categorySlug,
   categoryName
 }) => {
+  console.log('VideoArticleForm: Component rendered with props:', {
+    articleId,
+    isNewArticle,
+    categorySlug,
+    categoryName
+  });
   // Pre-resolve category for new articles
   const { categoryData, isLoading: isCategoryLoading, error: categoryError } = useCategoryResolver(
     isNewArticle ? categorySlug : undefined,
@@ -40,7 +46,7 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
       content: '',
       excerpt: '',
       imageUrl: '',
-      categoryId: isNewArticle && categoryData ? categoryData.id : '',
+      categoryId: '',
       slug: '',
       articleType: 'video',
       videoUrl: '',
@@ -51,10 +57,26 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
     }
   });
 
+  // Update form with resolved category data when it becomes available
+  React.useEffect(() => {
+    if (isNewArticle && categoryData?.id) {
+      console.log('VideoArticleForm: Setting categoryId from resolved data:', categoryData.id);
+      form.setValue('categoryId', categoryData.id);
+    }
+  }, [isNewArticle, categoryData?.id, form]);
+
   const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useVideoArticleSubmission({
     form,
     articleId
+  });
+
+  console.log('VideoArticleForm: Hooks initialized:', {
+    isSaving,
+    hasHandleSaveDraft: typeof handleSaveDraft,
+    hasOnSubmit: typeof onSubmit,
+    isSubmitting,
+    isDirty
   });
 
   // Show loading state while resolving category for new articles
@@ -95,25 +117,97 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
 
   // Enhanced submit handler with validation
   const handleFormSubmit = async (data: VideoArticleFormData) => {
+    console.log('🎉 VideoArticleForm: handleFormSubmit called with data:', data);
+    
     // Validate that we have a categoryId before submitting
     if (!data.categoryId) {
-      console.error('Cannot submit video article without categoryId');
+      console.error('❌ Cannot submit video article without categoryId');
+      alert('❌ Cannot submit video article without categoryId');
       return;
     }
     
-    console.log('Submitting video article with data:', {
+    // Validate video URL
+    if (!data.videoUrl || data.videoUrl.trim() === '') {
+      console.error('❌ Cannot submit video article without videoUrl');
+      alert('❌ Cannot submit video article without videoUrl');
+      return;
+    }
+    
+    console.log('✅ VideoArticleForm: Validation passed, submitting video article with data:', {
       title: data.title,
       categoryId: data.categoryId,
       articleType: data.articleType,
       videoUrl: data.videoUrl
     });
     
+    console.log('🚀 VideoArticleForm: About to call onSubmit');
     await onSubmit(data);
+    console.log('✅ VideoArticleForm: onSubmit completed');
   };
+
+  // Wrapper for SimpleFormActions that triggers form submission
+  const handleSubmitForActions = async (e?: React.FormEvent) => {
+    console.log('🚀 VideoArticleForm: handleSubmitForActions called with event:', e, Date.now());
+    if (e) {
+      e.preventDefault();
+    }
+    
+    // Get form data and validate manually
+    const formValues = form.getValues();
+    const formErrors = form.formState.errors;
+    console.log('📋 VideoArticleForm: Current form values:', formValues);
+    console.log('❌ VideoArticleForm: Current form errors:', JSON.stringify(formErrors, null, 2));
+    console.log('✅ VideoArticleForm: Form is valid:', form.formState.isValid);
+    
+    // Log specific field errors
+    Object.keys(formErrors).forEach(field => {
+      console.error(`🚨 Validation error in field "${field}":`, formErrors[field]?.message);
+    });
+    
+    // Trigger form validation
+    const isValid = await form.trigger();
+    console.log('🔍 VideoArticleForm: Manual validation result:', isValid);
+    
+    if (!isValid) {
+      console.error('❌ VideoArticleForm: Form validation failed, not submitting');
+      
+      // Get fresh errors after validation
+      const freshErrors = form.formState.errors;
+      console.error('🚨 VideoArticleForm: Fresh validation errors:', JSON.stringify(freshErrors, null, 2));
+      
+      // Show specific field errors
+      Object.keys(freshErrors).forEach(field => {
+        console.error(`🚨 Field "${field}" error:`, freshErrors[field]?.message);
+      });
+      
+      // Show an alert with the first error
+      const firstError = Object.values(freshErrors)[0];
+      if (firstError?.message) {
+        alert(`Validation Error: ${firstError.message}`);
+      }
+      
+      return;
+    }
+    
+    console.log('⏳ VideoArticleForm: Form is valid, calling handleFormSubmit directly');
+    try {
+      await handleFormSubmit(formValues);
+      console.log('✅ VideoArticleForm: handleFormSubmit completed');
+    } catch (error) {
+      console.error('💥 VideoArticleForm: handleFormSubmit error:', error);
+    }
+  };
+
+  console.log('VideoArticleForm: About to render form with categoryData:', categoryData);
+  console.log('VideoArticleForm: Form disabled?', isNewArticle && !categoryData?.id);
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        console.log('🔥 VideoArticleForm: Form onSubmit triggered - calling handleSubmitForActions', Date.now());
+        handleSubmitForActions(e);
+      }} className="space-y-6">
         <VideoFormContent 
           form={form}
           isSubmitting={isSubmitting}
@@ -123,7 +217,7 @@ const VideoArticleForm: React.FC<VideoArticleFormProps> = ({
         
         <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(handleFormSubmit)}
+          onSubmit={handleSubmitForActions}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}
