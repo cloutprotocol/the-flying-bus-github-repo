@@ -11,10 +11,24 @@
 ❌ **NEVER bypass the local → PR → production workflow**
 ❌ **NEVER apply migrations directly to production (`xwxuwchndgxnnmfprzds`)**
 ❌ **NEVER use `mcp_supabase_production_execute_sql` for CREATE/ALTER/DROP operations**
+❌ **NEVER use `supabase db push`** - This pushes migrations to the remote PRODUCTION database
+❌ **NEVER use `supabase db push --project-ref xwxuwchndgxnnmfprzds`** - Direct production push
 
 ## ONLY ALLOWED WORKFLOW FOR DATABASE CHANGES
 
 ✅ **Create migration file** → ✅ **Test locally with `supabase db reset`** → ✅ **Commit to git** → ✅ **PR process handles production**
+
+## CRITICAL: LOCAL-ONLY COMMANDS
+
+✅ **For LOCAL testing ONLY:**
+- `supabase start` - Start local Supabase
+- `supabase db reset` - Apply ALL migrations to local database (NEVER adds --project-ref)
+- `supabase stop` - Stop local Supabase
+
+❌ **NEVER use these commands (they push to PRODUCTION):**
+- `supabase db push` - Pushes to remote production database
+- `supabase db push --project-ref [any-id]` - Direct production push
+- Any command with `--project-ref` flag when doing schema changes
 
 ## DECISION TREE: Database Changes
 
@@ -26,6 +40,10 @@
 - For READ-ONLY queries (`mcp_supabase_production_execute_sql` with SELECT): ✅ YES
 - For schema changes (CREATE/ALTER/DROP): ❌ NO - Use migration files only
 - For production modifications: ❌ NO - Use local testing + PR process
+
+**Question: Should I use `supabase db push`?**
+- ❌ NO - This command pushes directly to PRODUCTION database
+- ✅ Use `supabase db reset` for local testing instead
 
 **Question: Am I about to modify production directly?**
 - If YES → ❌ STOP - Use local testing + PR process instead
@@ -44,6 +62,8 @@ Before taking any database action, I must ask:
 - Any MCP tool being used for CREATE/ALTER/DROP operations
 - Direct production modifications outside of PR process
 - Bypassing local testing for schema changes
+- `supabase db push` command being used (pushes to production!)
+- Any `--project-ref` flag with schema modification commands
 
 ## REQUIRED STATEMENT BEFORE DATABASE CHANGES
 
