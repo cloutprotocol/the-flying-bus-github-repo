@@ -5,7 +5,7 @@
  * This tests the invitation_approved email type with integrated token generation
  */
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://sutvexycbiiarpkugzpv.supabase.co'
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://xwxuwchndgxnnmfprzds.supabase.co'
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || ''
 
 async function testTokenGeneration() {

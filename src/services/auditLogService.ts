@@ -103,8 +103,8 @@ export class AuditLogService {
         }
       });
 
-      // Try RPC function first, fallback to graceful handling
-      const { error } = await supabase.rpc('log_audit_event', {
+      // Try RPC function first, fallback to direct table insert if RPC fails
+      const { error: rpcError } = await supabase.rpc('log_audit_event', {
         p_action: auditEntry.action,
         p_resource_type: auditEntry.resource_type,
         p_resource_id: auditEntry.resource_id,
@@ -117,12 +117,28 @@ export class AuditLogService {
         p_user_agent: auditEntry.user_agent
       });
 
-      if (error) {
-        // If it's a permission error, log to console but don't spam
-        if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('403')) {
+      if (rpcError) {
+        // If it's a schema cache issue (PGRST202), try direct table insert as fallback
+        if (rpcError.code === 'PGRST202' || rpcError.message?.includes('schema cache')) {
+          console.warn('RPC function not found in schema cache, attempting direct table insert as fallback');
+          
+          try {
+            const { error: insertError } = await supabase
+              .from('audit_logs')
+              .insert([auditEntry]);
+
+            if (insertError) {
+              console.error('Fallback audit logging also failed:', insertError);
+            } else {
+              console.log('Audit event logged successfully via fallback method');
+            }
+          } catch (fallbackError) {
+            console.error('Exception during fallback audit logging:', fallbackError);
+          }
+        } else if (rpcError.code === '42501' || rpcError.message?.includes('permission') || rpcError.message?.includes('403')) {
           console.warn('Audit logging skipped due to permissions (this is expected for client-side operations)');
         } else {
-          console.error('Failed to log audit event via RPC:', error);
+          console.error('Failed to log audit event via RPC:', rpcError);
           console.error('Audit entry that failed:', JSON.stringify(auditEntry, null, 2));
         }
         // Don't throw error to avoid breaking the main operation

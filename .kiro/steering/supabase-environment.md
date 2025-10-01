@@ -1,83 +1,104 @@
 # Supabase Environment Configuration
 
-## CRITICAL: Correct Supabase Environment
+## CRITICAL: Dual Environment Setup
 
-**⚠️ IMPORTANT: This project uses a SPECIFIC Supabase environment. Do NOT use local or production environments.**
+**⚠️ IMPORTANT: This project uses a dual environment setup with specific usage patterns.**
 
-### Correct Environment Details
+### Production Environment (Remote)
 
-- **Project Reference ID**: `sutvexycbiiarpkugzpv`
-- **Environment Type**: Remote Preview Branch
-- **Branch Name**: `add-email`
-- **Purpose**: Development and testing of email notification system
+- **Project Reference ID**: `xwxuwchndgxnnmfprzds`
+- **Environment Type**: Production Database
+- **Purpose**: Production data, MCP tool access, read-only operations
+- **Usage**: MCP Supabase tools connect here for inspection and monitoring
+
+### Local Development Environment
+
+- **Environment Type**: Local Supabase (`supabase start`)
+- **Purpose**: Development, testing, migration development
+- **Usage**: All development work, migration testing, feature development
 
 ### Environment URLs
 
-- **API URL**: `https://sutvexycbiiarpkugzpv.supabase.co`
-- **Dashboard**: `https://supabase.com/dashboard/project/sutvexycbiiarpkugzpv`
-- **Functions URL**: `https://sutvexycbiiarpkugzpv.supabase.co/functions/v1/`
+- **API URL**: `https://xwxuwchndgxnnmfprzds.supabase.co`
+- **Dashboard**: `https://supabase.com/dashboard/project/xwxuwchndgxnnmfprzds`
+- **Functions URL**: `https://xwxuwchndgxnnmfprzds.supabase.co/functions/v1/`
 
-### NEVER Use These Environments
+### Environment Usage Rules
 
-❌ **Local Supabase** (`127.0.0.1:54321`)
-- Do NOT use `supabase start` or local development
-- Do NOT use local database connections
-- Do NOT apply migrations locally
+✅ **Production Database (`xwxuwchndgxnnmfprzds`)**
+- Use for: MCP tool operations, data inspection, monitoring
+- Connected via: MCP Supabase tools
+- READ-ONLY operations preferred
+- NO direct schema changes
 
-❌ **Production/Main Branch** 
-- Do NOT use the main production branch
-- Do NOT deploy directly to production
-- Do NOT modify live user data
+✅ **Local Development**
+- Use for: Feature development, migration testing, experimentation
+- Started with: `supabase start`
+- Apply migrations with: `supabase db reset` or `supabase db push`
+- Full development freedom
 
-❌ **Other Projects**
-- Do NOT use `wxmtfsexxhkjwgrejmji` (The Flying Bus main project)
-- Do NOT use any other project references
+❌ **NEVER Use These**
+- Do NOT use `wxmtfsexxhkjwgrejmji` (old project reference)
+- Do NOT apply untested migrations to production
+- Do NOT use other project references
 
-### Correct Commands to Use
+### Correct Commands by Environment
 
-#### Database Operations
+#### Local Development
 ```bash
-# Always specify the correct project reference
-supabase db push --project-ref sutvexycbiiarpkugzpv
-supabase db diff --project-ref sutvexycbiiarpkugzpv
+# Start local Supabase
+supabase start
+
+# Apply migrations locally
+supabase db reset
+supabase db push
+
+# Local function deployment
+supabase functions deploy send-email
+
+# Local secrets
+supabase secrets set RESEND_API_KEY=xxx
+
+# Local logs
+supabase functions logs send-email
 ```
 
-#### Function Deployment
+#### Production Operations (when needed)
 ```bash
-# Deploy to the correct preview branch
-supabase functions deploy send-email --project-ref sutvexycbiiarpkugzpv
-supabase functions deploy invitation-tokens --project-ref sutvexycbiiarpkugzpv
-```
+# Production function deployment
+supabase functions deploy send-email --project-ref xwxuwchndgxnnmfprzds
 
-#### Secrets Management
-```bash
-# Set secrets on the correct project
-supabase secrets set RESEND_API_KEY=xxx --project-ref sutvexycbiiarpkugzpv
-supabase secrets list --project-ref sutvexycbiiarpkugzpv
-```
+# Production secrets management
+supabase secrets set RESEND_API_KEY=xxx --project-ref xwxuwchndgxnnmfprzds
+supabase secrets list --project-ref xwxuwchndgxnnmfprzds
 
-#### Logs and Monitoring
-```bash
-# Check logs from the correct environment
-supabase functions logs send-email --project-ref sutvexycbiiarpkugzpv
+# Production logs
+supabase functions logs send-email --project-ref xwxuwchndgxnnmfprzds
 ```
 
 ### MCP Supabase Tool Usage
 
-When using MCP Supabase tools, they should automatically connect to the correct environment based on the project configuration. However, always verify:
+MCP Supabase tools connect to the PRODUCTION database (`xwxuwchndgxnnmfprzds`) for:
 
-- `mcp_supabase_list_tables` should show email-related tables
-- `mcp_supabase_execute_sql` runs against the preview branch
-- `mcp_supabase_apply_migration` applies to the correct database
+- `mcp_supabase_list_tables` - Inspect production schema
+- `mcp_supabase_execute_sql` - Read-only queries on production
+- `mcp_supabase_list_migrations` - Check production migration status
+- `mcp_supabase_get_logs` - Monitor production logs
+- `mcp_supabase_apply_migration` - Apply migrations to production (use carefully)
+
+**Note**: MCP tools cannot connect to local Supabase - use CLI commands for local development.
 
 ### Verification Steps
 
-Before performing any Supabase operations, ALWAYS verify:
+**For Local Development:**
+1. **Check local status**: `supabase status` should show running services
+2. **Verify local connection**: `supabase db diff` should work without project-ref
+3. **Test local functions**: Local function endpoints should be accessible
 
-1. **Check current branch**: `cat supabase/.branches/_current_branch` should show `add-email`
-2. **Check project reference**: `cat supabase/.temp/project-ref` should show `sutvexycbiiarpkugzpv`
-3. **Verify tables exist**: Use `mcp_supabase_list_tables` to confirm email system tables are present
-4. **Test connection**: Use health check endpoints to verify correct environment
+**For Production Operations:**
+1. **Verify MCP connection**: `mcp_supabase_list_tables` should show production tables
+2. **Check project reference**: Production operations should use `xwxuwchndgxnnmfprzds`
+3. **Test production endpoints**: Production URLs should be accessible
 
 ### Expected Database Schema
 
@@ -92,13 +113,15 @@ If these tables are missing, DO NOT create them - investigate why the environmen
 
 ### Troubleshooting
 
-If you encounter missing tables or data:
+**Local Development Issues:**
+1. **Start local services**: `supabase start`
+2. **Reset local database**: `supabase db reset`
+3. **Check local logs**: `supabase logs`
 
-1. **DO NOT** apply migrations without confirmation
-2. **DO NOT** switch to local or production environments
-3. **VERIFY** you're connected to the correct preview branch
-4. **CHECK** if the branch needs to be restored or recreated
-5. **CONSULT** with the user before making any database changes
+**Production Issues:**
+1. **Check MCP connection**: Verify MCP tools can connect
+2. **Review production logs**: Use `mcp_supabase_get_logs`
+3. **Consult before changes**: Always confirm before production modifications
 
 ### Emergency Contacts
 
@@ -109,7 +132,8 @@ If there are issues with the Supabase environment:
 
 ## Summary
 
-**ALWAYS USE**: Remote preview branch `add-email` with project-ref `sutvexycbiiarpkugzpv`
-**NEVER USE**: Local Supabase, production branches, or other projects
+**DEVELOPMENT**: Use local Supabase (`supabase start`) for all development work
+**PRODUCTION**: MCP tools connect to `xwxuwchndgxnnmfprzds` for monitoring and inspection
+**NEVER USE**: Old project references (`wxmtfsexxhkjwgrejmji`)
 
-This environment is specifically configured for email notification system development and testing.
+This dual environment setup provides safe development isolation while maintaining production access for monitoring.

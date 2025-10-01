@@ -6,7 +6,7 @@
 - **Build Tool**: Vite 5.4.1
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Backend**: Supabase (PostgreSQL database, auth, real-time)
-  - **⚠️ CRITICAL**: Use ONLY preview branch `add-email` with project-ref `sutvexycbiiarpkugzpv`
+  - **⚠️ CRITICAL**: Use project-ref `xwxuwchndgxnnmfprzds` (cloned from add-email branch)
   - **See**: `.kiro/steering/supabase-environment.md` for complete environment details
 - **Web3**: Thirdweb SDK v5 with Ethers.js v5
 - **Blockchain**: Polygon Mumbai Testnet
