@@ -21,7 +21,7 @@ CREATE POLICY "Service role can manage configuration" ON system_configuration
 
 -- Insert the required configuration parameters
 INSERT INTO system_configuration (key, value, description) VALUES
-  ('app.supabase_url', 'https://sutvexycbiiarpkugzpv.supabase.co', 'Supabase project URL for Edge Function calls'),
+  ('app.supabase_url', 'https://xwxuwchndgxnnmfprzds.supabase.co', 'Supabase project URL for Edge Function calls'),
   ('app.service_role_key', 'PLACEHOLDER_SERVICE_ROLE_KEY_NEEDS_TO_BE_SET', 'Service role key for authenticated Edge Function calls - MUST be updated with real key')
 ON CONFLICT (key) DO UPDATE SET
   value = EXCLUDED.value,

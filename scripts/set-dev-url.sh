@@ -5,7 +5,7 @@
 
 echo "🔧 Setting development URL for invitation links..."
 
-supabase secrets set SITE_BASE_URL=http://localhost:8080 --project-ref sutvexycbiiarpkugzpv
+supabase secrets set SITE_BASE_URL=http://localhost:8080 --project-ref xwxuwchndgxnnmfprzds
 
 if [ $? -eq 0 ]; then
     echo "✅ Development URL set successfully!"

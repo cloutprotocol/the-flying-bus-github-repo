@@ -57,7 +57,7 @@ The invitation form submission failure is caused by missing database configurati
 ### Configuration Parameters
 ```sql
 -- Database-level configuration
-app.supabase_url = 'https://sutvexycbiiarpkugzpv.supabase.co'
+app.supabase_url = 'https://xwxuwchndgxnnmfprzds.supabase.co'
 app.service_role_key = '[service_role_key_from_env]'
 ```
 

@@ -5,7 +5,7 @@
 
 echo "🚀 Setting production URL for invitation links..."
 
-supabase secrets set SITE_BASE_URL=https://theflyingbus.org --project-ref sutvexycbiiarpkugzpv
+supabase secrets set SITE_BASE_URL=https://theflyingbus.org --project-ref xwxuwchndgxnnmfprzds
 
 if [ $? -eq 0 ]; then
     echo "✅ Production URL set successfully!"

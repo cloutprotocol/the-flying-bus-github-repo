@@ -7,7 +7,7 @@ The invitation form fix requires proper database configuration parameters to be 
 ## Current Status
 
 ✅ **Configuration table created**: `system_configuration` table is set up
-✅ **Supabase URL configured**: Set to `https://sutvexycbiiarpkugzpv.supabase.co`
+✅ **Supabase URL configured**: Set to `https://xwxuwchndgxnnmfprzds.supabase.co`
 ⚠️ **Service role key**: Currently set to placeholder, needs to be updated
 
 ## Required Action: Update Service Role Key
@@ -17,7 +17,7 @@ The service role key is currently set to a placeholder and must be updated with 
 ### Steps to Update Service Role Key
 
 1. **Get the Service Role Key**:
-   - Go to [Supabase Dashboard](https://supabase.com/dashboard/project/sutvexycbiiarpkugzpv)
+   - Go to [Supabase Dashboard](https://supabase.com/dashboard/project/xwxuwchndgxnnmfprzds)
    - Navigate to Settings > API
    - Copy the `service_role` key (starts with 'eyJ...')
 
@@ -65,7 +65,7 @@ Expected result when properly configured:
 {
   "supabase_url_configured": true,
   "service_key_configured": true,
-  "supabase_url": "https://sutvexycbiiarpkugzpv.supabase.co",
+  "supabase_url": "https://xwxuwchndgxnnmfprzds.supabase.co",
   "service_key_length": 180,
   "configuration_valid": true
 }

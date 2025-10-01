@@ -31,7 +31,7 @@ Run the development script:
 
 Or manually set the environment variable:
 ```bash
-supabase secrets set SITE_BASE_URL=http://localhost:8080 --project-ref sutvexycbiiarpkugzpv
+supabase secrets set SITE_BASE_URL=http://localhost:8080 --project-ref xwxuwchndgxnnmfprzds
 ```
 
 ### For Production (theflyingbus.org)
@@ -43,14 +43,14 @@ Run the production script:
 
 Or manually set the environment variable:
 ```bash
-supabase secrets set SITE_BASE_URL=https://theflyingbus.org --project-ref sutvexycbiiarpkugzpv
+supabase secrets set SITE_BASE_URL=https://theflyingbus.org --project-ref xwxuwchndgxnnmfprzds
 ```
 
 ## Verification
 
 To verify the current URL setting:
 ```bash
-supabase secrets list --project-ref sutvexycbiiarpkugzpv
+supabase secrets list --project-ref xwxuwchndgxnnmfprzds
 ```
 
 Look for the `SITE_BASE_URL` entry in the output.
@@ -83,12 +83,12 @@ If invitation links are still using the wrong domain:
 
 1. Verify the environment variable is set correctly:
    ```bash
-   supabase secrets list --project-ref sutvexycbiiarpkugzpv
+   supabase secrets list --project-ref xwxuwchndgxnnmfprzds
    ```
 
 2. Redeploy the Edge Functions if needed:
    ```bash
-   supabase functions deploy send-email --project-ref sutvexycbiiarpkugzpv
+   supabase functions deploy send-email --project-ref xwxuwchndgxnnmfprzds
    ```
 
 3. Test with a new invitation (existing emails won't change)
