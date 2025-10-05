@@ -538,8 +538,11 @@ export type Database = {
           child_age: number
           child_name: string
           child_user_id: string | null
+          completed_at: string | null
+          confirmation_email_sent_at: string | null
           created_at: string
           id: string
+          invitation_email_sent_at: string | null
           message: string | null
           parent_email: string
           parent_name: string
@@ -551,8 +554,11 @@ export type Database = {
           child_age: number
           child_name: string
           child_user_id?: string | null
+          completed_at?: string | null
+          confirmation_email_sent_at?: string | null
           created_at?: string
           id?: string
+          invitation_email_sent_at?: string | null
           message?: string | null
           parent_email: string
           parent_name: string
@@ -564,8 +570,11 @@ export type Database = {
           child_age?: number
           child_name?: string
           child_user_id?: string | null
+          completed_at?: string | null
+          confirmation_email_sent_at?: string | null
           created_at?: string
           id?: string
+          invitation_email_sent_at?: string | null
           message?: string | null
           parent_email?: string
           parent_name?: string
@@ -586,6 +595,44 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitation_tokens: {
+        Row: {
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invitation_id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invitation_id: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invitation_id?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_tokens_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitation_requests"
             referencedColumns: ["id"]
           },
         ]

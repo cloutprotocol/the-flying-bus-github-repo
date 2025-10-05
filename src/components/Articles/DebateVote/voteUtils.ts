@@ -25,27 +25,35 @@ export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted:
         .select('vote')
         .eq('article_id', debateId)
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error checking vote status:', error);
         toast.error('There was a problem checking your vote status');
+        return { hasVoted: false, userChoice: null };
       }
       
       if (data) {
+        console.log(`Found existing vote: ${data.vote} for debate ${debateId}`);
         return {
           hasVoted: true,
           userChoice: data.vote as 'yes' | 'no'
         };
       }
+      
+      console.log(`No existing vote found for debate ${debateId}`);
     } else {
       // Fallback to localStorage for non-authenticated users
-      const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
-      if (votedDebates[debateId]) {
-        return {
-          hasVoted: true,
-          userChoice: votedDebates[debateId] as 'yes' | 'no'
-        };
+      try {
+        const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
+        if (votedDebates[debateId]) {
+          return {
+            hasVoted: true,
+            userChoice: votedDebates[debateId] as 'yes' | 'no'
+          };
+        }
+      } catch (storageError) {
+        console.error('Error reading from localStorage:', storageError);
       }
     }
   } catch (error) {
@@ -66,6 +74,8 @@ export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted:
  */
 export const fetchVoteCounts = async (debateId: string): Promise<{yes: number, no: number}> => {
   try {
+    console.log(`Fetching vote counts for debate: ${debateId}`);
+    
     // Get the yes votes
     const { count: yesCount, error: yesError } = await supabase
       .from('article_votes')
@@ -90,10 +100,13 @@ export const fetchVoteCounts = async (debateId: string): Promise<{yes: number, n
       return { yes: 0, no: 0 };
     }
     
-    return {
+    const result = {
       yes: yesCount || 0,
       no: noCount || 0
     };
+    
+    console.log(`Vote counts for debate ${debateId}:`, result);
+    return result;
   } catch (error) {
     console.error('Error fetching vote counts:', error);
     return { yes: 0, no: 0 };
@@ -154,31 +167,56 @@ export const recordVote = async (debateId: string, choice: 'yes' | 'no'): Promis
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.user) {
-      // Record vote in the database
-      const { error } = await supabase
+      // Check if user has already voted first
+      const { data: existingVote } = await supabase
         .from('article_votes')
-        .upsert({
-          article_id: debateId,
-          user_id: session.user.id,
-          vote: choice
-        });
+        .select('vote')
+        .eq('article_id', debateId)
+        .eq('user_id', session.user.id)
+        .single();
       
-      if (error) {
-        console.error('Error recording vote:', error);
-        toast.error('There was a problem saving your vote');
+      if (existingVote) {
+        // User has already voted, update their vote
+        const { error } = await supabase
+          .from('article_votes')
+          .update({ vote: choice })
+          .eq('article_id', debateId)
+          .eq('user_id', session.user.id);
+        
+        if (error) {
+          console.error('Error updating vote:', error);
+          toast.error('There was a problem updating your vote');
+          throw error;
+        }
       } else {
-        toast.success(`Your vote (${choice}) has been recorded!`);
+        // User hasn't voted yet, insert new vote
+        const { error } = await supabase
+          .from('article_votes')
+          .insert({
+            article_id: debateId,
+            user_id: session.user.id,
+            vote: choice
+          });
+        
+        if (error) {
+          console.error('Error recording vote:', error);
+          toast.error('There was a problem saving your vote');
+          throw error;
+        }
       }
+      
+      console.log(`Vote recorded successfully: ${choice} for debate ${debateId}`);
     } else {
       // Fallback to localStorage for non-authenticated users
       const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
       votedDebates[debateId] = choice;
       localStorage.setItem(VOTED_DEBATES_KEY, JSON.stringify(votedDebates));
-      toast.success(`Your vote (${choice}) has been recorded locally!`);
+      console.log(`Vote recorded locally: ${choice} for debate ${debateId}`);
     }
   } catch (error) {
     console.error('Error recording vote:', error);
     toast.error('There was a problem saving your vote');
+    throw error;
   }
 };
 
@@ -192,9 +230,11 @@ export const subscribeToVoteUpdates = (
   debateId: string, 
   callback: (votes: {yes: number, no: number}) => void
 ): (() => void) => {
+  console.log('Setting up real-time subscription for debate:', debateId);
+  
   // Set up realtime subscription for votes
   const votesChannel = supabase
-    .channel(`debate_votes_${debateId}`)
+    .channel(`debate_votes_${debateId}_${Date.now()}`) // Add timestamp to ensure unique channel
     .on('postgres_changes', 
       { 
         event: '*', 
@@ -202,16 +242,21 @@ export const subscribeToVoteUpdates = (
         table: 'article_votes',
         filter: `article_id=eq.${debateId}` 
       }, 
-      async () => {
+      async (payload) => {
+        console.log('Real-time vote change detected:', payload);
         // Fetch latest vote counts when changes occur
         const counts = await fetchVoteCounts(debateId);
+        console.log('Updated vote counts:', counts);
         callback(counts);
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Subscription status:', status);
+    });
     
   // Return unsubscribe function
   return () => {
+    console.log('Unsubscribing from vote updates for debate:', debateId);
     supabase.removeChannel(votesChannel);
   };
 };

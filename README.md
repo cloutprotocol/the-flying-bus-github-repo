@@ -10,7 +10,9 @@
 - Web3 integration with Thirdweb
 - Crypto wallet support
 - Token rewards system
+- Enhanced authentication flows with auto-login
 - Social authentication (Email, Google, Apple)
+- Invitation-based author registration
 
 ## Web3 Integration
 
@@ -129,3 +131,32 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 - Use environment variables for sensitive data
 - Implement proper authentication before wallet operations
 - Test thoroughly on testnet before mainnet deployment
+
+## Authentication System
+
+This project features an enhanced authentication system with improved user onboarding flows:
+
+### Key Features
+- **Auto-login after registration**: Users are automatically logged in after successful sign-up
+- **No email confirmation required**: Immediate platform access upon registration
+- **Invitation-based author registration**: Secure author onboarding with proper RLS policy handling
+- **Comprehensive error handling**: User-friendly error messages and recovery mechanisms
+
+### Documentation
+
+For detailed information about the authentication system:
+
+- **[Authentication Flow Improvements](./docs/AUTH_FLOW_IMPROVEMENTS.md)** - Overview of new registration flows and auto-login features
+- **[RLS Policy Management](./docs/RLS_POLICY_MANAGEMENT.md)** - Developer guide for Row-Level Security policy management
+- **[Authentication Troubleshooting](./docs/AUTH_TROUBLESHOOTING_GUIDE.md)** - Comprehensive troubleshooting guide for authentication issues
+- **[Error Handling & Recovery](./docs/AUTH_ERROR_HANDLING_RECOVERY.md)** - Error handling strategies and recovery procedures
+
+### Quick Start
+
+The authentication system works out of the box with the following flows:
+
+1. **Standard Registration**: Users sign up and are automatically logged in
+2. **Invitation Registration**: Authors register via invitation links with proper permissions
+3. **Error Recovery**: Automatic retry mechanisms and user-friendly error handling
+
+For developers working on authentication features, see the [RLS Policy Management Guide](./docs/RLS_POLICY_MANAGEMENT.md) for implementation details.

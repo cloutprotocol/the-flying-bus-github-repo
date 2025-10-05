@@ -1,0 +1,652 @@
+[
+  {
+    "id": "TC001",
+    "title": "Invitation-based Author Registration Flow",
+    "description": "Verify that new authors can register only via valid invitation links and complete secure account registration.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Receive a valid invitation email with registration link"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to registration page using invitation link"
+      },
+      {
+        "type": "action",
+        "description": "Fill in email, password, and required fields"
+      },
+      {
+        "type": "action",
+        "description": "Submit registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify account created and user is logged in automatically"
+      },
+      {
+        "type": "action",
+        "description": "Attempt registration without invitation link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify registration is denied without valid invitation"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Authentication with Email/Password, Social Login, and Web3 Wallet",
+    "description": "Verify login functionality works correctly for all supported authentication methods including email/password, social providers, and Web3 wallet with secure session handling.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Attempt login with valid email and password"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm successful login and access to protected areas"
+      },
+      {
+        "type": "action",
+        "description": "Attempt login with invalid email/password"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login failure with appropriate error message"
+      },
+      {
+        "type": "action",
+        "description": "Login via supported social provider (e.g., Google or Facebook)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify successful authentication and session creation"
+      },
+      {
+        "type": "action",
+        "description": "Login via Web3 wallet connection after authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify wallet connection is established securely and token balance is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Article Creation with Rich Text and Media Support",
+    "description": "Validate that authors can create, save drafts, edit, and publish multi-format articles supporting rich text, embedded videos, debates, and storyboard episodic content with version tracking.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as an invited author"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to new article creation page"
+      },
+      {
+        "type": "action",
+        "description": "Input rich text content with formatting"
+      },
+      {
+        "type": "action",
+        "description": "Embed a YouTube video and validate display"
+      },
+      {
+        "type": "action",
+        "description": "Switch article type to debate and add voting options"
+      },
+      {
+        "type": "action",
+        "description": "Create storyboard series with episodic navigation"
+      },
+      {
+        "type": "action",
+        "description": "Save article as draft"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify draft is saved with version tracking"
+      },
+      {
+        "type": "action",
+        "description": "Submit article for moderation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify article enters moderation queue"
+      },
+      {
+        "type": "action",
+        "description": "After approval, verify article is published and visible to readers"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Threaded Commenting with Moderation and Community Flagging",
+    "description": "Ensure that users can post threaded comments with replies, like comments, flag inappropriate content, and that moderators can manage flagged content effectively.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to an article's comment section"
+      },
+      {
+        "type": "action",
+        "description": "Post a root-level comment"
+      },
+      {
+        "type": "assertion",
+        "description": "Comment is immediately visible with correct user attribution"
+      },
+      {
+        "type": "action",
+        "description": "Reply to existing comment to form a thread"
+      },
+      {
+        "type": "assertion",
+        "description": "Reply appears nested under parent comment"
+      },
+      {
+        "type": "action",
+        "description": "Like a comment"
+      },
+      {
+        "type": "assertion",
+        "description": "Like count increments accordingly"
+      },
+      {
+        "type": "action",
+        "description": "Flag a comment as inappropriate"
+      },
+      {
+        "type": "assertion",
+        "description": "Flagged comment is queued for moderator review and user receives confirmation"
+      },
+      {
+        "type": "action",
+        "description": "Moderator reviews flagged comments in moderation queue"
+      },
+      {
+        "type": "assertion",
+        "description": "Moderator can approve, delete, or escalate the comment"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Debate Article Voting with Real-time Results",
+    "description": "Test that readers can vote on debate articles, votes update in real time with correct counting, and results visualization is accurate.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a published debate article"
+      },
+      {
+        "type": "action",
+        "description": "Cast a vote on one of the debate options"
+      },
+      {
+        "type": "assertion",
+        "description": "Vote is registered and total votes update in real time"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to vote multiple times from the same user"
+      },
+      {
+        "type": "assertion",
+        "description": "System prevents duplicate voting from same user"
+      },
+      {
+        "type": "action",
+        "description": "Visualize voting results graphically"
+      },
+      {
+        "type": "assertion",
+        "description": "Graphs accurately reflect current vote distribution"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Content Moderation Workflow Including Automated Screening and Human Review",
+    "description": "Verify that articles and comments undergo automated content screening, are flagged appropriately, and that moderators can perform human review before publishing or rejecting content.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Submit article or comment containing borderline or suspicious content"
+      },
+      {
+        "type": "assertion",
+        "description": "Automated screening flags content and places it in moderation queue"
+      },
+      {
+        "type": "action",
+        "description": "Access moderation queue as moderator"
+      },
+      {
+        "type": "assertion",
+        "description": "Flagged content is listed with relevant details for review"
+      },
+      {
+        "type": "action",
+        "description": "Reject content with reason"
+      },
+      {
+        "type": "assertion",
+        "description": "Content is not published and author is notified"
+      },
+      {
+        "type": "action",
+        "description": "Approve safe content"
+      },
+      {
+        "type": "assertion",
+        "description": "Content status updates to published and appears live"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Reward Token Dispensing Upon User Engagement",
+    "description": "Confirm that users receive cryptocurrency rewards accurately for designated engagement activities such as reading, commenting, and voting, and tokens are credited to Web3 wallet correctly via Thirdweb SDK.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Authenticate user and connect crypto wallet"
+      },
+      {
+        "type": "action",
+        "description": "Perform engagement activity such as reading a full article"
+      },
+      {
+        "type": "assertion",
+        "description": "Reward token transaction is initiated and confirmed"
+      },
+      {
+        "type": "action",
+        "description": "Check wallet balance updates reflecting earned tokens"
+      },
+      {
+        "type": "action",
+        "description": "Perform comment posting and vote actions"
+      },
+      {
+        "type": "assertion",
+        "description": "Corresponding token rewards are successfully dispensed with 99%+ transaction success rate"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Media Upload with Image Optimization and CDN Delivery",
+    "description": "Verify media files upload process including progress display, image optimization is performed properly, and delivered via CDN with acceptable load times.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to media upload interface as content creator"
+      },
+      {
+        "type": "action",
+        "description": "Upload various media files including images and videos"
+      },
+      {
+        "type": "assertion",
+        "description": "Uploads complete successfully with progress indication"
+      },
+      {
+        "type": "assertion",
+        "description": "Images are optimized (resized/compressed) automatically"
+      },
+      {
+        "type": "action",
+        "description": "Access uploaded media content from multiple devices"
+      },
+      {
+        "type": "assertion",
+        "description": "Media is delivered via CDN, with load times meeting performance targets"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Form Validation using React Hook Form and Zod Schema Enforcement",
+    "description": "Ensure all user input forms including registration, article creation, comments, and profile update enforce validation rules strictly, handle errors gracefully, and sanitize inputs to prevent XSS.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open registration and login forms"
+      },
+      {
+        "type": "action",
+        "description": "Input invalid emails, passwords, and missing required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Form validation errors are displayed with user-friendly messages"
+      },
+      {
+        "type": "action",
+        "description": "Attempt article submission with invalid or malicious inputs (e.g. scripts)"
+      },
+      {
+        "type": "assertion",
+        "description": "Submission is rejected or sanitized, warnings shown if needed"
+      },
+      {
+        "type": "action",
+        "description": "Submit comments containing HTML tags and scripts"
+      },
+      {
+        "type": "assertion",
+        "description": "Input is sanitized to prevent XSS attacks"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "User Profile Display and Privacy Settings",
+    "description": "Verify user profiles display reading stats, achievements, and activity accurately while respecting configured privacy settings for different user roles.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and navigate to own profile page"
+      },
+      {
+        "type": "assertion",
+        "description": "Personal reading analytics, badges, and achievements are visible and correct"
+      },
+      {
+        "type": "action",
+        "description": "Update privacy settings to restrict public access"
+      },
+      {
+        "type": "action",
+        "description": "View profile as another user or anonymous"
+      },
+      {
+        "type": "assertion",
+        "description": "Private information is hidden as per settings"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Admin Portal User and Content Management",
+    "description": "Test admin abilities to manage users, moderate content, review analytics dashboards, and audit actions with role-based permissions enforced.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin user"
+      },
+      {
+        "type": "action",
+        "description": "Access user management interface"
+      },
+      {
+        "type": "action",
+        "description": "Modify user roles, deactivate/reactivate accounts"
+      },
+      {
+        "type": "assertion",
+        "description": "Changes persist and permissions update accordingly"
+      },
+      {
+        "type": "action",
+        "description": "Access moderation queues"
+      },
+      {
+        "type": "assertion",
+        "description": "Pending flagged content is listed with actionable options"
+      },
+      {
+        "type": "action",
+        "description": "View analytics dashboards for user engagement and platform health"
+      },
+      {
+        "type": "assertion",
+        "description": "Metrics reflect real-time accurate data"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Performance and Scalability Testing Under Load",
+    "description": "Validate platform maintains fast page loads, low error rates, and scalability handling with concurrent users according to performance benchmarks.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate multiple concurrent user sessions (readers, authors, moderators)"
+      },
+      {
+        "type": "assertion",
+        "description": "Page load times remain under defined threshold (e.g., <2 seconds)"
+      },
+      {
+        "type": "assertion",
+        "description": "Error rates remain below target (e.g., <1%) during peak usage"
+      },
+      {
+        "type": "action",
+        "description": "Monitor system resource usage and response time metrics"
+      },
+      {
+        "type": "assertion",
+        "description": "Scalability targets are met without degradation"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Compliance Verification for COPPA and GDPR Privacy Regulations",
+    "description": "Ensure platform prompts for parental consent, manages data privacy options appropriately, and provides mechanisms for data access, correction, and deletion in compliance with COPPA and GDPR.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt registration as a child user under age 13"
+      },
+      {
+        "type": "assertion",
+        "description": "System requests verified parental consent before account creation"
+      },
+      {
+        "type": "action",
+        "description": "Request user data export and deletion from profile settings"
+      },
+      {
+        "type": "assertion",
+        "description": "User receives requested data in a structured format and account is deleted on request"
+      },
+      {
+        "type": "action",
+        "description": "Verify data collection and consent logs maintained for audit"
+      },
+      {
+        "type": "assertion",
+        "description": "Logs comply with privacy law requirements"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Security and Input Sanitization Against XSS and Injection Attacks",
+    "description": "Validate all user inputs are sanitized, scripts are blocked or escaped, and token-based security prevents unauthorized access or manipulation.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Input scripts, HTML tags, and SQL injection attempts in all user-accessible forms"
+      },
+      {
+        "type": "assertion",
+        "description": "Inputs are sanitized and malicious payloads are neutralized"
+      },
+      {
+        "type": "action",
+        "description": "Attempt unauthorized actions using manipulated tokens or headers"
+      },
+      {
+        "type": "assertion",
+        "description": "Security system rejects unauthorized requests with appropriate error messages"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Email Invitation and Notification System via Resend API",
+    "description": "Verify email communications are sent correctly through Resend API, including invitation mails, approval notifications, and account related emails with appropriate content and delivery status.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger an invitation email from admin portal"
+      },
+      {
+        "type": "assertion",
+        "description": "Invitation email is received with proper link and content"
+      },
+      {
+        "type": "action",
+        "description": "Approve an article triggering notification email"
+      },
+      {
+        "type": "assertion",
+        "description": "Author receives publication notification email"
+      },
+      {
+        "type": "action",
+        "description": "Send password reset or other user notifications"
+      },
+      {
+        "type": "assertion",
+        "description": "Emails are delivered without delay and formatted correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Leaderboard and Achievement Badge System Accuracy",
+    "description": "Validate that user achievements such as badges and reading streaks update correctly upon qualifying activities and leaderboards reflect real-time rankings accurately.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform activities qualifying for achievements (e.g., multiple articles read, comments posted)"
+      },
+      {
+        "type": "assertion",
+        "description": "User badges and reading streak counts update correctly"
+      },
+      {
+        "type": "action",
+        "description": "View leaderboard rankings before and after activity"
+      },
+      {
+        "type": "assertion",
+        "description": "Leaderboard updates to reflect new rankings in real time"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Navigation and Category Filtering Functionality",
+    "description": "Test that the responsive navigation menu, category filters, and breadcrumbs work correctly across devices and allow users to find articles efficiently.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load homepage on desktop and mobile"
+      },
+      {
+        "type": "assertion",
+        "description": "Navigation menu adapts responsively"
+      },
+      {
+        "type": "action",
+        "description": "Use category filters to select different article topics"
+      },
+      {
+        "type": "assertion",
+        "description": "Articles list updates correctly to match selected categories"
+      },
+      {
+        "type": "action",
+        "description": "Use breadcrumb links to navigate back to higher-level pages"
+      },
+      {
+        "type": "assertion",
+        "description": "Navigations behave as expected throughout the site"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Error Boundary Handling and Recovery",
+    "description": "Simulate runtime errors in various components to verify the error boundary catches exceptions gracefully and displays user-friendly fallback UI with options to recover or report issues.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Introduce a fatal error in React component (e.g., article content rendering)"
+      },
+      {
+        "type": "assertion",
+        "description": "Error boundary catches error and fallback UI renders"
+      },
+      {
+        "type": "action",
+        "description": "Trigger error in admin interface"
+      },
+      {
+        "type": "assertion",
+        "description": "Admin error boundary handles error and allows recovery"
+      },
+      {
+        "type": "action",
+        "description": "Attempt user recovery options, e.g., reload or navigate away"
+      },
+      {
+        "type": "assertion",
+        "description": "User can recover from error without page crash"
+      }
+    ]
+  }
+]

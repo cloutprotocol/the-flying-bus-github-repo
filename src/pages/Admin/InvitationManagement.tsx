@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Button } from '@/components/ui/button';
@@ -13,95 +13,225 @@ import {
   User, 
   Calendar,
   MessageCircle,
-  Filter
+  Filter,
+  Loader2,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { 
-  getInvitationRequests, 
   updateInvitationRequestStatus,
   InvitationRequest 
 } from '@/services/invitationService';
+import { useAdminInvitationRequests } from '@/hooks/useAdminDataIndependence';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EnhancedUserFeedback, useEnhancedUserFeedback } from '@/components/Common/EnhancedUserFeedback';
+import { detectRLSError, type RLSErrorContext } from '@/utils/errorHandling/rlsErrorHandler';
 
 const InvitationManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [invitations, setInvitations] = useState<InvitationRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'denied'>('all');
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+  const [operationErrors, setOperationErrors] = useState<Map<string, any>>(new Map());
 
-  useEffect(() => {
-    loadInvitations();
-  }, [filterStatus]);
+  // Enhanced user feedback
+  const {
+    feedback,
+    showError,
+    showSuccess,
+    showLoading,
+    updateRetryInfo,
+    clearFeedback,
+    setRetryCallback
+  } = useEnhancedUserFeedback();
 
-  const loadInvitations = async () => {
-    setIsLoading(true);
-    try {
-      const result = await getInvitationRequests(
-        filterStatus === 'all' ? undefined : filterStatus
-      );
-      
-      if (result.error) {
-        toast({
-          title: "Error loading invitations",
-          description: result.error.message,
-          variant: "destructive",
-        });
-        return;
-      }
+  // Use independent data loading for invitation requests
+  const { 
+    data: invitationsData, 
+    isLoading, 
+    error, 
+    refetch: refetchInvitations 
+  } = useAdminInvitationRequests(filterStatus);
 
-      // Type-safe mapping to ensure status is properly typed
-      const typedInvitations = (result.data || []).map(invitation => ({
-        ...invitation,
-        status: invitation.status as 'pending' | 'approved' | 'denied'
-      }));
+  // Transform data to ensure proper typing
+  const invitations = (invitationsData || []).map(invitation => ({
+    ...invitation,
+    status: invitation.status as 'pending' | 'approved' | 'denied'
+  }));
 
-      setInvitations(typedInvitations);
-    } catch (error) {
-      console.error('Error loading invitations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load invitation requests.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'denied') => {
+  const handleStatusUpdate = async (id: string, status: 'approved' | 'denied', retryAttempt: number = 1) => {
     if (!user?.id) return;
+
+    const maxRetries = 3;
+    const isRetrying = retryAttempt > 1;
+
+    // Create RLS error context for enhanced error handling
+    const rlsContext: RLSErrorContext = {
+      operation: 'admin_operation',
+      table: 'invitation_requests',
+      userId: user.id,
+      userRole: user.role || 'admin',
+      isAuthenticated: true,
+      component: 'InvitationManagement'
+    };
 
     setProcessingIds(prev => new Set(prev).add(id));
     
+    if (isRetrying) {
+      setRetryingIds(prev => new Set(prev).add(id));
+      updateRetryInfo(retryAttempt, maxRetries, true);
+    } else {
+      clearFeedback();
+      showLoading(`${status === 'approved' ? 'Approving' : 'Denying'} invitation request...`, {
+        showProgress: true,
+        progress: 20,
+        estimatedTime: '10 seconds'
+      });
+    }
+    
     try {
+      console.log(`Admin operation: ${status} invitation ${id} (attempt ${retryAttempt}/${maxRetries})`);
+      
       const result = await updateInvitationRequestStatus(id, status, user.id);
       
       if (result.error) {
+        console.error('Status update failed:', result);
+        
+        // Clear retry state
+        setRetryingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(id);
+          return newSet;
+        });
+
+        // Store error for this operation
+        setOperationErrors(prev => new Map(prev).set(id, result));
+
+        // Detect RLS errors and provide enhanced feedback
+        const rlsError = detectRLSError(result, rlsContext);
+        
+        showError(result.error, {
+          title: rlsError ? 'Permission Error' : 'Update Failed',
+          details: result.details ? JSON.stringify(result.details, null, 2) : result.error,
+          errorCode: result.code,
+          errorCategory: rlsError?.category || 'database',
+          showRetry: result.retryable && retryAttempt < maxRetries,
+          retryLabel: `Retry (${retryAttempt}/${maxRetries})`,
+          retryCount: retryAttempt,
+          maxRetries,
+          fallbackAvailable: result.details?.usedFallback === false,
+          adminRequired: rlsError?.adminRequired,
+          context: rlsContext,
+          nextSteps: [
+            ...(rlsError?.recoveryActions || []),
+            'Check your admin permissions',
+            'Try refreshing the page',
+            'Contact system administrator if the problem persists'
+          ]
+        });
+
+        // Set up retry callback
+        if (result.retryable && retryAttempt < maxRetries) {
+          setRetryCallback(() => {
+            handleStatusUpdate(id, status, retryAttempt + 1);
+          });
+        }
+
+        // Show toast for immediate feedback
         toast({
           title: "Error updating status",
-          description: result.error.message,
+          description: rlsError ? 
+            `Permission error: ${rlsError.userMessage}` : 
+            result.error,
           variant: "destructive",
         });
+        
         return;
       }
 
+      // Success!
+      console.log('Status update successful:', result);
+      
+      // Clear any stored errors for this operation
+      setOperationErrors(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(id);
+        return newMap;
+      });
+
+      showSuccess(`Invitation request has been ${status}.`, {
+        title: `Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        nextSteps: [
+          'The parent will be notified by email',
+          'The change has been logged in the audit trail',
+          'You can continue processing other requests'
+        ]
+      });
+
       toast({
         title: `Request ${status}`,
-        description: `Invitation request has been ${status}.`,
+        description: `Invitation request has been ${status} successfully.`,
       });
 
       // Reload invitations to reflect changes
-      loadInvitations();
+      await refetchInvitations();
+      
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Unexpected error updating status:', error);
+      
+      // Clear retry state
+      setRetryingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+
+      // Store error for this operation
+      setOperationErrors(prev => new Map(prev).set(id, error));
+
+      // Handle unexpected errors with RLS context
+      const rlsError = detectRLSError(error, rlsContext);
+      
+      showError(error.message || 'An unexpected error occurred', {
+        title: 'Unexpected Error',
+        details: error.stack || error.message,
+        errorCode: error.code || 'UNEXPECTED_ERROR',
+        errorCategory: rlsError?.category || 'database',
+        showRetry: retryAttempt < maxRetries,
+        retryLabel: `Retry (${retryAttempt}/${maxRetries})`,
+        retryCount: retryAttempt,
+        maxRetries,
+        context: rlsContext,
+        nextSteps: [
+          'This appears to be an unexpected system error',
+          'Try the operation again',
+          'Check the browser console for more details',
+          'Contact technical support if the problem persists'
+        ]
+      });
+
+      // Set up retry callback for unexpected errors
+      if (retryAttempt < maxRetries) {
+        setRetryCallback(() => {
+          handleStatusUpdate(id, status, retryAttempt + 1);
+        });
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to update invitation status.",
+        title: "Unexpected Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+      
     } finally {
       setProcessingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      
+      setRetryingIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(id);
         return newSet;
@@ -157,8 +287,39 @@ const InvitationManagement = () => {
           </div>
         </div>
 
+        {/* Enhanced User Feedback */}
+        {feedback && (
+          <EnhancedUserFeedback
+            feedback={feedback}
+            onRetry={() => {
+              // Retry callback is set by the operation that failed
+              clearFeedback();
+            }}
+            onDismiss={clearFeedback}
+            showDetailsByDefault={false}
+            enableAutoRetry={false}
+          />
+        )}
+
+        {error && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <div className="flex items-center justify-center gap-2 text-red-600 mb-4">
+                <AlertTriangle className="h-5 w-5" />
+                <p>Error loading invitation requests: {error.message}</p>
+              </div>
+              <Button onClick={() => refetchInvitations()} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {isLoading ? (
-          <div className="text-center py-8">Loading invitation requests...</div>
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         ) : invitations.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
@@ -237,25 +398,58 @@ const InvitationManagement = () => {
                   
                   {invitation.status === 'pending' && (
                     <div className="flex gap-2 pt-4 border-t">
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusUpdate(invitation.id!, 'approved')}
-                        disabled={processingIds.has(invitation.id!)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleStatusUpdate(invitation.id!, 'denied')}
-                        disabled={processingIds.has(invitation.id!)}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Deny
-                      </Button>
+                      <div className="flex flex-col gap-2 flex-1">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusUpdate(invitation.id!, 'approved')}
+                            disabled={processingIds.has(invitation.id!) || retryingIds.has(invitation.id!)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {processingIds.has(invitation.id!) ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                {retryingIds.has(invitation.id!) ? 'Retrying...' : 'Approving...'}
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleStatusUpdate(invitation.id!, 'denied')}
+                            disabled={processingIds.has(invitation.id!) || retryingIds.has(invitation.id!)}
+                          >
+                            {processingIds.has(invitation.id!) ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                {retryingIds.has(invitation.id!) ? 'Retrying...' : 'Denying...'}
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Deny
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        
+                        {/* Show error indicator for this specific invitation */}
+                        {operationErrors.has(invitation.id!) && (
+                          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>
+                              Last operation failed. 
+                              {operationErrors.get(invitation.id!)?.retryable && ' Retry available.'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   

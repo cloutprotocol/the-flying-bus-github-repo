@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import { storyboardArticles } from '@/data/articles/storyboard';
+import { getCategoryArticles } from '@/data/articles';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { 
   BookMarked, 
@@ -13,9 +14,33 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CategoryHeader from '@/components/Category/CategoryHeader';
+import { ArticleProps } from '@/components/Articles/ArticleCard';
 
 const StoryboardCategoryPage = () => {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [databaseArticles, setDatabaseArticles] = useState<ArticleProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDatabaseStoryboards = async () => {
+      try {
+        const articles = await getCategoryArticles('Storyboard');
+        setDatabaseArticles(articles);
+      } catch (error) {
+        console.error('Error fetching storyboard articles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDatabaseStoryboards();
+  }, []);
+
+  // Combine mock articles and database articles
+  const allStoryboardArticles = [
+    ...storyboardArticles,
+    ...databaseArticles
+  ];
 
   return (
     <MainLayout>
@@ -32,9 +57,22 @@ const StoryboardCategoryPage = () => {
           </p>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading storyboard series...</p>
+          </div>
+        )}
+
         {/* Main Grid of Storyboard Series */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {storyboardArticles.map((series) => (
+        {!isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {allStoryboardArticles.map((series) => {
+              // Check if this is a mock article (has episodes) or database article
+              const isMockArticle = 'episodes' in series && series.episodes;
+              const episodeCount = isMockArticle ? series.episodes.length : 0;
+              
+              return (
             <div 
               key={series.id}
               className="bg-white rounded-lg overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl"
@@ -72,7 +110,7 @@ const StoryboardCategoryPage = () => {
                   {/* Episode count badge */}
                   <div className="absolute bottom-3 right-3">
                     <Badge variant="outline" className="bg-black/50 text-white border-none">
-                      {series.episodes.length} Episodes
+                      {isMockArticle ? `${episodeCount} Episodes` : 'Coming Soon'}
                     </Badge>
                   </div>
                 </div>
@@ -111,17 +149,34 @@ const StoryboardCategoryPage = () => {
                       Series Details
                     </Button>
                   </Link>
-                  <Link to={`/storyboard/${series.id}/episode/${series.episodes[0].id}`}>
-                    <Button size="sm" className="bg-gray-800 hover:bg-gray-700 text-white">
+                  {isMockArticle ? (
+                    <Link to={`/storyboard/${series.id}/episode/${series.episodes[0].id}`}>
+                      <Button size="sm" className="bg-gray-800 hover:bg-gray-700 text-white">
+                        <Play size={14} className="mr-1" />
+                        First Episode
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" disabled className="bg-gray-400 text-white cursor-not-allowed">
                       <Play size={14} className="mr-1" />
-                      First Episode
+                      Episodes Coming Soon
                     </Button>
-                  </Link>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+              </div>
+            );
+            })}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && allStoryboardArticles.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">No storyboard series available yet.</p>
+            <p className="text-sm text-gray-500">Check back soon for new episodic content!</p>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

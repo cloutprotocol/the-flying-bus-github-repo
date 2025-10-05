@@ -55,14 +55,26 @@ const MediaGrid: React.FC<MediaGridProps> = ({
                   alt={item.title} 
                   className="object-cover w-full h-full" 
                   onClick={() => onMediaSelect(item.id)}
+                  loading="lazy"
+                  onError={(e) => {
+                    // Fallback for broken images
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               </AspectRatio>
-            ) : (
+            ) : item.type === 'video' ? (
               <VideoPlayer 
                 videoUrl={item.url} 
                 title={item.title}
                 showTitlePanel={false}
               />
+            ) : (
+              // Fallback for unknown file types
+              <AspectRatio ratio={16/9}>
+                <div className="flex items-center justify-center bg-gray-100 w-full h-full">
+                  <p className="text-sm text-gray-500">Unsupported file type</p>
+                </div>
+              </AspectRatio>
             )}
           </div>
           <CardContent className="p-2">

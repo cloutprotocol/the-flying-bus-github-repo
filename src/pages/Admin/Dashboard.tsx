@@ -1,199 +1,491 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminPortalLayout from '@/components/Layout/AdminPortalLayout';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  PenLine, 
-  Eye, 
-  MessageSquare, 
+import {
+  MessageSquare,
   BarChart3,
-  AlertCircle 
+  AlertCircle,
+  RefreshCw,
+  Users,
+  FileText,
+  Clock,
+  CheckCircle,
+  Folder
 } from 'lucide-react';
-import useActivityFeed from '@/hooks/useActivityFeed';
-import ActivityFeed from '@/components/Admin/Activity/ActivityFeed';
 import { CardContent } from '@/components/ui/card';
-import useDashboardMetrics from '@/hooks/useDashboardMetrics';
-import RecentArticlesSection from '@/components/Admin/Dashboard/RecentArticlesSection';
-import { StatusType } from '@/components/Admin/Status/StatusBadge';
-import DashboardPreferences, { 
-  defaultPreferences, 
-  Preference 
-} from '@/components/Admin/Dashboard/DashboardPreferences';
-import QuickActions from '@/components/Admin/Dashboard/QuickActions';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { getRecentActivities, Activity as ActivityType } from '@/services/activityService';
 
-interface DashboardRecentArticle {
-  id: string;
-  title: string;
-  status: StatusType;
-  lastEdited: string;
+// Use the Activity type from the service
+type Activity = ActivityType;
+
+interface DashboardMetrics {
+  totalArticles?: number;
+  totalUsers?: number;
+  commentCount?: number;
+  pendingReviews?: number;
+  myArticles?: number;
+  myArticleViews?: number;
+  myComments?: number;
+  articlesInReview?: number;
+  articlesPublished?: number;
+  categoriesCount?: number;
+  systemHealth?: string;
 }
 
-const ARTICLES_PER_PAGE = 5;
+
+
+// Helper function to determine user role
+function getUserRole(user: any): 'admin' | 'moderator' | 'author' | 'reader' {
+  if (!user || !user.role) return 'reader';
+  const role = user.role.toLowerCase();
+  if (['admin', 'moderator', 'author'].includes(role)) {
+    return role as 'admin' | 'moderator' | 'author';
+  }
+  return 'reader';
+}
+
+// Helper function to check if user can access dashboard
+function canAccessDashboard(user: any): boolean {
+  const role = getUserRole(user);
+  return ['admin', 'moderator', 'author'].includes(role);
+}
+
+// Helper function to get dashboard title based on role
+function getDashboardTitle(user: any): string {
+  const role = getUserRole(user);
+  switch (role) {
+    case 'admin': return 'Admin Dashboard';
+    case 'moderator': return 'Moderator Dashboard';
+    case 'author': return 'Author Dashboard';
+    default: return 'Dashboard';
+  }
+}
+
+// Helper function to get dashboard description based on role
+function getDashboardDescription(user: any): string {
+  const role = getUserRole(user);
+  switch (role) {
+    case 'admin': return 'Manage users, content, and system settings for The Flying Bus.';
+    case 'moderator': return 'Review content, moderate comments, and manage categories.';
+    case 'author': return 'Create and manage your articles, view your analytics, and moderate comments on your content.';
+    default: return 'Welcome to The Flying Bus.';
+  }
+}
 
 const Dashboard: React.FC = () => {
-  const [preferences, setPreferences] = useState<Preference[]>(defaultPreferences);
-  const [currentPage, setCurrentPage] = useState(1);
-  const { metrics, loading, error, totalPages, refetchMetrics } = useDashboardMetrics();
-  
-  const { 
-    activities, 
-    isLoading: activitiesLoading,
-    error: activitiesError,
-    selectedTypes,
-    handleFilterChange 
-  } = useActivityFeed(10);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({});
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const hasInitialized = useRef(false);
+  const isLoading = useRef(false);
 
-  const mapArticles = (): DashboardRecentArticle[] => {
-    if (!metrics?.recentArticles) return [];
-    
-    return metrics.recentArticles.map(article => ({
-      id: article.id,
-      title: article.title,
-      status: article.status as StatusType,
-      lastEdited: article.lastEdited
-    }));
+  // Get auth context
+  const { session, currentUser, isInitialized: authInitialized } = useAuth();
+
+  // Determine user role and access
+  const userRole = getUserRole(currentUser);
+  const hasAccess = canAccessDashboard(currentUser);
+  const dashboardTitle = getDashboardTitle(currentUser);
+  const dashboardDescription = getDashboardDescription(currentUser);
+
+  // Debug logging
+  console.log('Dashboard render - Auth state:', {
+    hasCurrentUser: !!currentUser,
+    hasSession: !!session,
+    userRole,
+    hasAccess,
+    authInitialized,
+    userId: currentUser?.id,
+    sessionUserId: session?.user?.id
+  });
+
+  // Simplified metrics calculation
+  const calculateSimpleMetrics = async (): Promise<DashboardMetrics> => {
+    try {
+      console.log('Calculating metrics for role:', userRole);
+
+      if (userRole === 'admin') {
+        // Admin metrics - try to get basic counts
+        const [articlesResult, usersResult, commentsResult] = await Promise.allSettled([
+          supabase.from('articles').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('comments').select('*', { count: 'exact', head: true })
+        ]);
+
+        return {
+          totalArticles: articlesResult.status === 'fulfilled' ? (articlesResult.value.count || 0) : 0,
+          totalUsers: usersResult.status === 'fulfilled' ? (usersResult.value.count || 0) : 0,
+          commentCount: commentsResult.status === 'fulfilled' ? (commentsResult.value.count || 0) : 0,
+          pendingReviews: 0, // Simplified for now
+          systemHealth: 'good'
+        };
+      } else if (userRole === 'moderator') {
+        // Moderator metrics
+        const [articlesResult, commentsResult] = await Promise.allSettled([
+          supabase.from('articles').select('*', { count: 'exact', head: true }),
+          supabase.from('comments').select('*', { count: 'exact', head: true })
+        ]);
+
+        return {
+          totalArticles: articlesResult.status === 'fulfilled' ? (articlesResult.value.count || 0) : 0,
+          commentCount: commentsResult.status === 'fulfilled' ? (commentsResult.value.count || 0) : 0,
+          pendingReviews: 0,
+          categoriesCount: 0
+        };
+      } else if (userRole === 'author' && currentUser) {
+        // Author metrics - only their own content
+        const myArticlesResult = await supabase
+          .from('articles')
+          .select('*', { count: 'exact', head: true })
+          .eq('author_id', currentUser.id);
+
+        return {
+          myArticles: myArticlesResult.count || 0,
+          myArticleViews: 0, // Simplified for now
+          myComments: 0, // Simplified for now
+          articlesInReview: 0,
+          articlesPublished: myArticlesResult.count || 0
+        };
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Error calculating metrics:', error);
+      return {};
+    }
   };
 
-  const handlePageChange = async (page: number) => {
-    setCurrentPage(page);
-    await refetchMetrics(page, ARTICLES_PER_PAGE);
+  const fetchDashboardData = async () => {
+    // Prevent multiple simultaneous fetches
+    if (isLoading.current) {
+      console.log('Dashboard: Already loading, skipping fetch');
+      return;
+    }
+
+    try {
+      console.log('Dashboard: Starting data fetch for role:', userRole);
+      isLoading.current = true;
+      setLoading(true);
+      setError(null);
+
+      // Calculate metrics
+      const calculatedMetrics = await calculateSimpleMetrics();
+      setMetrics(calculatedMetrics);
+      console.log('Dashboard: Metrics loaded:', calculatedMetrics);
+
+      // Simple activity feed
+      try {
+        if (userRole === 'admin' || userRole === 'moderator') {
+          const activitiesResult = await getRecentActivities(5);
+          
+          if (activitiesResult.activities && !activitiesResult.error) {
+            setActivities(activitiesResult.activities);
+          } else {
+            // Fallback to user registration activities if no activities exist
+            const profilesResult = await supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url, created_at')
+              .order('created_at', { ascending: false })
+              .limit(5);
+
+            if (profilesResult.data && !profilesResult.error) {
+              const fallbackActivities: Activity[] = profilesResult.data.map((profile, index) => ({
+                id: profile.id || `activity-${index}`,
+                user_id: profile.id,
+                activity_type: 'article_created' as const,
+                entity_type: 'user',
+                entity_id: profile.id,
+                metadata: { description: `New user ${profile.username || profile.display_name || 'unknown'} registered` },
+                created_at: profile.created_at || new Date().toISOString(),
+                profile: {
+                  display_name: profile.display_name || profile.username || 'Unknown User',
+                  avatar_url: profile.avatar_url
+                }
+              }));
+              setActivities(fallbackActivities);
+            } else {
+              setActivities([]);
+            }
+          }
+        } else {
+          setActivities([]);
+        }
+      } catch (activityError) {
+        console.warn('Activity feed failed:', activityError);
+        setActivities([]);
+      }
+
+    } catch (err) {
+      console.error('Dashboard error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+      isLoading.current = false;
+      console.log('Dashboard: Fetch completed');
+    }
   };
 
-  // Create a retry handler that requires no arguments
-  const handleRetry = () => {
-    // We can call handleFilterChange with the current selectedTypes
-    handleFilterChange(selectedTypes);
+  useEffect(() => {
+    // Wait for auth to be initialized and ensure we have proper access
+    if (!authInitialized || !hasAccess || !currentUser) {
+      console.log('Dashboard: Waiting for auth initialization or access', {
+        authInitialized,
+        hasAccess,
+        hasCurrentUser: !!currentUser,
+        userRole
+      });
+      return;
+    }
+
+    if (!hasInitialized.current) {
+      console.log('Dashboard: Initializing for role:', userRole);
+      hasInitialized.current = true;
+      fetchDashboardData();
+    }
+  }, [authInitialized, hasAccess, userRole, currentUser]);
+
+  // Show loading state while authentication is being determined
+  if (!authInitialized || !currentUser) {
+    return (
+      <AdminPortalLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <RefreshCw className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+              <h2 className="text-xl font-semibold mb-2">Loading Dashboard</h2>
+              <p className="text-muted-foreground">
+                Please wait while we load your dashboard...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminPortalLayout>
+    );
+  }
+
+  // Redirect if user doesn't have dashboard access
+  if (!hasAccess) {
+    return (
+      <AdminPortalLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+              <p className="text-muted-foreground mb-4">
+                You don't have permission to access the admin dashboard.
+                <br />
+                <small>Current role: {userRole}</small>
+              </p>
+              <Button onClick={() => window.location.href = '/'}>
+                Return to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminPortalLayout>
+    );
+  }
+
+
+
+  // Get role-specific metrics display
+  const getMetricCards = () => {
+    const cards = [];
+
+    if (userRole === 'admin') {
+      cards.push(
+        { key: 'totalUsers', title: 'Total Users', icon: 'Users', color: 'blue' },
+        { key: 'totalArticles', title: 'Total Articles', icon: 'FileText', color: 'green' },
+        { key: 'commentCount', title: 'Total Comments', icon: 'MessageSquare', color: 'purple' },
+        { key: 'pendingReviews', title: 'Pending Reviews', icon: 'Clock', color: 'orange' }
+      );
+    } else if (userRole === 'moderator') {
+      cards.push(
+        { key: 'totalArticles', title: 'Total Articles', icon: 'FileText', color: 'green' },
+        { key: 'commentCount', title: 'Total Comments', icon: 'MessageSquare', color: 'purple' },
+        { key: 'pendingReviews', title: 'Pending Reviews', icon: 'Clock', color: 'orange' },
+        { key: 'categoriesCount', title: 'Categories', icon: 'Folder', color: 'blue' }
+      );
+    } else if (userRole === 'author') {
+      cards.push(
+        { key: 'myArticles', title: 'My Articles', icon: 'FileText', color: 'green' },
+        { key: 'articlesPublished', title: 'Published', icon: 'CheckCircle', color: 'blue' },
+        { key: 'articlesInReview', title: 'In Review', icon: 'Clock', color: 'orange' },
+        { key: 'myComments', title: 'Comments', icon: 'MessageSquare', color: 'purple' }
+      );
+    }
+
+    return cards;
   };
 
-  const isMetricVisible = (metricId: string) => {
-    return preferences.find(p => p.id === metricId)?.enabled ?? true;
-  };
+  const metricCards = getMetricCards();
 
   return (
     <AdminPortalLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{dashboardTitle}</h1>
             <p className="text-muted-foreground">
-              Welcome to The Flying Bus author portal. Here's an overview of your content.
+              {dashboardDescription}
             </p>
           </div>
-          <DashboardPreferences
-            preferences={preferences}
-            onPreferenceChange={setPreferences}
-          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchDashboardData}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
-        <QuickActions
-          pendingArticles={metrics?.pendingArticles || 0}
-          pendingComments={metrics?.pendingComments || 0}
-          pendingInvitations={metrics?.pendingInvitations || 0}
-        />
-        
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error.message}
+            <AlertDescription className="flex items-center justify-between">
+              <span>Error loading dashboard: {error}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchDashboardData}
+              >
+                Retry
+              </Button>
             </AlertDescription>
           </Alert>
         )}
-        
-        {isMetricVisible('metrics') && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {isMetricVisible('totalArticles') && (
-              <Card>
+
+
+
+        {/* Role-based Metrics Grid */}
+        {loading ? (
+          <div className={`grid gap-4 ${metricCards.length <= 2 ? 'md:grid-cols-2' : metricCards.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3 lg:grid-cols-5'}`}>
+            {Array.from({ length: metricCards.length || 4 }).map((_, i) => (
+              <Card key={i}>
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Articles</p>
-                      <p className="text-3xl font-bold">{metrics?.totalArticles || 0}</p>
-                    </div>
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <PenLine className="h-5 w-5 text-primary" />
-                    </div>
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
                   </div>
                 </CardContent>
               </Card>
-            )}
-            
-            {isMetricVisible('articleViews') && (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Article Views</p>
-                      <p className="text-3xl font-bold">{metrics?.articleViews || 0}</p>
-                    </div>
-                    <div className="bg-blue-100 p-2 rounded-full">
-                      <Eye className="h-5 w-5 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {isMetricVisible('comments') && (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Comments</p>
-                      <p className="text-3xl font-bold">{metrics?.commentCount || 0}</p>
-                    </div>
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <MessageSquare className="h-5 w-5 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {isMetricVisible('engagementRate') && (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Engagement Rate</p>
-                      <p className="text-3xl font-bold">{metrics?.engagementRate || 0}%</p>
-                    </div>
-                    <div className="bg-purple-100 p-2 rounded-full">
-                      <BarChart3 className="h-5 w-5 text-purple-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            ))}
           </div>
-        )}
+        ) : metricCards.length > 0 ? (
+          <div className={`grid gap-4 ${metricCards.length <= 2 ? 'md:grid-cols-2' : metricCards.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3 lg:grid-cols-5'}`}>
+            {metricCards.map((card) => {
+              const getIcon = (iconName: string) => {
+                switch (iconName) {
+                  case 'Users': return <Users className="h-5 w-5" />;
+                  case 'FileText': return <FileText className="h-5 w-5" />;
+                  case 'MessageSquare': return <MessageSquare className="h-5 w-5" />;
+                  case 'Clock': return <Clock className="h-5 w-5" />;
+                  case 'CheckCircle': return <CheckCircle className="h-5 w-5" />;
+                  case 'Folder': return <Folder className="h-5 w-5" />;
+                  case 'MessageCircle': return <MessageCircle className="h-5 w-5" />;
+                  default: return <BarChart3 className="h-5 w-5" />;
+                }
+              };
 
-        {isMetricVisible('activityFeed') && (
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Recent Activity</h2>
-            <Card className="p-4">
-              <ActivityFeed 
-                activities={activities} 
-                isLoading={activitiesLoading}
-                error={activitiesError}
-                selectedTypes={selectedTypes}
-                onFilterChange={handleFilterChange}
-                onRetry={handleRetry} // Use the wrapper function that takes no arguments
-              />
-            </Card>
-          </section>
-        )}
+              const value = metrics[card.key as keyof DashboardMetrics] || 0;
 
-        {isMetricVisible('recentArticles') && (
-          <RecentArticlesSection 
-            articles={mapArticles()}
-            loading={loading}
-            onRefresh={() => refetchMetrics(currentPage, ARTICLES_PER_PAGE)}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
+              // Color mapping for different metric types
+              const colorClasses = {
+                blue: 'bg-blue-100 text-blue-600',
+                green: 'bg-green-100 text-green-600',
+                orange: 'bg-orange-100 text-orange-600',
+                purple: 'bg-purple-100 text-purple-600',
+                red: 'bg-red-100 text-red-600'
+              };
+
+              return (
+                <Card key={card.key}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
+                        <p className="text-3xl font-bold">{value.toLocaleString()}</p>
+                      </div>
+                      <div className={`p-2 rounded-full ${colorClasses[card.color as keyof typeof colorClasses] || colorClasses.blue}`}>
+                        {getIcon(card.icon)}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {/* Recent Activity */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Recent Activity</h2>
+            </div>
+
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse flex space-x-3">
+                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No recent activity to display
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activities.map((activity) => {
+                  // Get user info from profile or fallback
+                  const displayName = activity.profile?.display_name || 'Unknown User';
+                  const avatarUrl = activity.profile?.avatar_url;
+                  const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  
+                  // Create description from metadata or fallback
+                  const description = activity.metadata?.description || 
+                    `${displayName} performed ${activity.activity_type?.replace('_', ' ') || 'an action'}`;
+                  
+                  return (
+                    <div key={activity.id} className="flex space-x-3 p-2 rounded-lg hover:bg-gray-50">
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={avatarUrl} alt={displayName} />
+                          <AvatarFallback className="text-xs font-medium">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {description}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(activity.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminPortalLayout>
   );

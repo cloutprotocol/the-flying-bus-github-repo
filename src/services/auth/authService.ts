@@ -5,6 +5,10 @@ import { createAuthResponse } from './authErrors';
 import { logger } from '@/utils/logger';
 import { LogSource } from '@/utils/logger/types';
 import { fetchUserProfile } from './profileService';
+import { registrationErrorHandler } from '@/services/registrationErrorHandler';
+import { RegistrationErrorContext } from '@/types/RegistrationErrorTypes';
+import { rlsPolicyManager } from '@/services/rlsPolicyManager';
+import { registrationFlowCoordinator } from '@/services/registrationFlowCoordinator';
 
 /**
  * Login with email and password
@@ -33,7 +37,9 @@ export async function loginWithEmailPassword(email: string, password: string) {
 }
 
 /**
- * Register a new user
+ * Register a new user with automatic login and comprehensive error handling
+ * Uses the registration flow coordinator for orchestrated registration process
+ * with improved authentication context management
  */
 export async function registerUser(
   email: string, 
@@ -42,58 +48,102 @@ export async function registerUser(
   displayName: string
 ): Promise<AuthResponse> {
   try {
-    logger.info(LogSource.AUTH, 'Registering new user', { email, username });
+    logger.info(LogSource.AUTH, 'Registering new user with enhanced authentication context', { 
+      email, 
+      username 
+    });
     
-    // Sign up the user
-    const { data, error } = await supabase.auth.signUp({
+    // Use the registration flow coordinator for orchestrated registration
+    const result = await registrationFlowCoordinator.coordinateStandardRegistration({
       email,
       password,
-      options: {
-        data: {
-          username,
-          display_name: displayName
-        }
-      }
-    });
-    
-    if (error) {
-      logger.error(LogSource.AUTH, 'Registration failed', error);
-      return createAuthResponse(false, error);
-    }
-    
-    if (!data.user) {
-      logger.error(LogSource.AUTH, 'Registration failed - no user returned');
-      return createAuthResponse(false, new Error('Registration failed'));
-    }
-    
-    // Create the user profile with only existing columns
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: data.user.id,
       username,
-      display_name: displayName,
-      email,
-      role: 'reader',
-      avatar_url: '',
-      bio: ''
+      displayName
     });
-    
-    if (profileError) {
-      logger.error(LogSource.AUTH, 'Profile creation failed', profileError);
-      return createAuthResponse(false, profileError);
+
+    if (!result.success) {
+      logger.error(LogSource.AUTH, 'Registration coordination failed', result.error);
+      
+      return {
+        success: false,
+        user: undefined,
+        session: undefined,
+        error: {
+          message: result.error?.message || 'Registration failed',
+          code: result.error?.code || 'REGISTRATION_FAILED',
+          technicalDetails: result.error?.technicalDetails
+        }
+      };
     }
-    
-    logger.info(LogSource.AUTH, 'User registered successfully', { userId: data.user.id });
-    
-    // Get complete user profile
-    const profile = await fetchUserProfile(data.user.id);
+
+    // Handle special case where registration succeeded but has an error (like email confirmation)
+    if (result.success && result.error) {
+      logger.info(LogSource.AUTH, 'Registration succeeded with email confirmation required', {
+        userId: result.user?.id,
+        errorCode: result.error.code
+      });
+      
+      return {
+        success: true,
+        user: result.user,
+        session: result.session,
+        error: {
+          message: result.error.message,
+          code: result.error.code,
+          technicalDetails: result.error.technicalDetails
+        }
+      };
+    }
+
+    // Ensure authentication context is properly established
+    if (result.session) {
+      logger.info(LogSource.AUTH, 'Registration successful with active session', { 
+        userId: result.user?.id,
+        sessionActive: !!result.session
+      });
+      
+      // Verify the session is valid and authentication context is established
+      try {
+        const { data: sessionCheck } = await supabase.auth.getSession();
+        if (sessionCheck?.session?.user?.id === result.user?.id) {
+          logger.info(LogSource.AUTH, 'Authentication context verified after registration', {
+            userId: result.user?.id
+          });
+        } else {
+          logger.warn(LogSource.AUTH, 'Authentication context mismatch after registration', {
+            expectedUserId: result.user?.id,
+            actualUserId: sessionCheck?.session?.user?.id
+          });
+        }
+      } catch (sessionError) {
+        logger.warn(LogSource.AUTH, 'Could not verify authentication context', sessionError);
+      }
+    }
+
+    logger.info(LogSource.AUTH, 'User registered and logged in successfully via coordinator', { 
+      userId: result.user?.id,
+      hasSession: !!result.session,
+      hasProfile: !!result.user
+    });
     
     return { 
       success: true,
-      user: profile || undefined
+      user: result.user,
+      session: result.session
     };
   } catch (error) {
     logger.error(LogSource.AUTH, 'Registration exception', error);
-    return createAuthResponse(false, error);
+    
+    return {
+      success: false,
+      user: undefined,
+      session: undefined,
+      error: {
+        message: 'An unexpected error occurred during registration',
+        code: 'REGISTRATION_EXCEPTION',
+        technicalDetails: error.message
+      }
+    };
   }
 }
 
@@ -140,6 +190,103 @@ export async function resetPassword(email: string) {
   } catch (error) {
     logger.error(LogSource.AUTH, 'Password reset exception', error);
     return { error };
+  }
+}
+
+/**
+ * Register user through invitation with comprehensive error handling
+ * Uses the registration flow coordinator for orchestrated invitation registration
+ * with improved authentication context management
+ */
+export async function registerUserWithInvitation(
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  invitationToken: string
+): Promise<AuthResponse> {
+  try {
+    logger.info(LogSource.AUTH, 'Registering user with invitation and enhanced authentication context', { 
+      email, 
+      invitationToken 
+    });
+
+    // Use the registration flow coordinator for orchestrated invitation registration
+    const result = await registrationFlowCoordinator.coordinateInvitationRegistration({
+      email,
+      password,
+      firstName,
+      lastName,
+      invitationToken
+    });
+
+    if (!result.success) {
+      logger.error(LogSource.AUTH, 'Invitation registration coordination failed', result.error);
+      
+      return {
+        success: false,
+        user: undefined,
+        session: undefined,
+        error: {
+          message: result.error?.message || 'Invitation registration failed',
+          code: result.error?.code || 'INVITATION_REGISTRATION_FAILED',
+          technicalDetails: result.error?.technicalDetails
+        }
+      };
+    }
+
+    // Ensure authentication context is properly established for invitation registration
+    if (result.session) {
+      logger.info(LogSource.AUTH, 'Invitation registration successful with active session', { 
+        userId: result.user?.id,
+        sessionActive: !!result.session,
+        role: result.user?.role
+      });
+      
+      // Verify the session is valid and authentication context is established
+      try {
+        const { data: sessionCheck } = await supabase.auth.getSession();
+        if (sessionCheck?.session?.user?.id === result.user?.id) {
+          logger.info(LogSource.AUTH, 'Authentication context verified after invitation registration', {
+            userId: result.user?.id,
+            role: result.user?.role
+          });
+        } else {
+          logger.warn(LogSource.AUTH, 'Authentication context mismatch after invitation registration', {
+            expectedUserId: result.user?.id,
+            actualUserId: sessionCheck?.session?.user?.id
+          });
+        }
+      } catch (sessionError) {
+        logger.warn(LogSource.AUTH, 'Could not verify authentication context for invitation', sessionError);
+      }
+    }
+
+    logger.info(LogSource.AUTH, 'User registered with invitation successfully via coordinator', { 
+      userId: result.user?.id,
+      hasSession: !!result.session,
+      hasProfile: !!result.user,
+      role: result.user?.role
+    });
+
+    return {
+      success: true,
+      user: result.user,
+      session: result.session
+    };
+  } catch (error) {
+    logger.error(LogSource.AUTH, 'Invitation registration exception', error);
+
+    return {
+      success: false,
+      user: undefined,
+      session: undefined,
+      error: {
+        message: 'An unexpected error occurred during invitation registration',
+        code: 'INVITATION_REGISTRATION_EXCEPTION',
+        technicalDetails: error.message
+      }
+    };
   }
 }
 

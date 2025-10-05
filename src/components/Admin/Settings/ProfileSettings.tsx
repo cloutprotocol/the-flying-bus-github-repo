@@ -4,12 +4,11 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import ProfilePictureUpload from '@/components/ui/ProfilePictureUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { updateProfile } from '@/services/settingsService';
 import { useToast } from '@/hooks/use-toast';
-import { Upload } from 'lucide-react';
 
 interface ProfileFormData {
   username: string;
@@ -84,49 +83,41 @@ const ProfileSettings = () => {
     }
   }, [currentUser, form]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase();
+  const handleAvatarUpload = (newAvatarUrl: string) => {
+    form.setValue('avatar_url', newAvatarUrl);
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex items-center gap-6">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={form.watch('avatar_url')} alt={currentUser?.display_name} />
-            <AvatarFallback className="bg-neutral-700 text-white text-lg">
-              {getInitials(currentUser?.display_name || 'User')}
-            </AvatarFallback>
-          </Avatar>
+        <div className="space-y-4">
+          <ProfilePictureUpload
+            currentAvatarUrl={form.watch('avatar_url')}
+            displayName={currentUser?.display_name}
+            userId={currentUser?.id || ''}
+            onUploadSuccess={handleAvatarUpload}
+          />
           
-          <div className="space-y-2">
-            <FormField
-              control={form.control}
-              name="avatar_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Avatar URL</FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                      <Input
-                        {...field}
-                        placeholder="https://example.com/avatar.jpg"
-                        className="flex-1"
-                      />
-                      <Button type="button" variant="outline" size="icon">
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="avatar_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Avatar URL (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="https://example.com/avatar.jpg"
+                    className="flex-1"
+                  />
+                </FormControl>
+                <FormMessage />
+                <p className="text-xs text-muted-foreground">
+                  You can also paste a direct image URL here instead of uploading
+                </p>
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

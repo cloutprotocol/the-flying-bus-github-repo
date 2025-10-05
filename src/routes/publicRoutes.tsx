@@ -11,6 +11,10 @@ import PublicProfile from '@/pages/PublicProfile';
 import Settings from '@/pages/Settings';
 import ReaderAuth from '@/pages/ReaderAuth';
 import RequestInvitation from '@/pages/RequestInvitation';
+import InvitationActivate from '@/pages/InvitationActivate';
+import InvitationActivateAccount from '@/pages/InvitationActivateAccount';
+import InvitationRegister from '@/pages/InvitationRegister';
+import InvitationError from '@/pages/InvitationError';
 
 export const publicRoutes = [
   { path: "/", element: <Index /> },
@@ -18,6 +22,12 @@ export const publicRoutes = [
   { path: "/article/:slug", element: <ArticlePage /> },
   { path: "/reader-auth", element: <ReaderAuth /> },
   { path: "/request-invitation", element: <RequestInvitation /> },
+  
+  // Invitation activation routes
+  { path: "/invitation/activate", element: <InvitationActivate /> },
+  { path: "/invitation/activate-account", element: <InvitationActivateAccount /> },
+  { path: "/invitation/register", element: <InvitationRegister /> },
+  { path: "/invitation/error", element: <InvitationError /> },
   
   // Direct category routes matching the navigation URLs
   { path: "/headliners", element: <CategoryPage /> },
@@ -30,9 +40,9 @@ export const publicRoutes = [
   // Generic category route as fallback
   { path: "/category/:categorySlug", element: <CategoryPage /> },
   
-  { path: "/storyboard", element: <StoryboardPage /> },
-  { path: "/storyboard/:seriesSlug", element: <StoryboardCategoryPage /> },
-  { path: "/storyboard/:seriesSlug/:episodeSlug", element: <StoryboardEpisodePage /> },
+  { path: "/storyboard", element: <StoryboardCategoryPage /> },
+  { path: "/storyboard/:seriesId", element: <StoryboardPage /> },
+  { path: "/storyboard/:seriesId/episode/:episodeId", element: <StoryboardEpisodePage /> },
   { path: "/profile/:username", element: <PublicProfile /> },
   { path: "/settings", element: <Settings /> },
   { path: "*", element: <Navigate to="/" /> },

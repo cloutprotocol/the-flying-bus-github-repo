@@ -96,7 +96,10 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
   };
 
   const handleSubmit = async (data: StoryboardArticleFormData): Promise<void> => {
+    console.log('🚀 useStoryboardArticleSubmission: handleSubmit called with data:', data);
+    
     if (!user?.id) {
+      console.error('❌ useStoryboardArticleSubmission: No user ID');
       toast({
         title: "Authentication required",
         description: "You must be logged in to submit articles.",
@@ -110,18 +113,31 @@ export const useStoryboardArticleSubmission = ({ form, articleId }: UseStoryboar
     try {
       const formData = convertToArticleFormData(data);
       
+      console.log('🎯 useStoryboardArticleSubmission: Converted form data:', {
+        title: formData.title,
+        articleType: formData.articleType,
+        episodeCount: formData.storyboardEpisodes?.length,
+        categoryId: formData.categoryId
+      });
+      
+      console.log('📡 useStoryboardArticleSubmission: Calling UnifiedSubmissionService.submitForReview');
       const result = await UnifiedSubmissionService.submitForReview(formData, user.id);
       
+      console.log('📥 useStoryboardArticleSubmission: Submission result:', result);
+      
       if (result.success) {
+        console.log('✅ useStoryboardArticleSubmission: Submission successful');
         toast({
           title: "Submission successful",
           description: "Your storyboard series has been submitted for review!",
         });
         navigate('/admin/my-articles');
       } else {
+        console.error('❌ useStoryboardArticleSubmission: Submission failed:', result.error);
         throw new Error(result.error || 'Failed to submit article');
       }
     } catch (error) {
+      console.error('💥 useStoryboardArticleSubmission: Submission error:', error);
       logger.error(LogSource.ARTICLE, 'Submit error', error);
       toast({
         title: "Submission failed",

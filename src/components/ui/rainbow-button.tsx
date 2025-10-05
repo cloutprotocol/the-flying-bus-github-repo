@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils";
 interface RainbowButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
 
-export function RainbowButton({
+export const RainbowButton = React.forwardRef<HTMLButtonElement, RainbowButtonProps>(({
   children,
   className,
   ...props
-}: RainbowButtonProps) {
+}, ref) => {
   return (
     <button
+      ref={ref}
       className={cn(
         "group relative inline-flex h-10 animate-rainbow cursor-pointer items-center justify-center rounded-xl border-0 bg-[length:200%] px-4 py-1 text-sm font-medium transition-all hover:scale-105 active:scale-95 [background-clip:padding-box,border-box,border-box] [background-origin:border-box] [border:calc(0.08*1rem)_solid_transparent] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
 
@@ -40,4 +41,6 @@ export function RainbowButton({
       {children}
     </button>
   );
-}
+});
+
+RainbowButton.displayName = "RainbowButton";

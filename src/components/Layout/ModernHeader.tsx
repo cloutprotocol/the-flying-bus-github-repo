@@ -7,8 +7,10 @@ import { HeaderButtons } from '@/components/ui/header-buttons';
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { Button } from '@/components/ui/button';
 import menuItems from './menuItems';
 import DrawerNavigation from '@/components/ui/drawer-navigation';
@@ -61,6 +63,9 @@ const ModernHeader = memo(() => {
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-full sm:w-80 overflow-y-auto">
+                <VisuallyHidden>
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                </VisuallyHidden>
                 <DrawerNavigation items={menuItems} />
               </SheetContent>
             </Sheet>

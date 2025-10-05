@@ -25,12 +25,65 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
   const activeRequestIdRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
 
-  // Cleanup on unmount
+  // Reset refs and clear stale loading states on mount/remount
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Clear any stale loading states when component mounts/remounts
+    setIsLoading(false);
+    setStableLoading(false);
+    setError(null);
+    
+    // Reset active request tracking to prevent stale request conflicts
+    activeRequestIdRef.current = null;
+    
+    logger.info(LogSource.ARTICLE, 'useArticlePagination mounted/remounted, clearing stale states');
+    
+    // Listen for navigation changes to clear stale loading states
+    const handleNavigationChange = (event: CustomEvent) => {
+      logger.info(LogSource.ARTICLE, 'Navigation change detected, clearing loading states', {
+        from: event.detail.from,
+        to: event.detail.to
+      });
+      
+      // Cancel any active requests
+      activeRequestIdRef.current = null;
+      
+      // Clear loading states if component is still mounted
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setStableLoading(false);
+        setError(null);
+      }
+    };
+    
+    window.addEventListener('navigation-change', handleNavigationChange as EventListener);
+    
     return () => {
       isMountedRef.current = false;
+      // Clear any pending timeouts
+      activeRequestIdRef.current = null;
+      window.removeEventListener('navigation-change', handleNavigationChange as EventListener);
     };
   }, []);
+
+  // Reset state when filters.categoryId changes to prevent stale data
+  useEffect(() => {
+    if (filters.categoryId && filters.categoryId !== prevCategoryIdRef.current) {
+      logger.info(LogSource.ARTICLE, 'Category changed, resetting article state', {
+        newCategory: filters.categoryId,
+        previousCategory: prevCategoryIdRef.current
+      });
+      
+      // Clear articles and reset loading states for new category
+      setArticles([]);
+      setTotalCount(0);
+      setError(null);
+      
+      // Cancel any pending requests
+      activeRequestIdRef.current = null;
+    }
+  }, [filters.categoryId]);
 
   useEffect(() => {
     let isStale = false;
@@ -39,6 +92,9 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
     // Skip fetch if no category is selected
     if (!filters.categoryId) {
       logger.info(LogSource.ARTICLE, 'No category ID provided, skipping fetch');
+      // Clear loading states when no category
+      setIsLoading(false);
+      setStableLoading(false);
       return;
     }
     
@@ -48,6 +104,9 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         categoryId: filters.categoryId,
         prevCategoryId: prevCategoryIdRef.current
       });
+      // Ensure loading states are cleared for cached data
+      setIsLoading(false);
+      setStableLoading(false);
       return;
     }
     
@@ -83,9 +142,13 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
         logger.info(LogSource.ARTICLE, 'Query built, fetching data...');
         const { data, error: fetchError, count } = await query;
 
-        // Don't update state if component unmounted
+        // Don't update state if component unmounted or request is stale
         if (isStale || !isMountedRef.current) {
-          logger.info(LogSource.ARTICLE, 'Component unmounted, cancelling fetch', { requestId });
+          logger.info(LogSource.ARTICLE, 'Component unmounted or request stale, cancelling fetch', { 
+            requestId,
+            isStale,
+            isMounted: isMountedRef.current
+          });
           return;
         }
 

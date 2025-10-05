@@ -28,6 +28,9 @@ export const fetchDebateSettings = async (articleId: string) => {
       return null;
     }
 
+    // Vote counts will be fetched separately by the voting component
+    const initialVotes = { yes: 0, no: 0 };
+
     // Map database fields to frontend format
     const mappedData = {
       question: data.question,
@@ -35,7 +38,7 @@ export const fetchDebateSettings = async (articleId: string) => {
       no_position: data.no_position,
       voting_enabled: data.voting_enabled,
       voting_ends_at: data.voting_ends_at,
-      initialVotes: { yes: 0, no: 0 } // Will be fetched separately from article_votes
+      initialVotes
     };
 
     logger.info(LogSource.DATABASE, 'Debate settings fetched successfully', { 

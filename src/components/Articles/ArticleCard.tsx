@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,7 @@ interface ArticleCardProps extends ArticleProps {
   className?: string;
 }
 
-const ArticleCard: React.FC<ArticleCardProps> = ({
+const ArticleCard: React.FC<ArticleCardProps> = React.memo(({
   id,
   title,
   excerpt,
@@ -49,8 +49,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
   className,
   onClick,
 }) => {
-  // Helper function to get the appropriate color class for category badges
-  const getCategoryColorClass = (colorName?: string) => {
+  // Memoize category color class calculation
+  const getCategoryColorClass = useMemo(() => (colorName?: string) => {
     if (!colorName || colorName === 'undefined') {
       logger.warn(LogSource.APP, `Missing category color for article ${id}, using default red`);
       return 'bg-flyingbus-red';
@@ -65,13 +65,14 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
     }
     
     return `bg-flyingbus-${normalizedColor}`;
-  };
+  }, []);
 
-  const handleClick = () => {
+  // Memoize click handler
+  const handleClick = useCallback(() => {
     if (onClick) {
       onClick();
     }
-  };
+  }, [onClick]);
 
   return (
     <Link 
@@ -122,6 +123,8 @@ const ArticleCard: React.FC<ArticleCardProps> = ({
       </Card>
     </Link>
   );
-};
+});
+
+ArticleCard.displayName = 'ArticleCard';
 
 export default ArticleCard;

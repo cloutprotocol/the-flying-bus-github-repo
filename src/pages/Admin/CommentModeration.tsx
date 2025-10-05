@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModeratorDashboard from '@/components/Admin/Moderation/ModeratorDashboard';
 import CommentModerationFilters from '@/components/Admin/Moderation/CommentModerationFilters';
 import CommentModerationContent from '@/components/Admin/Moderation/CommentModerationContent';
-import useCommentModeration from '@/hooks/useCommentModeration';
+import { useSimpleCommentModeration } from '@/hooks/useSimpleCommentModeration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import ErrorDisplay from '@/components/Admin/Common/ErrorDisplay';
@@ -27,7 +27,7 @@ const CommentModeration = () => {
     onReject,
     loadMoreComments,
     refreshComments
-  } = useCommentModeration();
+  } = useSimpleCommentModeration();
 
   // Refresh comments when switching back to the comments tab
   useEffect(() => {

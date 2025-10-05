@@ -40,7 +40,7 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
       content: '',
       excerpt: '',
       imageUrl: '',
-      categoryId: isNewArticle && categoryData ? categoryData.id : '',
+      categoryId: '',
       slug: '',
       articleType: 'storyboard',
       status: 'draft',
@@ -58,6 +58,14 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
       }]
     }
   });
+
+  // Update form with resolved category data when it becomes available
+  React.useEffect(() => {
+    if (isNewArticle && categoryData?.id) {
+      console.log('StoryboardArticleForm: Setting categoryId from resolved data:', categoryData.id);
+      form.setValue('categoryId', categoryData.id);
+    }
+  }, [isNewArticle, categoryData?.id, form]);
 
   const { handleSubmit, formState: { isDirty, isSubmitting } } = form;
   const { isSaving, handleSaveDraft, handleSubmit: onSubmit } = useStoryboardArticleSubmission({
@@ -103,25 +111,94 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
 
   // Enhanced submit handler with validation
   const handleFormSubmit = async (data: StoryboardArticleFormData) => {
+    console.log('🎉 StoryboardArticleForm: handleFormSubmit called with data:', data);
+    
     // Validate that we have a categoryId before submitting
     if (!data.categoryId) {
-      console.error('Cannot submit storyboard article without categoryId');
+      console.error('❌ Cannot submit storyboard article without categoryId');
+      alert('❌ Cannot submit storyboard article without categoryId');
       return;
     }
     
-    console.log('Submitting storyboard article with data:', {
+    // Validate episodes
+    if (!data.storyboardEpisodes || data.storyboardEpisodes.length === 0) {
+      console.error('❌ Cannot submit storyboard article without episodes');
+      alert('❌ Cannot submit storyboard article without episodes');
+      return;
+    }
+    
+    console.log('✅ StoryboardArticleForm: Validation passed, submitting storyboard article with data:', {
       title: data.title,
       categoryId: data.categoryId,
       articleType: data.articleType,
       episodes: data.storyboardEpisodes?.length
     });
     
+    console.log('🚀 StoryboardArticleForm: About to call onSubmit');
     await onSubmit(data);
+    console.log('✅ StoryboardArticleForm: onSubmit completed');
+  };
+
+  // Wrapper for SimpleFormActions that triggers form submission
+  const handleSubmitForActions = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    console.log('🚀 StoryboardArticleForm: handleSubmitForActions called');
+    
+    // Get form data and validate manually
+    const formValues = form.getValues();
+    const formErrors = form.formState.errors;
+    console.log('📋 StoryboardArticleForm: Current form values:', formValues);
+    console.log('❌ StoryboardArticleForm: Current form errors:', JSON.stringify(formErrors, null, 2));
+    console.log('✅ StoryboardArticleForm: Form is valid:', form.formState.isValid);
+    
+    // Log specific field errors
+    Object.keys(formErrors).forEach(field => {
+      console.error(`🚨 Validation error in field "${field}":`, formErrors[field]?.message);
+    });
+    
+    // Trigger form validation
+    const isValid = await form.trigger();
+    console.log('🔍 StoryboardArticleForm: Manual validation result:', isValid);
+    
+    if (!isValid) {
+      console.error('❌ StoryboardArticleForm: Form validation failed, not submitting');
+      
+      // Get fresh errors after validation
+      const freshErrors = form.formState.errors;
+      console.error('🚨 StoryboardArticleForm: Fresh validation errors:', JSON.stringify(freshErrors, null, 2));
+      
+      // Show specific field errors
+      Object.keys(freshErrors).forEach(field => {
+        console.error(`🚨 Field "${field}" error:`, freshErrors[field]?.message);
+      });
+      
+      // Show an alert with the first error
+      const firstError = Object.values(freshErrors)[0];
+      if (firstError?.message) {
+        alert(`Validation Error: ${firstError.message}`);
+      }
+      
+      return;
+    }
+    
+    console.log('⏳ StoryboardArticleForm: Form is valid, calling handleFormSubmit directly');
+    try {
+      await handleFormSubmit(formValues);
+      console.log('✅ StoryboardArticleForm: handleFormSubmit completed');
+    } catch (error) {
+      console.error('💥 StoryboardArticleForm: handleFormSubmit error:', error);
+    }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        console.log('StoryboardArticleForm: Form onSubmit triggered - calling handleSubmitForActions');
+        handleSubmitForActions(e);
+      }} className="space-y-6">
         <StoryboardFormContent 
           form={form}
           isSubmitting={isSubmitting}
@@ -131,7 +208,7 @@ const StoryboardArticleForm: React.FC<StoryboardArticleFormProps> = ({
         
         <SimpleFormActions 
           onSaveDraft={handleSaveDraft}
-          onSubmit={handleSubmit(handleFormSubmit)}
+          onSubmit={handleSubmitForActions}
           isSubmitting={isSubmitting}
           isDirty={isDirty}
           isSaving={isSaving}

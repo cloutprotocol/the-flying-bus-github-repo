@@ -11,7 +11,7 @@ import FilterPanel from './FilterPanel';
 import SelectionToolbar from './SelectionToolbar';
 import { MediaUploader } from '@/components/Common/MediaUploader';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import useMediaManager from '@/hooks/useMediaManager';
+import { useSimpleMediaManager } from '@/hooks/useSimpleMediaManager';
 import { Input } from '@/components/ui/input';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -33,7 +33,7 @@ const MediaManager = () => {
     totalCount,
     fetchMedia,
     handleDelete
-  } = useMediaManager();
+  } = useSimpleMediaManager();
   
   const handleMediaSelect = (id: string) => {
     if (selectedMedia.includes(id)) {
@@ -157,13 +157,25 @@ const MediaManager = () => {
               </div>
             ) : viewMode === 'grid' ? (
               <MediaGrid 
-                media={media} 
+                media={media.map(item => ({
+                  id: item.id,
+                  url: item.url,
+                  title: item.filename,
+                  type: item.file_type, // This maps 'image' or 'video' correctly
+                  date: new Date(item.created_at).toLocaleDateString()
+                }))} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />
             ) : (
               <MediaList 
-                media={media} 
+                media={media.map(item => ({
+                  id: item.id,
+                  url: item.url,
+                  title: item.filename,
+                  type: item.file_type, // This maps 'image' or 'video' correctly
+                  date: new Date(item.created_at).toLocaleDateString()
+                }))} 
                 selectedMedia={selectedMedia}
                 onMediaSelect={handleMediaSelect}
               />

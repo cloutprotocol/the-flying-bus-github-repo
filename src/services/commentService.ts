@@ -48,14 +48,7 @@ export const getFlaggedComments = async (
         article_id,
         user_id,
         status,
-        profiles!user_id(display_name, avatar_url),
-        flagged_comments:flagged_content(
-          id,
-          reason,
-          reporter_id,
-          status,
-          created_at
-        )
+        profiles!user_id(display_name, avatar_url)
       `, { count: 'exact' });
     
     // Apply filters based on the selected filter type
@@ -98,14 +91,7 @@ export const getFlaggedComments = async (
     }
     
     // Transform the data for the UI
-    const comments = data?.map((comment: CommentWithFlagged) => {
-      // Get the flagged_content associated with this comment
-      const flaggedContentArray = Array.isArray(comment.flagged_comments) 
-        ? comment.flagged_comments 
-        : comment.flagged_comments ? [comment.flagged_comments] : [];
-      
-      const flaggedContent = flaggedContentArray.length > 0 ? flaggedContentArray[0] : {} as FlaggedContent;
-      
+    const comments = data?.map((comment: any) => {
       return {
         id: comment.id,
         content: comment.content,
@@ -118,9 +104,9 @@ export const getFlaggedComments = async (
         articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
         createdAt: new Date(comment.created_at),
         status: comment.status || 'pending',
-        flagReason: flaggedContent.reason || '',
-        reportedBy: flaggedContent.reporter_id ? 'User' : 'System',
-        reportedAt: flaggedContent.created_at ? new Date(flaggedContent.created_at) : null,
+        flagReason: 'Flagged for review', // Simplified for now
+        reportedBy: 'System',
+        reportedAt: new Date(comment.created_at),
       };
     }) || [];
     

@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArticleProps } from './ArticleCard';
 import FeatureArticleImage from './FeatureArticleImage';
 import FeatureArticleHeader from './FeatureArticleHeader';
 
-const FeatureArticle = (props: ArticleProps) => {
-  const articleUrl = `/article/${props.id}`;
+const FeatureArticle = React.memo((props: ArticleProps) => {
+  // Memoize article URL to prevent recalculation
+  const articleUrl = useMemo(() => `/article/${props.id}`, [props.id]);
 
   return (
     <Link to={articleUrl} className="block">
@@ -32,6 +33,8 @@ const FeatureArticle = (props: ArticleProps) => {
       </article>
     </Link>
   );
-};
+});
+
+FeatureArticle.displayName = 'FeatureArticle';
 
 export default FeatureArticle;

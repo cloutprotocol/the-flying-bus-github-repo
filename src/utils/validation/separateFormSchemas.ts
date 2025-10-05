@@ -22,7 +22,7 @@ export const standardArticleSchema = baseArticleSchema.extend({
 });
 
 // Video Article Schema
-export const videoArticleSchema = baseArticleSchema.extend({
+export const videoArticleSchema = baseArticleSchema.omit({ content: true }).extend({
   articleType: z.literal('video').default('video'),
   videoUrl: z.string().min(1, 'Video URL is required'),
   content: z.string().optional() // Content is optional for videos
@@ -41,7 +41,7 @@ export const debateArticleSchema = baseArticleSchema.extend({
 });
 
 // Storyboard Article Schema
-export const storyboardArticleSchema = baseArticleSchema.extend({
+export const storyboardArticleSchema = baseArticleSchema.omit({ content: true }).extend({
   articleType: z.literal('storyboard').default('storyboard'),
   storyboardEpisodes: z.array(z.object({
     title: z.string().min(1, 'Episode title is required'),
@@ -51,7 +51,7 @@ export const storyboardArticleSchema = baseArticleSchema.extend({
     duration: z.string().optional(),
     number: z.number().min(1),
     content: z.string().optional()
-  })).optional(),
+  })).min(1, 'At least one episode is required'),
   content: z.string().optional() // Content is optional for storyboards
 });
 
