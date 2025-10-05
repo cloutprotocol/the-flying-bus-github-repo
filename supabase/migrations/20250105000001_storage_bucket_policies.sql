@@ -74,5 +74,5 @@ USING (
 -- Migrations cannot insert into storage.buckets (system table)
 -- Run: npm run setup-storage:remote PROJECT_REF to create the bucket
 
--- Add helpful comment
-COMMENT ON TABLE storage.objects IS 'Storage objects with RLS policies for media bucket access control';
+-- Migration complete: RLS policies for media bucket have been created
+-- Note: Cannot add comments to system tables via migrations
