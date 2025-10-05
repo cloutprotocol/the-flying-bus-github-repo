@@ -8,14 +8,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { Mail, User, Calendar, MessageCircle } from 'lucide-react';
+import { Mail, User, Calendar, MessageCircle, Info } from 'lucide-react';
 import { createInvitationRequest } from '@/services/invitationService';
 import CaptchaChallenge from '@/components/Common/CaptchaChallenge';
 import { AsyncOperationManager } from '@/utils/asyncOperationManager';
 import { UserFeedback } from '@/components/Common/UserFeedback';
 import { useUserFeedback } from '@/hooks/useUserFeedback';
 import { UserFriendlyErrorGenerator } from '@/utils/userFriendlyErrors';
+import { EnhancedUserFeedback, useEnhancedUserFeedback } from '@/components/Common/EnhancedUserFeedback';
+import { detectRLSError, generateRLSErrorMessage, type RLSErrorContext } from '@/utils/errorHandling/rlsErrorHandler';
 import { usePerformanceMonitoring, useRequestDeduplication } from '@/hooks/usePerformanceMonitoring';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FormSubmissionState {
   isSubmitting: boolean;
@@ -25,11 +28,21 @@ interface FormSubmissionState {
   startTime: number | null;
 }
 
+interface AuthenticationContext {
+  isAuthenticated: boolean;
+  user: any | null;
+  role: 'anon' | 'authenticated' | 'service_role';
+  canSubmitInvitation: boolean;
+}
+
 const RequestInvitation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMountedRef = useRef(true);
   const activeOperationRef = useRef<string | null>(null);
+  
+  // Authentication context
+  const { currentUser, isLoggedIn, session, isLoading: authLoading, isInitialized } = useAuth();
   
   // Performance monitoring
   const {
@@ -44,17 +57,18 @@ const RequestInvitation = () => {
   
   const { executeWithDeduplication } = useRequestDeduplication();
   
-  // User feedback system
+  // Enhanced user feedback system
   const {
     feedback,
     showError,
     showSuccess,
     showLoading,
     updateProgress,
+    updateRetryInfo,
     clearFeedback,
     retry,
-    setRetryHandler
-  } = useUserFeedback();
+    setRetryCallback
+  } = useEnhancedUserFeedback();
   
   const [submissionState, setSubmissionState] = useState<FormSubmissionState>({
     isSubmitting: false,
@@ -73,6 +87,31 @@ const RequestInvitation = () => {
     childAge: '',
     message: ''
   });
+
+  // Authentication context detection
+  const getAuthenticationContext = (): AuthenticationContext => {
+    const isAuthenticated = isLoggedIn && !!currentUser;
+    const user = currentUser || session?.user || null;
+    
+    let role: 'anon' | 'authenticated' | 'service_role' = 'anon';
+    if (isAuthenticated && currentUser) {
+      role = 'authenticated';
+    } else if (session?.user) {
+      role = 'authenticated';
+    }
+    
+    // Both authenticated and anonymous users can submit invitations
+    const canSubmitInvitation = true;
+    
+    return {
+      isAuthenticated,
+      user,
+      role,
+      canSubmitInvitation
+    };
+  };
+
+  const authContext = getAuthenticationContext();
 
   // Cleanup function for pending operations
   const cleanupPendingOperations = () => {
@@ -126,12 +165,45 @@ const RequestInvitation = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Get current authentication context
+    const currentAuthContext = getAuthenticationContext();
+    
+    console.log(`[RequestInvitation] Form submission started with auth context`, {
+      isAuthenticated: currentAuthContext.isAuthenticated,
+      role: currentAuthContext.role,
+      hasUser: !!currentAuthContext.user,
+      canSubmitInvitation: currentAuthContext.canSubmitInvitation,
+      userId: currentAuthContext.user?.id,
+      userEmail: currentAuthContext.user?.email
+    });
+    
+    // Check if user can submit invitations
+    if (!currentAuthContext.canSubmitInvitation) {
+      const authError = UserFriendlyErrorGenerator.generateFormSubmissionError(
+        { message: 'You do not have permission to submit invitation requests', code: 'PERMISSION_DENIED' },
+        { operation: 'form_submission', component: 'RequestInvitation', userAction: 'submit_form' }
+      );
+      
+      showError(authError.message, {
+        title: authError.title,
+        details: authError.details,
+        nextSteps: authError.nextSteps
+      });
+      
+      return;
+    }
+    
     // Start performance monitoring for form submission
     const performanceTimerId = startFormSubmission('invitation-request', {
       formFields: Object.keys(formData).length,
       hasMessage: !!formData.message,
       messageLength: formData.message?.length || 0,
-      captchaVerified: isCaptchaVerified
+      captchaVerified: isCaptchaVerified,
+      authContext: {
+        isAuthenticated: currentAuthContext.isAuthenticated,
+        role: currentAuthContext.role,
+        hasUser: !!currentAuthContext.user
+      }
     });
     
     // Record memory usage at start of submission
@@ -303,7 +375,7 @@ const RequestInvitation = () => {
       // Update progress - validation complete
       updateProgress(30, '25 seconds');
 
-      // Prepare invitation data
+      // Prepare invitation data with authentication context
       const invitationData = {
         parent_name: formData.parentName,
         parent_email: formData.parentEmail,
@@ -312,11 +384,28 @@ const RequestInvitation = () => {
         message: formData.message || null
       };
 
+      // Log authentication context for debugging
+      console.log(`[RequestInvitation] Submitting with authentication context`, {
+        submissionId,
+        authContext: {
+          isAuthenticated: currentAuthContext.isAuthenticated,
+          role: currentAuthContext.role,
+          userId: currentAuthContext.user?.id,
+          userEmail: currentAuthContext.user?.email,
+          sessionExists: !!session
+        },
+        invitationData: {
+          parent_email: invitationData.parent_email,
+          child_name: invitationData.child_name,
+          child_age: invitationData.child_age
+        }
+      });
+
       // Update progress - data prepared
       updateProgress(50, '20 seconds');
 
       // Set up retry handler for user feedback
-      setRetryHandler(() => {
+      setRetryCallback(() => {
         console.log('[RequestInvitation] Retry handler called');
         handleSubmit(e);
       });
@@ -445,14 +534,51 @@ const RequestInvitation = () => {
           console.error(`[RequestInvitation] Operation failed with error`, {
             submissionId,
             error: error.message,
-            attempts: operationResult.attempts
+            attempts: operationResult.attempts,
+            authContext: {
+              isAuthenticated: currentAuthContext.isAuthenticated,
+              role: currentAuthContext.role,
+              userId: currentAuthContext.user?.id
+            }
           });
           
-          const userError = UserFriendlyErrorGenerator.generateFormSubmissionError(error, {
-            operation: 'form_submission',
-            component: 'RequestInvitation',
-            userAction: 'submit_invitation_request'
-          });
+          // Check for authentication-related errors
+          const isAuthError = error.message?.toLowerCase().includes('auth') || 
+                             error.message?.toLowerCase().includes('permission') ||
+                             error.message?.toLowerCase().includes('unauthorized') ||
+                             error.code === 'PGRST301' || // RLS policy violation
+                             error.code === 'PGRST116'; // JWT expired
+          
+          let userError;
+          if (isAuthError) {
+            userError = UserFriendlyErrorGenerator.generateFormSubmissionError(
+              { 
+                message: 'Authentication issue detected during form submission', 
+                code: 'AUTH_CONTEXT_ERROR',
+                originalError: error.message 
+              },
+              { 
+                operation: 'form_submission', 
+                component: 'RequestInvitation', 
+                userAction: 'submit_invitation_request',
+                authContext: currentAuthContext
+              }
+            );
+            
+            // Add authentication-specific next steps
+            userError.nextSteps = [
+              ...(userError.nextSteps || []),
+              'Try refreshing the page and submitting again',
+              'If you are logged in, try logging out and submitting as an anonymous user',
+              'Contact support if the issue persists'
+            ];
+          } else {
+            userError = UserFriendlyErrorGenerator.generateFormSubmissionError(error, {
+              operation: 'form_submission',
+              component: 'RequestInvitation',
+              userAction: 'submit_invitation_request'
+            });
+          }
           
           showError(userError.message, {
             title: userError.title,
@@ -584,7 +710,13 @@ const RequestInvitation = () => {
         submissionId,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
+        authContext: {
+          isAuthenticated: currentAuthContext.isAuthenticated,
+          role: currentAuthContext.role,
+          userId: currentAuthContext.user?.id,
+          sessionExists: !!session
+        }
       });
       
       // Clear timeout
@@ -601,11 +733,35 @@ const RequestInvitation = () => {
       // Record memory usage at error
       recordMemoryUsage('form-submission-error');
       
-      // Generate user-friendly error message
+      // Generate user-friendly error message with authentication context
+      const isAuthRelatedError = error instanceof Error && (
+        error.message?.toLowerCase().includes('auth') ||
+        error.message?.toLowerCase().includes('permission') ||
+        error.message?.toLowerCase().includes('unauthorized') ||
+        error.message?.toLowerCase().includes('rls') ||
+        error.message?.toLowerCase().includes('policy')
+      );
+      
       const userError = UserFriendlyErrorGenerator.generateFormSubmissionError(
         error instanceof Error ? error : { message: String(error) },
-        { operation: 'form_submission', component: 'RequestInvitation' }
+        { 
+          operation: 'form_submission', 
+          component: 'RequestInvitation',
+          authContext: currentAuthContext,
+          isAuthRelated: isAuthRelatedError
+        }
       );
+      
+      // Add authentication-specific guidance for auth-related errors
+      if (isAuthRelatedError) {
+        userError.nextSteps = [
+          ...(userError.nextSteps || []),
+          'This may be an authentication-related issue',
+          'Try refreshing the page and submitting again',
+          'If you are logged in, consider logging out and submitting anonymously',
+          'Contact support if the problem persists'
+        ];
+      }
       
       showError(userError.message, {
         title: userError.title,
@@ -628,6 +784,25 @@ const RequestInvitation = () => {
     }
   };
 
+  // Show loading state while authentication is initializing
+  if (!isInitialized && authLoading) {
+    return (
+      <MainLayout>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <Card className="shadow-lg">
+            <CardContent className="p-8 text-center">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              </div>
+              <p className="text-gray-600 mt-4">Initializing...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -642,6 +817,31 @@ const RequestInvitation = () => {
           </CardHeader>
           
           <CardContent>
+            {/* Authentication Status Indicator */}
+            {isInitialized && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                authContext.isAuthenticated 
+                  ? 'bg-blue-50 border-blue-200' 
+                  : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {authContext.isAuthenticated 
+                      ? `Submitting as: ${currentUser?.display_name || currentUser?.email || 'Authenticated User'}`
+                      : 'Submitting as: Anonymous User'
+                    }
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  {authContext.isAuthenticated 
+                    ? 'You are logged in. This invitation request will be associated with your account.'
+                    : 'You are not logged in. This invitation request will be submitted anonymously.'
+                  }
+                </p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="parentName">Parent/Guardian Name *</Label>
@@ -774,12 +974,14 @@ const RequestInvitation = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={submissionState.isSubmitting || !isCaptchaVerified}
+                disabled={submissionState.isSubmitting || !isCaptchaVerified || !authContext.canSubmitInvitation}
                 size="lg"
               >
                 {submissionState.isSubmitting 
                   ? `Submitting Request...${submissionState.retryCount > 0 ? ` (Attempt ${submissionState.retryCount + 1})` : ''}`
-                  : 'Submit Invitation Request'
+                  : authContext.isAuthenticated 
+                    ? 'Submit Invitation Request (Authenticated)'
+                    : 'Submit Invitation Request (Anonymous)'
                 }
               </Button>
               

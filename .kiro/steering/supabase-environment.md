@@ -37,6 +37,15 @@
 - Apply migrations with: `supabase db reset` or `supabase db push`
 - Full development freedom
 
+### 🚨 CRITICAL: Default Database Reference
+
+**When user says "database" without qualification, they mean LOCAL database**
+- "database" = Local Supabase database
+- "remote database" or "prod database" = Production database (`xwxuwchndgxnnmfprzds`)
+- Always assume LOCAL unless explicitly stated otherwise
+- Use CLI commands for local database operations
+- Use MCP tools only when explicitly asked about production/remote
+
 ❌ **NEVER Use These**
 - Do NOT use `wxmtfsexxhkjwgrejmji` (old project reference)
 - Do NOT apply untested migrations to production

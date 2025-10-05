@@ -11,6 +11,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:invitation-workflow": "tsx src/test/integration/runInvitationWorkflowTests.ts",
+    "test:invitation-workflow:core": "vitest run src/test/integration/invitationWorkflow.integration.test.tsx",
+    "test:invitation-workflow:edge-cases": "vitest run src/test/integration/invitationWorkflowEdgeCases.integration.test.tsx",
+    "test:invitation-workflow:all": "vitest run src/test/integration/ src/test/RequestInvitation.auth-context.test.tsx src/test/errorHandling.integration.test.tsx src/services/__tests__/invitationService.test.ts src/services/__tests__/adminService.test.ts",
     "test:email-system": "node scripts/test-email-system.js",
     "test:email-system:unit": "vitest run --config vitest.email-system.config.ts 'supabase/functions/**/__tests__/*.test.ts'",
     "test:email-system:integration": "vitest run --config vitest.email-system.config.ts 'src/services/__tests__/invitationFlowIntegration.test.ts'",
@@ -25,7 +29,8 @@
     "deploy:production": "./scripts/deploy-production.sh",
     "health-check": "node scripts/health-check.js",
     "setup:monitoring": "psql -f scripts/setup-monitoring.sql",
-    "validate:production": "node scripts/validate-production-config.js"
+    "validate:production": "node scripts/validate-production-config.js",
+    "create-admin-user": "node scripts/create-admin-user.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

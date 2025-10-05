@@ -13,6 +13,18 @@ import { rlsPolicyManager, type AuthContext, type ProfileCreationData } from './
 import { logger } from '@/utils/logger';
 import { LogSource } from '@/utils/logger/types';
 import { AsyncOperationManager, type AsyncOperationOptions, type OperationResult } from '@/utils/asyncOperationManager';
+import AdminService from './adminService';
+import { 
+  detectRLSError, 
+  generateRLSErrorMessage, 
+  logRLSError, 
+  type RLSErrorContext 
+} from '@/utils/errorHandling/rlsErrorHandler';
+import { 
+  executeAdminOperationWithRetry, 
+  createAdminRetryContext,
+  type AdminRetryResult 
+} from '@/utils/errorHandling/adminRetryHandler';
 
 export interface InvitationRequest {
   id?: string;
@@ -628,23 +640,40 @@ export async function getInvitationRequests(status?: 'pending' | 'approved' | 'd
 }
 
 /**
- * Update invitation request status (admin only)
+ * Update invitation request status (admin only) with enhanced error handling and retry mechanisms
  */
 export async function updateInvitationRequestStatus(
   id: string, 
   status: 'approved' | 'denied', 
   reviewerId: string
 ): Promise<ServiceResponse<InvitationRequest>> {
+  const operationId = `update_invitation_${id}_${Date.now()}`;
+  
+  // Create RLS error context for enhanced error handling
+  const rlsContext: RLSErrorContext = {
+    operation: 'admin_operation',
+    table: 'invitation_requests',
+    userId: reviewerId,
+    isAuthenticated: true,
+    component: 'InvitationService'
+  };
+
   try {
-    console.log(`📝 Updating invitation ${id} status to ${status} by reviewer ${reviewerId}`);
+    console.log(`📝 Updating invitation ${id} status to ${status} by reviewer ${reviewerId}`, {
+      operationId,
+      status,
+      reviewerId
+    });
 
     // Validate input parameters
     if (!id || !status || !reviewerId) {
-      const error = {
-        error: 'Missing required parameters for status update',
-        code: 'INVALID_UPDATE_PARAMS',
-        retryable: false
+      const validationError = {
+        message: 'Missing required parameters for status update',
+        code: 'INVALID_UPDATE_PARAMS'
       };
+      
+      // Generate RLS-aware error message
+      const userError = generateRLSErrorMessage(validationError, rlsContext);
       
       await AuditLogService.logEvent({
         action: 'status_update_validation_failed',
@@ -653,18 +682,27 @@ export async function updateInvitationRequestStatus(
         user_id: reviewerId,
         success: false,
         error_message: 'Missing required parameters',
-        metadata: { status, reviewerId }
+        metadata: { status, reviewerId, operationId }
       });
       
-      return error;
+      return {
+        error: userError.message,
+        code: 'INVALID_UPDATE_PARAMS',
+        retryable: false,
+        details: {
+          userFriendlyError: userError,
+          originalError: validationError
+        }
+      };
     }
 
     if (!['approved', 'denied'].includes(status)) {
-      const error = {
-        error: 'Invalid status value',
-        code: 'INVALID_STATUS',
-        retryable: false
+      const statusError = {
+        message: `Invalid status value: ${status}`,
+        code: 'INVALID_STATUS'
       };
+      
+      const userError = generateRLSErrorMessage(statusError, rlsContext);
       
       await AuditLogService.logEvent({
         action: 'status_update_validation_failed',
@@ -673,246 +711,199 @@ export async function updateInvitationRequestStatus(
         user_id: reviewerId,
         success: false,
         error_message: `Invalid status: ${status}`,
-        metadata: { status, reviewerId }
+        metadata: { status, reviewerId, operationId }
       });
       
-      return error;
+      return {
+        error: userError.message,
+        code: 'INVALID_STATUS',
+        retryable: false,
+        details: {
+          userFriendlyError: userError,
+          originalError: statusError
+        }
+      };
     }
 
-    // Update invitation status
-    let updatedInvitation: InvitationRequest;
-    
-    try {
-      const { data, error } = await supabase
-        .from('invitation_requests')
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-          reviewer_id: reviewerId
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Database error updating invitation status:', error);
-        
-        await AuditLogService.logEvent({
-          action: 'status_update_failed',
-          resource_type: 'invitation_request',
-          resource_id: id,
-          user_id: reviewerId,
-          success: false,
-          error_message: `Database update failed: ${error.message}`,
-          metadata: { 
-            status, 
-            errorCode: error.code,
-            errorDetails: error.details 
-          }
-        });
-        
-        return { 
-          error: 'Failed to update invitation status. Please try again.',
-          code: 'DATABASE_UPDATE_ERROR',
-          retryable: true,
-          details: {
-            originalError: error.message,
-            errorCode: error.code
-          }
-        };
-      }
-
-      updatedInvitation = data;
-      console.log('✅ Invitation status updated successfully');
+    // Validate admin permissions
+    const permissionResult = await AdminService.validateAdminPermissions(reviewerId);
+    if (!permissionResult.success || !permissionResult.data) {
+      const permissionError = {
+        message: 'Insufficient permissions to update invitation status',
+        code: 'PERMISSION_DENIED'
+      };
       
-      // Log successful status update
-      await AuditLogService.logEvent({
-        action: 'status_update_success',
-        resource_type: 'invitation_request',
-        resource_id: id,
-        user_id: reviewerId,
-        success: true,
-        metadata: { 
-          status,
-          previous_status: 'pending' // Assuming it was pending
-        }
-      });
-
-    } catch (error) {
-      console.error('💥 Exception updating invitation status:', error);
+      // Log RLS error with context
+      logRLSError(permissionError, rlsContext);
+      
+      const userError = generateRLSErrorMessage(permissionError, rlsContext);
       
       await AuditLogService.logEvent({
-        action: 'status_update_exception',
+        action: 'status_update_permission_denied',
         resource_type: 'invitation_request',
         resource_id: id,
         user_id: reviewerId,
         success: false,
-        error_message: `Exception during update: ${error.message}`,
+        error_message: 'Insufficient permissions',
+        metadata: { status, reviewerId, permissionCheck: permissionResult, operationId }
+      });
+      
+      return {
+        error: userError.message,
+        code: 'PERMISSION_DENIED',
+        retryable: false,
+        details: {
+          userFriendlyError: userError,
+          originalError: permissionError,
+          permissionCheck: permissionResult
+        }
+      };
+    }
+
+    console.log('✅ Admin permissions validated for reviewer:', reviewerId);
+
+    // Create retry context for admin operation
+    const retryContext = createAdminRetryContext(
+      'updateInvitationStatus',
+      reviewerId,
+      'admin', // Assume admin role since permissions were validated
+      {
+        table: 'invitation_requests',
+        component: 'InvitationService',
+        operationId
+      }
+    );
+
+    // Define primary operation (AdminService with service role)
+    const primaryOperation = async () => {
+      return await AdminService.updateInvitationRequestStatus(
+        id,
+        status,
+        reviewerId,
+        {
+          useServiceRole: true,
+          timeout: 30000,
+          retryAttempts: 1 // Let our retry handler manage retries
+        }
+      );
+    };
+
+    // Define fallback operation (direct database update)
+    const fallbackOperation = async () => {
+      console.log('🔄 Using fallback method for invitation status update');
+      return await updateInvitationStatusFallback(id, status, reviewerId);
+    };
+
+    // Execute with enhanced retry and fallback logic
+    const retryResult: AdminRetryResult<any> = await executeAdminOperationWithRetry(
+      primaryOperation,
+      retryContext,
+      fallbackOperation,
+      {
+        maxAttempts: 3,
+        enableFallback: true,
+        fallbackAfterAttempts: 2,
+        timeoutMs: 45000
+      }
+    );
+
+    if (!retryResult.success) {
+      console.error('❌ All admin operation attempts failed:', retryResult.error);
+      
+      // Detect and handle RLS errors
+      const rlsError = detectRLSError(retryResult.error, rlsContext);
+      if (rlsError) {
+        logRLSError(retryResult.error, rlsContext, rlsError);
+      }
+      
+      const userError = generateRLSErrorMessage(retryResult.error, rlsContext);
+      
+      await AuditLogService.logEvent({
+        action: 'status_update_all_attempts_failed',
+        resource_type: 'invitation_request',
+        resource_id: id,
+        user_id: reviewerId,
+        success: false,
+        error_message: `All attempts failed: ${retryResult.error?.message}`,
         metadata: { 
           status,
-          errorName: error.name,
-          errorStack: error.stack
+          attempts: retryResult.attempts,
+          usedFallback: retryResult.usedFallback,
+          fallbackReason: retryResult.fallbackReason,
+          duration: retryResult.duration,
+          retryable: retryResult.retryable,
+          operationId
         }
       });
       
       return { 
-        error: 'An unexpected error occurred while updating the invitation.',
-        code: 'UPDATE_EXCEPTION',
-        retryable: true,
+        error: userError.message,
+        code: rlsError?.code || 'ADMIN_OPERATION_FAILED',
+        retryable: retryResult.retryable,
         details: {
-          originalError: error.message
+          userFriendlyError: userError,
+          originalError: retryResult.error,
+          attempts: retryResult.attempts,
+          usedFallback: retryResult.usedFallback,
+          fallbackReason: retryResult.fallbackReason,
+          duration: retryResult.duration,
+          rlsError
         }
       };
     }
 
-    // Handle invitation email sending for approved invitations
-    if (status === 'approved') {
-      let emailSent = false;
-      let emailError: any = null;
-      let triggerError: any = null;
-
-      // First attempt: Database trigger (RPC call)
-      try {
-        console.log('📧 Attempting to send invitation email via database trigger...');
-        
-        const { error: rpcError } = await supabase.rpc('send_invitation_email_rpc', {
-          invitation_id_param: id
-        });
-        
-        if (rpcError) {
-          triggerError = rpcError;
-          console.warn('⚠️ Database trigger failed for invitation email:', rpcError);
-          
-          // Log trigger failure
-          await AuditLogService.logEvent({
-            action: 'invitation_email_trigger_failed',
-            resource_type: 'invitation_request',
-            resource_id: id,
-            user_id: reviewerId,
-            success: false,
-            error_message: `Database trigger failed: ${rpcError.message}`,
-            metadata: {
-              trigger_type: 'send_invitation_email_rpc',
-              error_code: rpcError.code,
-              error_details: rpcError.details
-            }
-          });
-          
-          throw rpcError;
-        }
-        
-        emailSent = true;
-        console.log('✅ Invitation email sent via database trigger');
-        
-        // Log successful trigger execution
-        await AuditLogService.logEvent({
-          action: 'invitation_email_trigger_success',
-          resource_type: 'invitation_request',
-          resource_id: id,
-          user_id: reviewerId,
-          success: true,
-          metadata: {
-            trigger_type: 'send_invitation_email_rpc'
-          }
-        });
-        
-      } catch (error) {
-        console.warn('⚠️ Database trigger email failed, attempting client-side fallback:', error);
-        emailError = error;
+    console.log('✅ Invitation status updated successfully', {
+      operationId,
+      attempts: retryResult.attempts,
+      usedFallback: retryResult.usedFallback,
+      duration: retryResult.duration
+    });
+    
+    // Log successful status update with enhanced details
+    await AuditLogService.logEvent({
+      action: 'status_update_success',
+      resource_type: 'invitation_request',
+      resource_id: id,
+      user_id: reviewerId,
+      success: true,
+      metadata: { 
+        status,
+        previous_status: 'pending',
+        method: retryResult.usedFallback ? 'fallback' : 'admin_service',
+        attempts: retryResult.attempts,
+        usedFallback: retryResult.usedFallback,
+        fallbackReason: retryResult.fallbackReason,
+        duration: retryResult.duration,
+        operationId
       }
+    });
 
-      // Second attempt: Client-side fallback if trigger failed
-      if (!emailSent) {
-        try {
-          console.log('📧 Attempting client-side fallback for invitation email...');
-          
-          const fallbackResult = await sendInvitationEmailFallback(id, updatedInvitation);
-          
-          if (fallbackResult.error) {
-            throw new Error(fallbackResult.error);
-          }
-          
-          emailSent = true;
-          console.log('✅ Invitation email sent via client-side fallback');
-          
-          // Log successful fallback
-          await AuditLogService.logEvent({
-            action: 'invitation_email_fallback_success',
-            resource_type: 'invitation_request',
-            resource_id: id,
-            user_id: reviewerId,
-            success: true,
-            metadata: {
-              fallback_reason: triggerError?.message || 'Database trigger failed',
-              fallback_method: 'client_side_direct'
-            }
-          });
-          
-        } catch (fallbackError) {
-          console.error('❌ Client-side fallback for invitation email also failed:', fallbackError);
-          emailError = fallbackError;
-          
-          // Log fallback failure
-          await AuditLogService.logEvent({
-            action: 'invitation_email_fallback_failed',
-            resource_type: 'invitation_request',
-            resource_id: id,
-            user_id: reviewerId,
-            success: false,
-            error_message: `Fallback email failed: ${fallbackError.message}`,
-            metadata: {
-              trigger_error: triggerError?.message,
-              fallback_error: fallbackError.message,
-              both_methods_failed: true,
-              requires_manual_intervention: true
-            }
-          });
-        }
+    // Prepare enhanced response
+    const response: ServiceResponse<InvitationRequest> = {
+      data: retryResult.data,
+      details: {
+        method: retryResult.usedFallback ? 'fallback' : 'admin_service',
+        statusUpdated: true,
+        attempts: retryResult.attempts,
+        usedFallback: retryResult.usedFallback,
+        fallbackReason: retryResult.fallbackReason,
+        duration: retryResult.duration,
+        operationId
       }
+    };
 
-      // Add email status to response
-      const response: ServiceResponse<InvitationRequest> = {
-        data: updatedInvitation
-      };
-
-      if (emailSent) {
-        response.details = {
-          emailSent: true,
-          emailMethod: triggerError ? 'client_fallback' : 'database_trigger'
-        };
-      } else {
-        response.details = {
-          emailSent: false,
-          emailError: emailError?.message || 'Unknown email error',
-          triggerError: triggerError?.message,
-          userMessage: 'The invitation was approved successfully, but we had trouble sending the invitation email. The parent will need to be contacted manually.'
-        };
-        
-        // Log comprehensive email failure for admin attention
-        await AuditLogService.logEvent({
-          action: 'invitation_email_complete_failure',
-          resource_type: 'invitation_request',
-          resource_id: id,
-          user_id: reviewerId,
-          success: false,
-          error_message: 'All invitation email sending methods failed',
-          metadata: {
-            trigger_error: triggerError?.message,
-            fallback_error: emailError?.message,
-            requires_manual_intervention: true,
-            admin_action_needed: true
-          }
-        });
-      }
-
-      return response;
-    }
-
-    // For denied invitations, just return the updated data
-    return { data: updatedInvitation };
+    return response;
 
   } catch (error) {
     console.error('💥 Unexpected exception in updateInvitationRequestStatus:', error);
+    
+    // Handle unexpected errors with RLS context
+    const rlsError = detectRLSError(error, rlsContext);
+    if (rlsError) {
+      logRLSError(error, rlsContext, rlsError);
+    }
+    
+    const userError = generateRLSErrorMessage(error, rlsContext);
     
     await AuditLogService.logEvent({
       action: 'status_update_unexpected_exception',
@@ -924,13 +915,176 @@ export async function updateInvitationRequestStatus(
       metadata: {
         status,
         errorName: error.name,
-        errorStack: error.stack
+        errorStack: error.stack,
+        operationId,
+        rlsErrorCode: rlsError?.code
       }
     });
     
     return { 
-      error: 'An unexpected error occurred. Please try again.',
-      code: 'UNEXPECTED_ERROR',
+      error: userError.message,
+      code: rlsError?.code || 'UNEXPECTED_ERROR',
+      retryable: rlsError?.retryable ?? true,
+      details: {
+        userFriendlyError: userError,
+        originalError: error.message,
+        errorName: error.name,
+        rlsError,
+        operationId
+      }
+    };
+  }
+}
+
+/**
+ * Fallback method for updating invitation status using user context
+ * This is used when AdminService fails
+ */
+async function updateInvitationStatusFallback(
+  id: string,
+  status: 'approved' | 'denied',
+  reviewerId: string
+): Promise<{ success: boolean; data?: InvitationRequest; error?: string }> {
+  try {
+    console.log('🔄 Using fallback method for invitation status update');
+    
+    // Update invitation status using regular user context
+    const { data, error } = await supabase
+      .from('invitation_requests')
+      .update({
+        status,
+        reviewed_at: new Date().toISOString(),
+        reviewer_id: reviewerId
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Fallback database update failed:', error);
+      throw new Error(`Database update failed: ${error.message}`);
+    }
+
+    console.log('✅ Fallback database update succeeded');
+
+    // Try to send email if approved (this may fail due to RLS policies)
+    if (status === 'approved') {
+      try {
+        console.log('📧 Attempting to send invitation email via fallback...');
+        
+        const emailResult = await sendInvitationEmailFallback(id, data);
+        
+        if (emailResult.error) {
+          console.warn('⚠️ Fallback email sending failed:', emailResult.error);
+        } else {
+          console.log('✅ Fallback email sent successfully');
+        }
+      } catch (emailError) {
+        console.warn('⚠️ Fallback email exception:', emailError);
+        // Don't fail the operation if email fails
+      }
+    }
+
+    return {
+      success: true,
+      data
+    };
+
+  } catch (error) {
+    console.error('❌ Fallback method failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Fallback method for sending invitation emails
+ * This uses the regular email service without service role elevation
+ */
+async function sendInvitationEmailFallback(
+  invitationId: string,
+  invitationData: InvitationRequest
+): Promise<ServiceResponse> {
+  try {
+    console.log('📧 Sending invitation email via fallback method');
+
+    // Validate input parameters
+    if (!invitationId || !invitationData) {
+      return {
+        error: 'Invalid parameters for invitation email fallback',
+        code: 'INVALID_FALLBACK_PARAMS',
+        retryable: false
+      };
+    }
+
+    if (!invitationData.parent_email) {
+      return {
+        error: 'Missing parent email for invitation',
+        code: 'MISSING_EMAIL',
+        retryable: false
+      };
+    }
+
+    // Prepare email data
+    const emailData = {
+      type: 'invitation_approved',
+      to: invitationData.parent_email,
+      templateData: {
+        parentName: invitationData.parent_name || 'Parent',
+        childName: invitationData.child_name || 'Child',
+        invitationId: invitationId,
+        approvalDate: invitationData.reviewed_at || new Date().toISOString()
+      }
+    };
+
+    // Use AuthenticatedApiService for email sending
+    const emailResult = await AuthenticatedApiService.sendEmail(emailData);
+
+    if (!emailResult.success) {
+      console.error('❌ Fallback email sending failed:', emailResult.error);
+      return {
+        error: emailResult.error || 'Email sending failed',
+        code: emailResult.code || 'EMAIL_SEND_FAILED',
+        retryable: true,
+        details: emailResult.details
+      };
+    }
+
+    console.log('✅ Invitation email sent successfully via fallback');
+
+    // Try to log email event (may fail due to RLS policies)
+    try {
+      await AuditLogService.logEvent({
+        action: 'invitation_email_sent_fallback',
+        resource_type: 'invitation_request',
+        resource_id: invitationId,
+        user_email: invitationData.parent_email,
+        success: true,
+        metadata: {
+          method: 'fallback_email_service',
+          email_type: 'invitation_approved'
+        }
+      });
+    } catch (auditError) {
+      console.warn('⚠️ Audit logging failed for fallback email:', auditError);
+      // Don't fail the operation if audit logging fails
+    }
+
+    return {
+      data: emailResult.data,
+      details: {
+        method: 'fallback_email_service',
+        emailSent: true
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Invitation email fallback exception:', error);
+    return {
+      error: error.message || 'Invitation email fallback failed',
+      code: 'EMAIL_FALLBACK_EXCEPTION',
       retryable: true,
       details: {
         originalError: error.message
@@ -1199,11 +1353,12 @@ async function sendConfirmationEmailWithFallback(
       }
     });
 
-    const { error: rpcError } = await Promise.race([triggerPromise, abortPromise]);
+    const { data: rpcData, error: rpcError } = await Promise.race([triggerPromise, abortPromise]);
     
+    // Check for RPC call error (network/connection issues)
     if (rpcError) {
       triggerError = rpcError;
-      console.warn('⚠️ [InvitationService] Database trigger failed:', rpcError);
+      console.warn('⚠️ [InvitationService] Database trigger RPC call failed:', rpcError);
       
       await AuditLogService.logEvent({
         action: 'email_trigger_failed',
@@ -1211,7 +1366,7 @@ async function sendConfirmationEmailWithFallback(
         resource_id: invitationId,
         user_email: invitationData.parent_email,
         success: false,
-        error_message: `Database trigger failed: ${rpcError.message}`,
+        error_message: `Database trigger RPC failed: ${rpcError.message}`,
         metadata: {
           trigger_type: 'send_confirmation_email_rpc',
           error_code: rpcError.code,
@@ -1221,6 +1376,61 @@ async function sendConfirmationEmailWithFallback(
       });
       
       throw rpcError;
+    }
+    
+    // Check the response data for email sending success/failure
+    if (rpcData && typeof rpcData === 'object') {
+      if (rpcData.success === false || rpcData.fallback_required === true) {
+        // Email sending failed, but RPC call succeeded - trigger fallback
+        const errorMessage = rpcData.message || rpcData.error || 'Database trigger email sending failed';
+        triggerError = new Error(errorMessage);
+        
+        console.warn('⚠️ [InvitationService] Database trigger email sending failed:', {
+          success: rpcData.success,
+          error: rpcData.error,
+          message: rpcData.message,
+          fallback_required: rpcData.fallback_required
+        });
+        
+        await AuditLogService.logEvent({
+          action: 'email_trigger_failed',
+          resource_type: 'invitation_request',
+          resource_id: invitationId,
+          user_email: invitationData.parent_email,
+          success: false,
+          error_message: `Database trigger email failed: ${errorMessage}`,
+          metadata: {
+            trigger_type: 'send_confirmation_email_rpc',
+            trigger_response: rpcData,
+            fallback_required: rpcData.fallback_required,
+            operation_id: operationId
+          }
+        });
+        
+        throw triggerError;
+      }
+      
+      // Check if email was skipped (already sent recently)
+      if (rpcData.skipped === true) {
+        console.log('ℹ️ [InvitationService] Confirmation email was skipped (already sent recently)');
+        emailSent = true;
+        
+        await AuditLogService.logEvent({
+          action: 'email_trigger_skipped',
+          resource_type: 'invitation_request',
+          resource_id: invitationId,
+          user_email: invitationData.parent_email,
+          success: true,
+          metadata: {
+            trigger_type: 'send_confirmation_email_rpc',
+            reason: 'already_sent_recently',
+            last_sent_at: rpcData.last_sent_at,
+            operation_id: operationId
+          }
+        });
+        
+        return; // Exit early - email was already sent
+      }
     }
     
     emailSent = true;
@@ -1631,306 +1841,7 @@ async function sendConfirmationEmailDirect(invitationId: string): Promise<Servic
   }
 }
 
-/**
- * Enhanced fallback for sending invitation emails with proper service role authentication and comprehensive error handling
- */
-async function sendInvitationEmailFallback(
-  invitationId: string, 
-  invitationData: any
-): Promise<ServiceResponse> {
-  try {
-    console.log('📧 Starting enhanced invitation email fallback for invitation:', invitationId);
 
-    // Validate input parameters
-    if (!invitationId || !invitationData) {
-      const error = {
-        error: 'Invalid parameters for invitation email fallback',
-        code: 'INVALID_FALLBACK_PARAMS',
-        retryable: false,
-        details: {
-          hasInvitationId: !!invitationId,
-          hasInvitationData: !!invitationData
-        }
-      };
-
-      await AuditLogService.logEvent({
-        action: 'invitation_email_fallback_validation_failed',
-        resource_type: 'invitation_request',
-        resource_id: invitationId || 'unknown',
-        success: false,
-        error_message: 'Invalid parameters for invitation email fallback',
-        metadata: error.details
-      });
-
-      return error;
-    }
-
-    // Validate invitation status
-    if (invitationData.status !== 'approved') {
-      const error = {
-        error: 'Invitation must be approved before sending email',
-        code: 'INVITATION_NOT_APPROVED',
-        retryable: false,
-        details: {
-          invitationId,
-          currentStatus: invitationData.status,
-          requiredStatus: 'approved'
-        }
-      };
-
-      await AuditLogService.logEvent({
-        action: 'invitation_email_fallback_validation_failed',
-        resource_type: 'invitation_request',
-        resource_id: invitationId,
-        success: false,
-        error_message: 'Invitation not approved for email sending',
-        metadata: error.details
-      });
-
-      return error;
-    }
-
-    // Validate email address
-    if (!invitationData.parent_email) {
-      const error = {
-        error: 'Missing parent email for invitation',
-        code: 'MISSING_EMAIL',
-        retryable: false,
-        details: {
-          invitationId,
-          hasParentName: !!invitationData.parent_name,
-          hasChildName: !!invitationData.child_name
-        }
-      };
-
-      await AuditLogService.logEvent({
-        action: 'invitation_email_fallback_validation_failed',
-        resource_type: 'invitation_request',
-        resource_id: invitationId,
-        success: false,
-        error_message: 'Missing parent email for invitation',
-        metadata: error.details
-      });
-
-      return error;
-    }
-
-    // Prepare email data with invitation ID for server-side token generation
-    const emailData = {
-      type: 'invitation_approved' as const,
-      to: invitationData.parent_email,
-      templateData: {
-        parentName: invitationData.parent_name || 'Parent',
-        childName: invitationData.child_name || 'Child',
-        invitationId: invitationId
-      }
-    };
-
-    console.log('📧 Prepared invitation email data:', {
-      to: emailData.to,
-      type: emailData.type,
-      parentName: emailData.templateData.parentName,
-      invitationId
-    });
-
-    // Log fallback attempt using enhanced logging
-    try {
-      await supabase.rpc('log_fallback_email_event', {
-        p_event_type: 'fallback_attempt',
-        p_email: invitationData.parent_email,
-        p_template: 'invitation_approved',
-        p_success: true,
-        p_message_id: null,
-        p_error_message: null,
-        p_metadata: {
-          invitation_id: invitationId,
-          parent_name: emailData.templateData.parentName,
-          child_name: emailData.templateData.childName,
-          method: 'authenticated_api_service'
-        }
-      });
-    } catch (logError) {
-      console.warn('Failed to log invitation fallback attempt:', logError);
-    }
-
-    // Also log to audit logs for backward compatibility
-    await AuditLogService.logEvent({
-      action: 'invitation_email_fallback_attempt',
-      resource_type: 'invitation_request',
-      resource_id: invitationId,
-      user_email: invitationData.parent_email,
-      success: true,
-      metadata: {
-        email_type: emailData.type,
-        parent_name: emailData.templateData.parentName,
-        child_name: emailData.templateData.childName
-      }
-    });
-
-    // Use the authenticated API service to send email with proper service role authentication
-    const emailResult = await AuthenticatedApiService.sendEmail(emailData);
-
-    if (!emailResult.success) {
-      console.error('❌ Invitation email fallback failed:', emailResult.error);
-      
-      // Log fallback failure using enhanced logging
-      try {
-        await supabase.rpc('log_fallback_email_event', {
-          p_event_type: 'failed',
-          p_email: invitationData.parent_email,
-          p_template: 'invitation_approved',
-          p_success: false,
-          p_message_id: null,
-          p_error_message: emailResult.error || 'Email fallback failed',
-          p_metadata: {
-            invitation_id: invitationId,
-            error_code: emailResult.code,
-            retryable: emailResult.retryable,
-            attempts: emailResult.details?.attempts,
-            last_error: emailResult.details?.lastError,
-            service_role_available: emailResult.details?.serviceRoleAvailable,
-            method: 'authenticated_api_service'
-          }
-        });
-      } catch (logError) {
-        console.warn('Failed to log invitation fallback failure:', logError);
-      }
-
-      // Also log to audit logs for backward compatibility
-      await AuditLogService.logEvent({
-        action: 'invitation_email_fallback_failed',
-        resource_type: 'invitation_request',
-        resource_id: invitationId,
-        user_email: invitationData.parent_email,
-        success: false,
-        error_message: emailResult.error || 'Email fallback failed',
-        metadata: {
-          error_code: emailResult.code,
-          retryable: emailResult.retryable,
-          attempts: emailResult.details?.attempts,
-          last_error: emailResult.details?.lastError,
-          service_role_available: emailResult.details?.serviceRoleAvailable
-        }
-      });
-
-      return {
-        error: emailResult.error || 'Failed to send invitation email',
-        code: emailResult.code || 'INVITATION_EMAIL_FALLBACK_FAILED',
-        retryable: emailResult.retryable !== false,
-        details: {
-          ...emailResult.details,
-          invitationId,
-          userMessage: 'The invitation was approved successfully, but we had trouble sending the invitation email. Please contact support for assistance.'
-        }
-      };
-    }
-
-    console.log('✅ Invitation email sent successfully via authenticated fallback');
-
-    // Log successful fallback using enhanced logging
-    try {
-      await supabase.rpc('log_fallback_email_event', {
-        p_event_type: 'sent',
-        p_email: invitationData.parent_email,
-        p_template: 'invitation_approved',
-        p_success: true,
-        p_message_id: emailResult.data?.messageId || `fallback_${invitationId}`,
-        p_error_message: null,
-        p_metadata: {
-          invitation_id: invitationId,
-          attempts: emailResult.details?.attempt || 1,
-          method: 'authenticated_api_service'
-        }
-      });
-    } catch (logError) {
-      console.warn('Failed to log invitation fallback success:', logError);
-    }
-
-    // Also log to audit logs for backward compatibility
-    await AuditLogService.logEvent({
-      action: 'invitation_email_fallback_success',
-      resource_type: 'invitation_request',
-      resource_id: invitationId,
-      user_email: invitationData.parent_email,
-      success: true,
-      metadata: {
-        email_method: 'authenticated_fallback',
-        attempts: emailResult.details?.attempt || 1,
-        message_id: emailResult.data?.messageId
-      }
-    });
-
-    // Update invitation with email timestamp
-    try {
-      const { error: updateError } = await supabase
-        .from('invitation_requests')
-        .update({ 
-          invitation_email_sent_at: new Date().toISOString()
-        })
-        .eq('id', invitationId);
-
-      if (updateError) {
-        console.warn('⚠️ Failed to update invitation email timestamp:', updateError);
-        
-        // Log timestamp update failure (non-critical)
-        await AuditLogService.logEvent({
-          action: 'invitation_email_timestamp_update_failed',
-          resource_type: 'invitation_request',
-          resource_id: invitationId,
-          success: false,
-          error_message: `Timestamp update failed: ${updateError.message}`,
-          metadata: {
-            error_code: updateError.code,
-            email_sent: true
-          }
-        });
-      } else {
-        console.log('✅ Updated invitation email timestamp');
-      }
-    } catch (updateError) {
-      console.warn('⚠️ Exception updating invitation email timestamp:', updateError);
-    }
-
-    return { 
-      data: { 
-        success: true, 
-        messageId: emailResult.data?.messageId,
-        method: 'authenticated_fallback',
-        invitationId,
-        authenticated: true
-      } 
-    };
-
-  } catch (error) {
-    console.error('💥 Exception in invitation email fallback:', error);
-    
-    // Log unexpected exception
-    await AuditLogService.logEvent({
-      action: 'invitation_email_fallback_exception',
-      resource_type: 'invitation_request',
-      resource_id: invitationId || 'unknown',
-      user_email: invitationData?.parent_email || 'unknown',
-      success: false,
-      error_message: `Unexpected exception: ${error.message}`,
-      metadata: {
-        error_name: error.name,
-        error_stack: error.stack,
-        has_invitation_data: !!invitationData
-      }
-    });
-    
-    return { 
-      error: error.message || 'Unexpected error in invitation email fallback',
-      code: 'INVITATION_FALLBACK_EXCEPTION',
-      retryable: true,
-      details: {
-        invitationId,
-        errorName: error.name,
-        userMessage: 'An unexpected error occurred while sending your invitation email. Please contact support.'
-      }
-    };
-  }
-}
 
 /**
  * Send invitation email directly via Edge Function (legacy fallback)
