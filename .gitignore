@@ -42,3 +42,4 @@ supabase/.env.local
 .env.production
 wallet/.env
 supabase/.env.production
+supabase/migrations/*remote_schema.sql
