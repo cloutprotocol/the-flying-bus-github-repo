@@ -2,8 +2,8 @@
 -- This migration creates RLS policies for storage buckets
 -- It's designed to be idempotent and safe for branch merging
 
--- Enable RLS on storage.objects (should already be enabled, but ensure it)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: RLS is already enabled on storage.objects by default in Supabase
+-- We cannot modify system tables via migrations, so we skip the ALTER TABLE command
 
 -- Drop existing policies if they exist (idempotent approach)
 DROP POLICY IF EXISTS "Media bucket public read access" ON storage.objects;
@@ -70,18 +70,9 @@ USING (
   )
 );
 
--- Create storage bucket if it doesn't exist
--- Note: This is a fallback - the bucket should be created via the setup script
--- But this ensures the migration is complete even if the script wasn't run
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'media',
-  'media', 
-  true,
-  52428800, -- 50MB limit
-  ARRAY['image/*', 'video/*', 'audio/*']
-)
-ON CONFLICT (id) DO NOTHING;
+-- Note: Storage buckets must be created via the setup script or Supabase Dashboard
+-- Migrations cannot insert into storage.buckets (system table)
+-- Run: npm run setup-storage:remote PROJECT_REF to create the bucket
 
 -- Add helpful comment
 COMMENT ON TABLE storage.objects IS 'Storage objects with RLS policies for media bucket access control';
