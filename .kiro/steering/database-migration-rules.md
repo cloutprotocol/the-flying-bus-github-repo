@@ -6,13 +6,24 @@
 
 ## ABSOLUTE PROHIBITIONS - NEVER DO THESE
 
-❌ **NEVER use `mcp_supabase_production_apply_migration`** - This applies directly to production database
-❌ **NEVER use any MCP Supabase tool for schema changes** - MCP tools are for READ-ONLY operations only
+❌ **NEVER EVER EVER use `mcp_supabase_production_apply_migration`** - This applies directly to production database
+❌ **NEVER EVER EVER use any MCP Supabase tool for schema changes** - MCP tools are for READ-ONLY operations only
 ❌ **NEVER bypass the local → PR → production workflow**
 ❌ **NEVER apply migrations directly to production (`xwxuwchndgxnnmfprzds`)**
 ❌ **NEVER use `mcp_supabase_production_execute_sql` for CREATE/ALTER/DROP operations**
 ❌ **NEVER use `supabase db push`** - This pushes migrations to the remote PRODUCTION database
 ❌ **NEVER use `supabase db push --project-ref xwxuwchndgxnnmfprzds`** - Direct production push
+❌ **NEVER SAY "apply this migration to production"** - ALWAYS work locally first, then commit for PR process
+❌ **NEVER SUGGEST production deployment** - Migration deployment happens through PR merge process ONLY
+❌ **NEVER BYPASS LOCAL TESTING** - All migrations must be tested locally before committing
+
+### 🚨 CRITICAL INCIDENT LEARNED (October 2025)
+**NEVER use `mcp_supabase_production_apply_migration` under ANY circumstances, even for "critical fixes"**
+- This tool directly applies migrations to production, bypassing all safety measures
+- Creates out-of-order migration history that breaks future deployments
+- Violates team workflow and version control processes
+- Requires complex rollback procedures that risk data loss
+- **NO EXCEPTIONS** - Always follow local → PR → production workflow
 
 ## ONLY ALLOWED WORKFLOW FOR DATABASE CHANGES
 
@@ -57,13 +68,26 @@ Before taking any database action, I must ask:
 3. "Can this wait for PR process?" → If YES, follow proper workflow
 4. "Is this read-only?" → If NO, use migration files
 
-## RED FLAGS - STOP IMMEDIATELY IF YOU SEE:
-- `mcp_supabase_production_apply_migration` in any context
+## 🚨 RED FLAGS - STOP IMMEDIATELY IF YOU SEE:
+- **`mcp_supabase_production_apply_migration`** - NEVER USE THIS TOOL
 - Any MCP tool being used for CREATE/ALTER/DROP operations
 - Direct production modifications outside of PR process
 - Bypassing local testing for schema changes
 - `supabase db push` command being used (pushes to production!)
 - Any `--project-ref` flag with schema modification commands
+
+### 🛑 EMERGENCY STOP PHRASES
+If you see yourself about to type or execute any of these, **STOP IMMEDIATELY**:
+- "I'll apply this migration directly to fix the issue quickly"
+- "This is a critical fix, I'll bypass the normal process"
+- "Let me use MCP to apply this migration to production"
+- "I'll just run this migration directly since it's urgent"
+- "Now let me apply this migration to production"
+- "Let's deploy this fix to production"
+- "Apply this to the remote database"
+
+**THERE ARE NO EXCEPTIONS TO THE MIGRATION WORKFLOW RULES**
+**PRODUCTION DEPLOYMENT HAPPENS ONLY THROUGH PR MERGE PROCESS**
 
 ## REQUIRED STATEMENT BEFORE DATABASE CHANGES
 
@@ -320,5 +344,18 @@ Every database operation must follow this pattern:
 2. **Verify against prohibitions** - check the red flags list
 3. **Follow only allowed workflow** - migration file → local test → PR
 4. **Never take shortcuts** - production safety depends on this process
+
+### 🔒 MANDATORY SAFETY CHECK
+Before ANY database operation, you MUST ask yourself:
+- "Am I about to use `mcp_supabase_production_apply_migration`?" → If YES, STOP
+- "Am I bypassing the local → PR → production workflow?" → If YES, STOP
+- "Is this a 'quick fix' to production?" → If YES, STOP
+
+### 📋 INCIDENT PREVENTION
+Based on October 2025 incident:
+- **Never justify direct production changes** as "critical fixes"
+- **Never use urgency** as a reason to bypass safety procedures
+- **Always follow the workflow** regardless of how simple the change seems
+- **Remember**: Rollbacks are more complex and risky than proper workflows
 
 This ensures database consistency, reproducibility, and proper change management across all environments while preventing accidental production modifications.

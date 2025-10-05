@@ -288,8 +288,18 @@ describe('Invitation Service Email Extensions', () => {
     });
   });
 
-  describe('updateInvitationRequestStatus', () => {
-    it('should send invitation email when status is approved', async () => {
+  describe('updateInvitationRequestStatus with AdminService', () => {
+    beforeEach(() => {
+      // Mock AdminService
+      vi.doMock('../adminService', () => ({
+        default: {
+          validateAdminPermissions: vi.fn(),
+          updateInvitationRequestStatus: vi.fn()
+        }
+      }));
+    });
+
+    it('should use AdminService for status updates when user has admin permissions', async () => {
       const mockInvitation = {
         id: 'test-id',
         status: 'approved',
@@ -298,49 +308,90 @@ describe('Invitation Service Email Extensions', () => {
         parent_email: 'john@example.com'
       };
 
-      const { supabase } = await import('@/integrations/supabase/client');
-      (supabase.from as any).mockReturnValue({
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: mockInvitation, error: null })
-            })
-          })
-        }),
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: mockInvitation, error: null })
-          })
-        })
+      // Mock AdminService methods
+      const AdminService = (await import('../adminService')).default;
+      (AdminService.validateAdminPermissions as any).mockResolvedValue({
+        success: true,
+        data: true,
+        details: { role: 'admin', hasAdminPermissions: true }
       });
 
-      // Mock token generation and email sending
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          json: vi.fn().mockResolvedValue({ success: true, token: 'test-token' })
-        })
-        .mockResolvedValueOnce({
-          json: vi.fn().mockResolvedValue({ success: true, messageId: 'test-message-id' })
-        });
+      (AdminService.updateInvitationRequestStatus as any).mockResolvedValue({
+        success: true,
+        data: mockInvitation,
+        details: {
+          method: 'admin_service',
+          statusUpdated: true,
+          emailSent: true
+        }
+      });
 
-      const result = await updateInvitationRequestStatus('test-id', 'approved', 'reviewer-id');
+      const result = await updateInvitationRequestStatus('test-id', 'approved', 'admin-user-id');
 
       expect(result.error).toBeUndefined();
       expect(result.data?.status).toBe('approved');
+      expect(result.details?.method).toBe('admin_service');
       
-      // Verify that email service was called
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/functions/v1/invitation-tokens'),
-        expect.any(Object)
+      // Verify AdminService was called
+      expect(AdminService.validateAdminPermissions).toHaveBeenCalledWith('admin-user-id');
+      expect(AdminService.updateInvitationRequestStatus).toHaveBeenCalledWith(
+        'test-id',
+        'approved',
+        'admin-user-id',
+        expect.objectContaining({
+          useServiceRole: true,
+          timeout: 30000,
+          retryAttempts: 3
+        })
       );
     });
 
-    it('should not send email when status is denied', async () => {
+    it('should reject status update when user lacks admin permissions', async () => {
+      // Mock AdminService permission validation failure
+      const AdminService = (await import('../adminService')).default;
+      (AdminService.validateAdminPermissions as any).mockResolvedValue({
+        success: true,
+        data: false,
+        details: { role: 'reader', hasAdminPermissions: false }
+      });
+
+      const result = await updateInvitationRequestStatus('test-id', 'approved', 'regular-user-id');
+
+      expect(result.error).toBe('Insufficient permissions to update invitation status');
+      expect(result.code).toBe('PERMISSION_DENIED');
+      expect(result.retryable).toBe(false);
+      
+      // Verify AdminService was called for permission check but not for update
+      expect(AdminService.validateAdminPermissions).toHaveBeenCalledWith('regular-user-id');
+      expect(AdminService.updateInvitationRequestStatus).not.toHaveBeenCalled();
+    });
+
+    it('should use fallback method when AdminService fails with retryable error', async () => {
       const mockInvitation = {
         id: 'test-id',
-        status: 'denied'
+        status: 'approved',
+        parent_name: 'John Doe',
+        child_name: 'Jane Doe',
+        parent_email: 'john@example.com'
       };
 
+      // Mock AdminService methods
+      const AdminService = (await import('../adminService')).default;
+      (AdminService.validateAdminPermissions as any).mockResolvedValue({
+        success: true,
+        data: true,
+        details: { role: 'admin', hasAdminPermissions: true }
+      });
+
+      // Mock AdminService failure with retryable error
+      (AdminService.updateInvitationRequestStatus as any).mockResolvedValue({
+        success: false,
+        error: 'Network timeout',
+        code: 'TIMEOUT_ERROR',
+        retryable: true
+      });
+
+      // Mock fallback database operation
       const { supabase } = await import('@/integrations/supabase/client');
       (supabase.from as any).mockReturnValue({
         update: vi.fn().mockReturnValue({
@@ -352,13 +403,59 @@ describe('Invitation Service Email Extensions', () => {
         })
       });
 
-      const result = await updateInvitationRequestStatus('test-id', 'denied', 'reviewer-id');
+      const result = await updateInvitationRequestStatus('test-id', 'approved', 'admin-user-id');
 
       expect(result.error).toBeUndefined();
-      expect(result.data?.status).toBe('denied');
+      expect(result.data?.status).toBe('approved');
+      expect(result.details?.method).toBe('fallback');
+      expect(result.details?.warning).toContain('AdminService failed but fallback succeeded');
       
-      // Verify that email service was not called
-      expect(global.fetch).not.toHaveBeenCalled();
+      // Verify both AdminService and fallback were attempted
+      expect(AdminService.updateInvitationRequestStatus).toHaveBeenCalled();
+      expect(supabase.from).toHaveBeenCalledWith('invitation_requests');
+    });
+
+    it('should handle validation errors properly', async () => {
+      const result = await updateInvitationRequestStatus('', 'approved', 'admin-user-id');
+
+      expect(result.error).toBe('Missing required parameters for status update');
+      expect(result.code).toBe('INVALID_UPDATE_PARAMS');
+      expect(result.retryable).toBe(false);
+    });
+
+    it('should handle invalid status values', async () => {
+      const result = await updateInvitationRequestStatus('test-id', 'invalid' as any, 'admin-user-id');
+
+      expect(result.error).toBe('Invalid status value');
+      expect(result.code).toBe('INVALID_STATUS');
+      expect(result.retryable).toBe(false);
+    });
+
+    it('should not use fallback when AdminService fails with non-retryable error', async () => {
+      // Mock AdminService methods
+      const AdminService = (await import('../adminService')).default;
+      (AdminService.validateAdminPermissions as any).mockResolvedValue({
+        success: true,
+        data: true,
+        details: { role: 'admin', hasAdminPermissions: true }
+      });
+
+      // Mock AdminService failure with non-retryable error
+      (AdminService.updateInvitationRequestStatus as any).mockResolvedValue({
+        success: false,
+        error: 'Invalid invitation ID',
+        code: 'VALIDATION_ERROR',
+        retryable: false
+      });
+
+      const result = await updateInvitationRequestStatus('invalid-id', 'approved', 'admin-user-id');
+
+      expect(result.error).toBe('Invalid invitation ID');
+      expect(result.code).toBe('VALIDATION_ERROR');
+      expect(result.retryable).toBe(false);
+      
+      // Verify AdminService was called but fallback was not attempted
+      expect(AdminService.updateInvitationRequestStatus).toHaveBeenCalled();
     });
   });
 });
