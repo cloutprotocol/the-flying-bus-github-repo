@@ -31,7 +31,6 @@
     "setup:monitoring": "psql -f scripts/setup-monitoring.sql",
     "validate:production": "node scripts/validate-production-config.js",
     "create-admin-user": "node scripts/create-admin-user-local.js",
-    "create-admin-user:local": "node scripts/create-admin-user-local.js",
     "create-admin-user:remote": "node scripts/create-admin-user-remote-add-email.js",
     "setup-storage": "node scripts/setup-storage-buckets.js",
     "setup-storage:local": "node scripts/setup-storage-buckets.js",

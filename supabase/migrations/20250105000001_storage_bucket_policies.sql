@@ -40,9 +40,11 @@ USING (
     -- Users can delete files they uploaded (if owner field is set)
     (owner = auth.uid())
     OR
-    -- Admin users can delete any file
+    -- Admin users can delete any file (only if profiles table exists)
     (
-      auth.uid() IN (
+      EXISTS (SELECT 1 FROM information_schema.tables 
+              WHERE table_name = 'profiles' AND table_schema = 'public')
+      AND auth.uid() IN (
         SELECT id FROM profiles WHERE role = 'admin'
       )
     )
@@ -61,9 +63,11 @@ USING (
     -- Users can update files they uploaded
     (owner = auth.uid())
     OR
-    -- Admin users can update any file
+    -- Admin users can update any file (only if profiles table exists)
     (
-      auth.uid() IN (
+      EXISTS (SELECT 1 FROM information_schema.tables 
+              WHERE table_name = 'profiles' AND table_schema = 'public')
+      AND auth.uid() IN (
         SELECT id FROM profiles WHERE role = 'admin'
       )
     )
