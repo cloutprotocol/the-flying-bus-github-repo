@@ -1,8 +1,9 @@
--- Migration: fix_articles_admin_access
--- This migration was applied to production
--- Content needs to be pulled from production database
-
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
-
-SELECT 1; -- Placeholder content
+-- Fix articles RLS policy to allow admin access to all articles
+DROP POLICY IF EXISTS "Public access to published articles" ON articles;
+CREATE POLICY "Public access to published articles" ON articles
+FOR SELECT USING (
+  (status = 'published'::text) OR 
+  (auth.uid() = author_id) OR 
+  (auth.role() = 'service_role'::text) OR
+  is_admin()
+);

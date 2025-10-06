@@ -1,8 +1,21 @@
--- Migration: convert_email_system_dashboard_back_to_view
--- This migration was applied to production
--- Content needs to be pulled from production database
+-- Convert email_system_dashboard back to a view so the merge migration can drop it
+-- The migration expects it to be a view, not a table
 
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
+-- Drop the table we created earlier
+DROP TABLE IF EXISTS email_system_dashboard CASCADE;
 
-SELECT 1; -- Placeholder content
+-- Create a simple view that the migration can drop and replace
+CREATE VIEW email_system_dashboard AS
+SELECT 
+    'placeholder'::text AS metric_type,
+    '{"status": "temporary_view"}'::jsonb AS data,
+    NOW() AS last_updated;
+
+-- Log this conversion
+INSERT INTO email_events (type, email, template, metadata) VALUES 
+  ('table_to_view_conversion', 'system', 'merge_preparation', jsonb_build_object(
+    'migration', 'convert_email_system_dashboard_back_to_view',
+    'description', 'Converted email_system_dashboard from table back to view for merge compatibility',
+    'purpose', 'Allow merge migration to DROP VIEW and recreate properly',
+    'timestamp', NOW()
+  ));

@@ -1,8 +1,12 @@
--- Migration: add_missing_confirmation_email_column
--- This migration was applied to production
--- Content needs to be pulled from production database
+-- Add missing confirmation_email_sent_at column to invitation_requests table
+-- This column is referenced by email system functions but may not exist in all environments
 
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
+ALTER TABLE invitation_requests 
+ADD COLUMN IF NOT EXISTS confirmation_email_sent_at TIMESTAMPTZ;
 
-SELECT 1; -- Placeholder content
+-- Add index for performance
+CREATE INDEX IF NOT EXISTS idx_invitation_requests_confirmation_email_sent_at 
+ON invitation_requests(confirmation_email_sent_at);
+
+-- Add comment
+COMMENT ON COLUMN invitation_requests.confirmation_email_sent_at IS 'Timestamp when confirmation email was sent to parent';
