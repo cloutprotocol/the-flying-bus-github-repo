@@ -1,8 +1,109 @@
--- Migration: fix_invitation_trigger_function
--- This migration was applied to production
--- Content needs to be pulled from production database
-
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
-
-SELECT 1; -- Placeholder content
+-- Fix invitation email trigger function to work with existing email_events table structure
+CREATE OR REPLACE FUNCTION send_invitation_email()
+RETURNS TRIGGER AS $$
+DECLARE
+  supabase_url text;
+  service_role_key text;
+  http_response record;
+BEGIN
+  -- Only send invitation email when status changes to 'approved'
+  IF TG_OP = 'UPDATE' AND OLD.status != 'approved' AND NEW.status = 'approved' THEN
+    -- Get configuration parameters from system_configuration table
+    BEGIN
+      supabase_url := get_config_setting('app.supabase_url');
+      service_role_key := get_config_setting('app.service_role_key');
+      
+      -- Validate configuration before attempting to send email
+      IF supabase_url IS NULL OR supabase_url = '' THEN
+        RAISE NOTICE 'Supabase URL not configured, skipping invitation email for invitation %', NEW.id;
+        RETURN NEW;
+      END IF;
+      
+      IF service_role_key IS NULL OR service_role_key = '' OR service_role_key = 'PLACEHOLDER_SERVICE_ROLE_KEY_NEEDS_TO_BE_SET' THEN
+        RAISE NOTICE 'Service role key not configured, skipping invitation email for invitation %', NEW.id;
+        RETURN NEW;
+      END IF;
+      
+      -- Call the Edge Function asynchronously using pg_net
+      SELECT * INTO http_response FROM net.http_post(
+        url := supabase_url || '/functions/v1/send-invitation-approved',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || service_role_key
+        ),
+        body := jsonb_build_object(
+          'invitationId', NEW.id::text,
+          'parentEmail', NEW.parent_email,
+          'parentName', COALESCE(NEW.parent_name, 'Parent'),
+          'childName', COALESCE(NEW.child_name, 'Child')
+        )
+      );
+      
+      -- Check if the HTTP request was successful
+      IF http_response.status_code BETWEEN 200 AND 299 THEN
+        -- Update the invitation email timestamp on success
+        UPDATE invitation_requests 
+        SET invitation_email_sent_at = NOW() 
+        WHERE id = NEW.id;
+        
+        -- Log successful email sending using existing table structure
+        INSERT INTO email_events (type, email, template, metadata)
+        VALUES (
+          'sent',
+          NEW.parent_email,
+          'invitation_approved',
+          jsonb_build_object(
+            'invitation_id', NEW.id,
+            'method', 'database_trigger',
+            'status_code', http_response.status_code,
+            'trigger_op', TG_OP,
+            'status_change', OLD.status || ' -> ' || NEW.status
+          )
+        );
+        
+        RAISE NOTICE 'Invitation email sent successfully for invitation %', NEW.id;
+      ELSE
+        -- Log failed email attempt using existing table structure
+        INSERT INTO email_events (type, email, template, error, metadata)
+        VALUES (
+          'failed',
+          NEW.parent_email,
+          'invitation_approved',
+          'HTTP request failed with status: ' || http_response.status_code,
+          jsonb_build_object(
+            'invitation_id', NEW.id,
+            'method', 'database_trigger',
+            'status_code', http_response.status_code,
+            'trigger_op', TG_OP,
+            'status_change', OLD.status || ' -> ' || NEW.status,
+            'response', http_response.content
+          )
+        );
+        
+        RAISE NOTICE 'Failed to send invitation email for invitation %, HTTP status: %', NEW.id, http_response.status_code;
+      END IF;
+      
+    EXCEPTION WHEN OTHERS THEN
+      -- Log error details using existing table structure
+      INSERT INTO email_events (type, email, template, error, metadata)
+      VALUES (
+        'error',
+        NEW.parent_email,
+        'invitation_approved',
+        'Database trigger error: ' || SQLERRM,
+        jsonb_build_object(
+          'invitation_id', NEW.id,
+          'method', 'database_trigger',
+          'sqlstate', SQLSTATE,
+          'trigger_op', TG_OP,
+          'status_change', OLD.status || ' -> ' || NEW.status
+        )
+      );
+      
+      RAISE NOTICE 'Exception in invitation email trigger for invitation %: %', NEW.id, SQLERRM;
+    END;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

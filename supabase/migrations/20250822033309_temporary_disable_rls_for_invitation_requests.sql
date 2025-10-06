@@ -1,8 +1,8 @@
--- Migration: temporary_disable_rls_for_invitation_requests
--- This migration was applied to production
--- Content needs to be pulled from production database
+-- Temporary fix: Disable RLS on invitation_requests table
+-- This allows the invitation form to work while we investigate the RLS policy issue
 
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
+-- Disable RLS temporarily to allow form submissions
+ALTER TABLE invitation_requests DISABLE ROW LEVEL SECURITY;
 
-SELECT 1; -- Placeholder content
+-- Add a comment to track this temporary change
+COMMENT ON TABLE invitation_requests IS 'RLS temporarily disabled due to policy evaluation issues. Form submissions should work now.';

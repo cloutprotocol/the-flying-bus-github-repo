@@ -1,8 +1,7 @@
--- Migration: add_ip_address_to_audit_logs
--- This migration was applied to production
--- Content needs to be pulled from production database
+-- Add missing ip_address column to audit_logs table
+ALTER TABLE audit_logs 
+ADD COLUMN IF NOT EXISTS ip_address text;
 
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
-
-SELECT 1; -- Placeholder content
+-- Add user_id column as well since it might be referenced
+ALTER TABLE audit_logs 
+ADD COLUMN IF NOT EXISTS user_id uuid;

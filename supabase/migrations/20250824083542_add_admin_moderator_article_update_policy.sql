@@ -1,8 +1,21 @@
--- Migration: add_admin_moderator_article_update_policy
--- This migration was applied to production
--- Content needs to be pulled from production database
+-- Add UPDATE policy for admins and moderators to update any article
+CREATE POLICY "Admins and moderators can update all articles" ON articles
+FOR UPDATE 
+TO public
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() 
+    AND role IN ('admin', 'moderator')
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() 
+    AND role IN ('admin', 'moderator')
+  )
+);
 
--- Placeholder migration file to match production migration history
--- Run 'supabase db pull' to get the actual schema changes
-
-SELECT 1; -- Placeholder content
+-- Add comment for documentation
+COMMENT ON POLICY "Admins and moderators can update all articles" ON articles IS 'Allows admins and moderators to update any article for review and moderation purposes';
