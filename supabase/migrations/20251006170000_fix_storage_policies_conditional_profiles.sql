@@ -7,27 +7,27 @@ DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
 DROP POLICY IF EXISTS "Media bucket owner update access" ON storage.objects;
 
 -- Recreate DELETE policy with conditional profiles table check
-CREATE POLICY "Media bucket owner delete access"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'media' 
-  AND (
-    -- Users can delete their own avatar files
-    (name LIKE 'avatars/' || auth.uid()::text || '/%')
-    OR
+-- CREATE POLICY "Media bucket owner delete access"
+-- ON storage.objects FOR DELETE
+-- USING (
+--   bucket_id = 'media' 
+--   AND (
+     -- Users can delete their own avatar files
+--     (name LIKE 'avatars/' || auth.uid()::text || '/%')
+--     OR
     -- Users can delete files they uploaded (if owner field is set)
-    (owner = auth.uid())
-    OR
+--     (owner = auth.uid())
+  --   OR
     -- Admin users can delete any file (only if profiles table exists)
-    (
-      EXISTS (SELECT 1 FROM information_schema.tables 
-              WHERE table_name = 'profiles' AND table_schema = 'public')
-      AND auth.uid() IN (
-        SELECT id FROM profiles WHERE role = 'admin'
-      )
-    )
-  )
-);
+--     (
+--       EXISTS (SELECT 1 FROM information_schema.tables 
+--               WHERE table_name = 'profiles' AND table_schema = 'public')
+--       AND auth.uid() IN (
+--         SELECT id FROM profiles WHERE role = 'admin'
+--       )
+--     )
+--   )
+-- );
 
 -- Recreate UPDATE policy with conditional profiles table check
 CREATE POLICY "Media bucket owner update access"
