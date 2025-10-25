@@ -3,7 +3,7 @@
 -- The original storage policies reference profiles table which is created in a later migration
 
 -- Drop existing policies (idempotent approach)
-DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
+-- DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
 DROP POLICY IF EXISTS "Media bucket owner update access" ON storage.objects;
 
 -- Recreate DELETE policy with conditional profiles table check
