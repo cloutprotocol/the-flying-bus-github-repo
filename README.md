@@ -162,3 +162,4 @@ The authentication system works out of the box with the following flows:
 For developers working on authentication features, see the [RLS Policy Management Guide](./docs/RLS_POLICY_MANAGEMENT.md) for implementation details.
 // trigger rebuild
 // force new preview
+-- force new Supabase preview build
