@@ -160,3 +160,4 @@ The authentication system works out of the box with the following flows:
 3. **Error Recovery**: Automatic retry mechanisms and user-friendly error handling
 
 For developers working on authentication features, see the [RLS Policy Management Guide](./docs/RLS_POLICY_MANAGEMENT.md) for implementation details.
+// trigger rebuild
