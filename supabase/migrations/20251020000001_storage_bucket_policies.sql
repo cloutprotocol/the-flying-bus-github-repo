@@ -29,25 +29,25 @@ WITH CHECK (
 -- Users can delete their own files
 -- For profile pictures: users can delete files in their own avatars folder
 -- For general media: users can delete files they uploaded
-CREATE POLICY "Media bucket owner delete access"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'media' 
-  AND (
+-- CREATE POLICY "Media bucket owner delete access"
+-- ON storage.objects FOR DELETE
+-- USING (
+--   bucket_id = 'media' 
+--   AND (
     -- Users can delete their own avatar files
-    (name LIKE 'avatars/' || auth.uid()::text || '/%')
-    OR
+--     (name LIKE 'avatars/' || auth.uid()::text || '/%')
+ --    OR
     -- Users can delete files they uploaded (if owner field is set)
-    (owner = auth.uid())
-    OR
+--     (owner = auth.uid())
+--     OR
     -- Admin users can delete any file
-    (
-      auth.uid() IN (
-        SELECT id FROM profiles WHERE role = 'admin'
-      )
-    )
-  )
-);
+--     (
+--       auth.uid() IN (
+--         SELECT id FROM profiles WHERE role = 'admin'
+--       )
+--     )
+--   )
+-- );
 
 -- Users can update their own files (for metadata updates)
 CREATE POLICY "Media bucket owner update access"
