@@ -8,7 +8,7 @@
 -- Drop existing policies if they exist (idempotent approach)
 DROP POLICY IF EXISTS "Media bucket public read access" ON storage.objects;
 DROP POLICY IF EXISTS "Media bucket authenticated upload access" ON storage.objects;
-DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
+-- DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
 DROP POLICY IF EXISTS "Media bucket owner update access" ON storage.objects;
 
 -- Public read access for media bucket
