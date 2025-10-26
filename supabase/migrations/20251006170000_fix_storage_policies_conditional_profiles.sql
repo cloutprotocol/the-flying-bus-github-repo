@@ -4,7 +4,7 @@
 
 -- Drop existing policies (idempotent approach)
 -- DROP POLICY IF EXISTS "Media bucket owner delete access" ON storage.objects;
-DROP POLICY IF EXISTS "Media bucket owner update access" ON storage.objects;
+-- DROP POLICY IF EXISTS "Media bucket owner update access" ON storage.objects;
 
 -- Recreate DELETE policy with conditional profiles table check
 -- CREATE POLICY "Media bucket owner delete access"
