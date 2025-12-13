@@ -1,29 +1,4 @@
 
-/* Instrument Serif font declarations */
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff') format('woff'),
-       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Italic.woff') format('woff'),
-       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Italic.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Instrument Serif Condensed';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff') format('woff'),
-       url('https://fonts.cdnfonts.com/s/55334/Instrument-Serif-Regular.woff2') format('woff2');
-  font-stretch: condensed;
-}
+/* Instrument Serif is loaded via Google Fonts in index.html.
+   This file intentionally does not declare @font-face rules.
+   Use font-family: 'Instrument Serif', Georgia, serif; in styles. */

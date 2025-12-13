@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Camera, Film, Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
-import { uploadMedia } from '@/services/mediaService';
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -27,8 +29,10 @@ interface UploadingFile {
   uploadedUrl?: string;
 }
 
-const MediaUploader: React.FC<MediaUploaderProps> = ({ 
-  onUploadComplete, 
+// ... existing imports
+
+const MediaUploader: React.FC<MediaUploaderProps> = ({
+  onUploadComplete,
   acceptedTypes = 'both',
   maxFileSizeMB = 50,
   showAltText = true
@@ -42,19 +46,23 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const generateUploadUrl = useMutation(api.media.generateUploadUrl);
+  const saveMediaAsset = useMutation(api.media.saveMediaAsset);
+
   // Helper function to compress images
   const compressImage = useCallback((file: File, quality: number = 0.8): Promise<File> => {
+    // ... no changes to compressImage implementation ...
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
-        // Calculate new dimensions (max 1920x1080 for images)
+        // ... same logic ...
         const maxWidth = 1920;
         const maxHeight = 1080;
         let { width, height } = img;
-        
+
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
@@ -63,12 +71,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           width = (width * maxHeight) / height;
           height = maxHeight;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         ctx?.drawImage(img, 0, 0, width, height);
-        
+
         canvas.toBlob((blob) => {
           if (blob) {
             const compressedFile = new File([blob], file.name, {
@@ -81,35 +89,36 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           }
         }, file.type, quality);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   }, []);
 
   // Validate file
   const validateFile = useCallback((file: File): string | null => {
+    // ... same logic ...
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
-    
+
     if (uploadType === 'image' && !isImage) {
       return 'Please select an image file';
     }
     if (uploadType === 'video' && !isVideo) {
       return 'Please select a video file';
     }
-    
+
     const maxSizeBytes = maxFileSizeMB * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       return `File size must be less than ${maxFileSizeMB}MB`;
     }
-    
+
     return null;
   }, [uploadType, maxFileSizeMB]);
 
   // Handle file upload
   const uploadFile = useCallback(async (file: File, index: number) => {
     try {
-      logger.info(LogSource.MEDIA, 'Starting file upload', { 
+      logger.info(LogSource.MEDIA, 'Starting file upload', {
         filename: file.name,
         size: file.size,
         type: file.type
@@ -120,46 +129,62 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (file.type.startsWith('image/') && file.size > 1024 * 1024) { // Compress if > 1MB
         logger.info(LogSource.MEDIA, 'Compressing image before upload');
         fileToUpload = await compressImage(file);
-        logger.info(LogSource.MEDIA, 'Image compressed', { 
+        logger.info(LogSource.MEDIA, 'Image compressed', {
           originalSize: file.size,
           compressedSize: fileToUpload.size
         });
       }
 
-      // Update progress to show upload starting
-      setUploadingFiles(prev => prev.map((f, i) => 
+      // Update progress
+      setUploadingFiles(prev => prev.map((f, i) =>
         i === index ? { ...f, progress: 10 } : f
       ));
 
-      const { asset, error } = await uploadMedia(fileToUpload, altText);
-      
-      if (error) {
-        throw new Error(error.message || 'Upload failed');
-      }
-      
-      if (!asset) {
-        throw new Error('No asset returned from upload');
+      // 1. Get Upload URL
+      const postUrl = await generateUploadUrl();
+
+      // 2. Upload File
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": fileToUpload.type },
+        body: fileToUpload,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Upload failed: ${result.statusText}`);
       }
 
+      const { storageId } = await result.json();
+
+      // 3. Save Asset Metadata
+      const savedAsset = await saveMediaAsset({
+        storageId: storageId,
+        filename: fileToUpload.name,
+        mimeType: fileToUpload.type,
+        size: fileToUpload.size,
+        fileType: fileToUpload.type.startsWith('image/') ? 'image' : 'video',
+        altText: altText,
+      });
+
       // Update to success state
-      setUploadingFiles(prev => prev.map((f, i) => 
-        i === index ? { 
-          ...f, 
-          progress: 100, 
-          status: 'success' as const, 
-          uploadedUrl: asset.url 
+      setUploadingFiles(prev => prev.map((f, i) =>
+        i === index ? {
+          ...f,
+          progress: 100,
+          status: 'success' as const,
+          uploadedUrl: savedAsset.url
         } : f
       ));
 
-      logger.info(LogSource.MEDIA, 'File uploaded successfully', { 
-        assetId: asset.id,
-        url: asset.url
+      logger.info(LogSource.MEDIA, 'File uploaded successfully', {
+        assetId: savedAsset._id,
+        url: savedAsset.url
       });
 
       // Call the completion callback
       setTimeout(() => {
-        onUploadComplete(asset.url, uploadType === 'video');
-        
+        onUploadComplete(savedAsset.url, uploadType === 'video');
+
         toast({
           title: "Upload successful",
           description: `${uploadType === 'video' ? 'Video' : 'Image'} uploaded successfully`,
@@ -168,11 +193,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     } catch (error) {
       logger.error(LogSource.MEDIA, 'Upload failed', error);
-      
-      setUploadingFiles(prev => prev.map((f, i) => 
-        i === index ? { 
-          ...f, 
-          status: 'error' as const, 
+
+      setUploadingFiles(prev => prev.map((f, i) =>
+        i === index ? {
+          ...f,
+          status: 'error' as const,
           error: error instanceof Error ? error.message : 'Upload failed'
         } : f
       ));
@@ -183,16 +208,16 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         variant: "destructive"
       });
     }
-  }, [altText, uploadType, compressImage, onUploadComplete, toast]);
+  }, [altText, uploadType, compressImage, onUploadComplete, toast, generateUploadUrl, saveMediaAsset]);
 
   // Handle files
   const handleFiles = useCallback((files: FileList) => {
     const newFiles: UploadingFile[] = [];
-    
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const validationError = validateFile(file);
-      
+
       if (validationError) {
         toast({
           title: "Invalid file",
@@ -201,9 +226,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         });
         continue;
       }
-      
+
       const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-      
+
       newFiles.push({
         file,
         progress: 0,
@@ -211,11 +236,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         previewUrl
       });
     }
-    
+
     if (newFiles.length === 0) return;
-    
+
     setUploadingFiles(prev => [...prev, ...newFiles]);
-    
+
     // Start uploading files
     newFiles.forEach((_, index) => {
       const actualIndex = uploadingFiles.length + index;
@@ -227,7 +252,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
     } else if (e.type === 'dragleave') {
@@ -239,7 +264,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFiles(e.dataTransfer.files);
     }
@@ -248,7 +273,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   // File input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
-    
+
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files);
     }
@@ -311,7 +336,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           />
         </div>
       )}
-      
+
       {uploadingFiles.length === 0 ? (
         <div
           className={`
@@ -333,23 +358,23 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             multiple
             className="hidden"
           />
-          
+
           <div className="text-center py-8">
             <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
               <Upload className="h-6 w-6 text-muted-foreground" />
             </div>
-            
+
             <h3 className="text-lg font-medium mb-1">
               Drop your {uploadType} here
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               or click to browse files
             </p>
-            
+
             <Button variant="outline">
               Select {uploadType}
             </Button>
-            
+
             <p className="text-xs text-muted-foreground mt-2">
               Max file size: {maxFileSizeMB}MB. Supported formats: {
                 uploadType === 'image' ? 'JPG, PNG, GIF, WEBP' : 'MP4, WEBM, MOV'
@@ -364,9 +389,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <div className="flex items-center gap-3">
                 {file.previewUrl ? (
                   <div className="w-16 h-16 rounded overflow-hidden bg-background">
-                    <img 
-                      src={file.previewUrl} 
-                      alt={file.file.name} 
+                    <img
+                      src={file.previewUrl}
+                      alt={file.file.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -375,7 +400,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                     <Film className="h-8 w-8 text-blue-500" />
                   </div>
                 )}
-                
+
                 <div className="flex-grow space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
@@ -384,7 +409,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                         {(file.file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {file.status === 'success' && (
                         <CheckCircle className="h-5 w-5 text-green-500" />
@@ -392,7 +417,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                       {file.status === 'error' && (
                         <AlertCircle className="h-5 w-5 text-red-500" />
                       )}
-                      
+
                       <Button
                         variant="ghost"
                         size="icon"
@@ -404,7 +429,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                       </Button>
                     </div>
                   </div>
-                  
+
                   {file.status === 'uploading' && (
                     <div className="space-y-1">
                       <Progress value={file.progress} className="h-2" />
@@ -413,11 +438,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                       </p>
                     </div>
                   )}
-                  
+
                   {file.status === 'error' && (
                     <p className="text-xs text-red-500">{file.error}</p>
                   )}
-                  
+
                   {file.status === 'success' && (
                     <p className="text-xs text-green-600">Upload complete!</p>
                   )}
@@ -425,7 +450,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             </div>
           ))}
-          
+
           <div className="flex gap-2 justify-end">
             <Button
               variant="outline"
@@ -434,7 +459,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             >
               Clear All
             </Button>
-            
+
             <Button
               size="sm"
               onClick={browseFiles}

@@ -4,8 +4,9 @@
  * Provides comprehensive audit logging for all role changes, article ownership,
  * and review actions. Implements requirements 4.3, 4.4.
  */
-
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export interface RoleChangeAuditLog {
   userId: string;
@@ -64,26 +65,16 @@ export class RoleAuditService {
         timestamp: new Date().toISOString(),
         ...auditLog.context
       };
-
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          action: 'role_change',
-          resource_type: 'profile',
-          resource_id: auditLog.userId,
-          user_email: auditLog.userEmail,
-          user_id: auditLog.userId,
-          success: true,
-          metadata,
-          ip_address: auditLog.ipAddress,
-          user_agent: auditLog.userAgent,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log role change:', error);
-        throw new Error(`Audit logging failed: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.activities.createAuditLog, {
+        user_id: auditLog.userId as unknown as Id<'profiles'>,
+        action: 'role_change',
+        entity_type: 'profile',
+        entity_id: auditLog.userId,
+        changes: metadata,
+        ip_address: auditLog.ipAddress,
+        user_agent: auditLog.userAgent,
+      } as any);
     } catch (error) {
       console.error('Role change audit logging error:', error);
       throw error;
@@ -105,22 +96,14 @@ export class RoleAuditService {
         ...auditLog.context
       };
 
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          action: `article_ownership_${auditLog.action}`,
-          resource_type: 'article',
-          resource_id: auditLog.articleId,
-          user_id: auditLog.authorId,
-          success: true,
-          metadata,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log article ownership change:', error);
-        throw new Error(`Audit logging failed: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.activities.createAuditLog, {
+        user_id: auditLog.authorId as unknown as Id<'profiles'>,
+        action: `article_ownership_${auditLog.action}`,
+        entity_type: 'article',
+        entity_id: auditLog.articleId,
+        changes: metadata,
+      } as any);
     } catch (error) {
       console.error('Article ownership audit logging error:', error);
       throw error;
@@ -143,22 +126,14 @@ export class RoleAuditService {
         ...auditLog.context
       };
 
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          action: `article_review_${auditLog.action}`,
-          resource_type: 'article_review',
-          resource_id: auditLog.articleId,
-          user_id: auditLog.reviewerId,
-          success: true,
-          metadata,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log article review action:', error);
-        throw new Error(`Audit logging failed: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.activities.createAuditLog, {
+        user_id: auditLog.reviewerId as unknown as Id<'profiles'>,
+        action: `article_review_${auditLog.action}`,
+        entity_type: 'article_review',
+        entity_id: auditLog.articleId,
+        changes: metadata,
+      } as any);
     } catch (error) {
       console.error('Article review audit logging error:', error);
       throw error;
@@ -170,48 +145,16 @@ export class RoleAuditService {
    */
   static async queryAuditLogs(query: AuditLogQuery = {}) {
     try {
-      let supabaseQuery = supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Apply filters
-      if (query.userId) {
-        supabaseQuery = supabaseQuery.eq('user_id', query.userId);
-      }
-
-      if (query.action) {
-        supabaseQuery = supabaseQuery.eq('action', query.action);
-      }
-
-      if (query.resourceType) {
-        supabaseQuery = supabaseQuery.eq('resource_type', query.resourceType);
-      }
-
-      if (query.startDate) {
-        supabaseQuery = supabaseQuery.gte('created_at', query.startDate.toISOString());
-      }
-
-      if (query.endDate) {
-        supabaseQuery = supabaseQuery.lte('created_at', query.endDate.toISOString());
-      }
-
-      // Apply pagination
-      if (query.limit) {
-        supabaseQuery = supabaseQuery.limit(query.limit);
-      }
-
-      if (query.offset) {
-        supabaseQuery = supabaseQuery.range(query.offset, (query.offset + (query.limit || 50)) - 1);
-      }
-
-      const { data, error } = await supabaseQuery;
-
-      if (error) {
-        console.error('Failed to query audit logs:', error);
-        throw new Error(`Audit log query failed: ${error.message}`);
-      }
-
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const data = await convex.query(api.activities.listAuditLogs, {
+        userId: query.userId,
+        action: query.action,
+        resourceType: query.resourceType,
+        startDate: query.startDate ? query.startDate.toISOString() : undefined,
+        endDate: query.endDate ? query.endDate.toISOString() : undefined,
+        limit: query.limit,
+        offset: query.offset,
+      } as any);
       return data || [];
     } catch (error) {
       console.error('Audit log query error:', error);
@@ -329,24 +272,14 @@ export class RoleAuditService {
     errorMessage?: string
   ): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('audit_logs')
-        .insert({
-          action,
-          resource_type: resourceType,
-          resource_id: resourceId,
-          user_id: userId,
-          user_email: userEmail,
-          success,
-          error_message: errorMessage,
-          metadata: metadata || {},
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log audit event:', error);
-        throw new Error(`Audit logging failed: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.activities.createAuditLog, {
+        user_id: (userId as unknown as Id<'profiles'>) || undefined,
+        action,
+        entity_type: resourceType,
+        entity_id: resourceId,
+        changes: metadata || {},
+      } as any);
     } catch (error) {
       console.error('Audit event logging error:', error);
       throw error;

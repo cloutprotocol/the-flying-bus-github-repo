@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, MessageCircle, Trophy, Flame } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import type { ReaderProfile, PrivacySettings, UserReadingStats } from '@/types/ReaderProfile';
 
 interface ProfileStatsProps {
@@ -21,37 +23,15 @@ const ProfileStats = ({ profile, privacySettings }: ProfileStatsProps) => {
 
   const fetchStats = async () => {
     try {
-      // Fetch reading stats
-      if (privacySettings?.show_reading_activity !== false) {
-        const { data: readingData } = await supabase
-          .from('user_reading_stats')
-          .select('*')
-          .eq('user_id', profile.id)
-          .maybeSingle();
-        
-        setReadingStats(readingData);
-      }
-
-      // Fetch comment count
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      // Comments via Convex
       if (privacySettings?.show_comment_history !== false) {
-        const { count } = await supabase
-          .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
-          .eq('status', 'published');
-        
-        setCommentCount(count || 0);
+        const comments = await convex.query(api.comments.getByUser, { userId: profile.id as any as Id<'profiles'> });
+        setCommentCount((comments || []).length);
       }
-
-      // Fetch achievement count
-      if (privacySettings?.show_achievements !== false) {
-        const { count } = await supabase
-          .from('user_achievements')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', profile.id);
-        
-        setAchievementCount(count || 0);
-      }
+      // Reading stats and achievements not in Convex schema yet; default to 0
+      if (privacySettings?.show_reading_activity !== false) setReadingStats({} as any);
+      if (privacySettings?.show_achievements !== false) setAchievementCount(0);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }

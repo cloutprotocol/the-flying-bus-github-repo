@@ -1,6 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 /**
  * Upload a profile picture and return the public URL
@@ -34,33 +36,46 @@ export const uploadProfilePicture = async (
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const filePath = `avatars/${userId}/${timestamp}.${fileExt}`;
 
-    logger.info(LogSource.MEDIA, 'Uploading profile picture to storage', { filePath });
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
 
-    // Upload to Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    // 1) Generate upload URL
+    const uploadUrl = await convex.mutation(api.media.generateUploadUrl, {});
 
-    if (uploadError) {
-      logger.error(LogSource.MEDIA, 'Error uploading profile picture to storage', uploadError);
-      return { url: null, error: uploadError };
+    // 2) Upload file to Convex Storage
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      const text = await uploadRes.text().catch(() => '');
+      return { url: null, error: new Error(`Upload failed: ${uploadRes.status} ${text}`) };
+    }
+    const { storageId } = await uploadRes.json();
+
+    // 3) Save metadata and get a URL
+    const saved = await convex.mutation(api.media.saveMediaAsset, {
+      storageId,
+      filename: file.name,
+      mimeType: file.type,
+      size: file.size,
+      fileType: 'image',
+    } as any);
+
+    const publicUrl = saved.url as string;
+
+    // 4) Update profile avatar_url if we have a profile id
+    try {
+      await convex.mutation(api.profiles.update, {
+        id: userId as unknown as Id<'profiles'>,
+        avatar_url: publicUrl,
+      } as any);
+    } catch (e) {
+      // Non-fatal: avatar can still be set elsewhere
+      logger.warn(LogSource.MEDIA, 'Could not update profile avatar_url after upload', e as any);
     }
 
-    // Get the public URL
-    const { data: urlData } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath);
-
-    const publicUrl = urlData.publicUrl;
-
-    logger.info(LogSource.MEDIA, 'Profile picture uploaded successfully', {
-      path: filePath,
-      url: publicUrl
-    });
-
+    logger.info(LogSource.MEDIA, 'Profile picture uploaded via Convex', { path: filePath });
     return { url: publicUrl, error: null };
   } catch (e) {
     logger.error(LogSource.MEDIA, 'Exception uploading profile picture', e);
@@ -74,33 +89,7 @@ export const uploadProfilePicture = async (
  */
 export const deleteOldProfilePicture = async (avatarUrl: string): Promise<void> => {
   try {
-    // Extract the storage path from the URL
-    const urlParts = avatarUrl.split('/');
-    const storageIndex = urlParts.findIndex(part => part === 'storage');
-    
-    if (storageIndex === -1 || storageIndex + 3 >= urlParts.length) {
-      // Not a storage URL or invalid format, skip deletion
-      return;
-    }
-
-    // Extract path after /storage/v1/object/public/media/
-    const pathParts = urlParts.slice(storageIndex + 5); // Skip 'storage', 'v1', 'object', 'public', 'media'
-    const storagePath = pathParts.join('/');
-
-    // Only delete if it's in the avatars folder to be safe
-    if (storagePath.startsWith('avatars/')) {
-      logger.info(LogSource.MEDIA, 'Deleting old profile picture', { storagePath });
-      
-      const { error } = await supabase.storage
-        .from('media')
-        .remove([storagePath]);
-
-      if (error) {
-        logger.error(LogSource.MEDIA, 'Error deleting old profile picture', error);
-      } else {
-        logger.info(LogSource.MEDIA, 'Old profile picture deleted successfully');
-      }
-    }
+    logger.info(LogSource.MEDIA, 'Delete old profile picture requested (not implemented)', { avatarUrl });
   } catch (e) {
     logger.error(LogSource.MEDIA, 'Exception deleting old profile picture', e);
   }

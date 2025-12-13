@@ -33,6 +33,13 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
     }
   }, [isLoggedIn, isOpen]);
 
+  // Accessibility fix: ensure no focused element remains when hiding background
+  useEffect(() => {
+    if (!isOpen && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [isOpen]);
+
   const handleFormSuccess = () => {
     console.log('Form success callback triggered, closing drawer');
     setIsOpen(false);

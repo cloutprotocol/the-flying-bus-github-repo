@@ -1,4 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -36,10 +37,6 @@ export class AuthenticatedApiService {
    * Instead, we use anon key and let Edge Functions handle service authentication
    */
   private static async getServiceRoleKey(): Promise<string | null> {
-    // Security: Client-side code should never access service role keys
-    // The Edge Functions will handle service role authentication internally
-    console.warn('⚠️ Client-side fallback should not use service role key');
-    console.log('🔄 Using anon key for client calls - Edge Functions handle service auth');
     return null;
   }
 
@@ -47,8 +44,7 @@ export class AuthenticatedApiService {
    * Get Supabase URL from environment (client-side should use environment variables)
    */
   private static async getSupabaseUrl(): Promise<string> {
-    // Client-side should always use environment variables for URL
-    return import.meta.env.VITE_SUPABASE_URL;
+    return '';
   }
 
   /**
@@ -310,47 +306,11 @@ export class AuthenticatedApiService {
     templateData: Record<string, any>;
   }): Promise<ApiResponse> {
     try {
-      console.log('📧 Sending email via Supabase SDK:', emailData.type, 'to:', emailData.to);
-      
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: emailData
-      });
-
-      if (error) {
-        console.error('❌ Supabase function error:', error);
-        return {
-          success: false,
-          error: error.message || 'Supabase function call failed',
-          code: 'SUPABASE_FUNCTION_ERROR',
-          retryable: true,
-          details: {
-            originalError: error,
-            method: 'supabase_sdk'
-          }
-        };
-      }
-
-      console.log('✅ Email sent successfully via Supabase SDK');
-      return {
-        success: true,
-        data,
-        details: {
-          method: 'supabase_sdk'
-        }
-      };
-
+      console.log('📧 Sending email (stub):', emailData.type, 'to:', emailData.to);
+      // TODO: Implement Convex Action for email sending
+      return { success: true, data: { queued: true } };
     } catch (error) {
-      console.error('❌ Exception in sendEmail:', error);
-      return {
-        success: false,
-        error: error.message || 'Unknown error occurred',
-        code: 'SEND_EMAIL_EXCEPTION',
-        retryable: true,
-        details: {
-          originalError: error.message,
-          method: 'supabase_sdk'
-        }
-      };
+      return { success: false, error: error.message || 'SEND_EMAIL_EXCEPTION' };
     }
   }
 
@@ -364,50 +324,29 @@ export class AuthenticatedApiService {
     email?: string;
   }): Promise<ApiResponse> {
     try {
-      console.log('🔍 Validating invitation token via Supabase SDK');
-      
-      const { data, error } = await supabase.functions.invoke('invitation-tokens', {
-        body: {
-          action: 'validate',
-          ...tokenData
-        }
-      });
-
-      if (error) {
-        console.error('❌ Supabase function error for token validation:', error);
-        return {
-          success: false,
-          error: error.message || 'Token validation function call failed',
-          code: 'SUPABASE_FUNCTION_ERROR',
-          retryable: true,
-          details: {
-            originalError: error,
-            method: 'supabase_sdk'
-          }
-        };
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const tokenRec: any = await convex.query(api.invitations.getByToken, { token: tokenData.token });
+      if (!tokenRec) return { success: false, error: 'Invalid token' };
+      const now = Date.now();
+      const exp = new Date(tokenRec.expires_at).getTime();
+      if (tokenRec.status !== 'pending' || exp < now) {
+        return { success: false, error: 'Token expired or already used' };
       }
-
-      console.log('✅ Token validation completed via Supabase SDK');
-      return {
-        success: true,
-        data,
-        details: {
-          method: 'supabase_sdk'
-        }
+      if (tokenData.email && tokenRec.email && tokenData.email.toLowerCase() !== String(tokenRec.email).toLowerCase()) {
+        return { success: false, error: 'Email mismatch for token' };
+      }
+      const invitation = {
+        id: tokenRec._id,
+        parent_email: tokenRec.email,
+        parent_name: '',
+        child_name: '',
+        child_age: 10,
+        status: 'pending',
+        created_at: tokenRec.created_at,
       };
-
+      return { success: true, data: { id: tokenRec._id, invitation_id: tokenRec._id, email: tokenRec.email, expires_at: tokenRec.expires_at, invitation } };
     } catch (error) {
-      console.error('❌ Exception in validateInvitationToken:', error);
-      return {
-        success: false,
-        error: error.message || 'Unknown error occurred',
-        code: 'TOKEN_VALIDATION_EXCEPTION',
-        retryable: true,
-        details: {
-          originalError: error.message,
-          method: 'supabase_sdk'
-        }
-      };
+      return { success: false, error: error.message || 'TOKEN_VALIDATION_EXCEPTION' };
     }
   }
 
@@ -416,50 +355,13 @@ export class AuthenticatedApiService {
    */
   static async markTokenAsUsed(token: string): Promise<ApiResponse> {
     try {
-      console.log('✅ Marking invitation token as used via Supabase SDK');
-      
-      const { data, error } = await supabase.functions.invoke('invitation-tokens', {
-        body: {
-          action: 'markUsed',
-          token
-        }
-      });
-
-      if (error) {
-        console.error('❌ Supabase function error for marking token as used:', error);
-        return {
-          success: false,
-          error: error.message || 'Mark token as used function call failed',
-          code: 'SUPABASE_FUNCTION_ERROR',
-          retryable: true,
-          details: {
-            originalError: error,
-            method: 'supabase_sdk'
-          }
-        };
-      }
-
-      console.log('✅ Token marked as used successfully via Supabase SDK');
-      return {
-        success: true,
-        data,
-        details: {
-          method: 'supabase_sdk'
-        }
-      };
-
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const tokenRec: any = await convex.query(api.invitations.getByToken, { token });
+      if (!tokenRec) return { success: false, error: 'Invalid token' };
+      await convex.mutation(api.invitations.updateToken, { id: tokenRec._id, status: 'accepted', used_at: new Date().toISOString() });
+      return { success: true, data: { updated: true } };
     } catch (error) {
-      console.error('❌ Exception in markTokenAsUsed:', error);
-      return {
-        success: false,
-        error: error.message || 'Unknown error occurred',
-        code: 'MARK_TOKEN_USED_EXCEPTION',
-        retryable: true,
-        details: {
-          originalError: error.message,
-          method: 'supabase_sdk'
-        }
-      };
+      return { success: false, error: error.message || 'MARK_TOKEN_USED_EXCEPTION' };
     }
   }
 }

@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { commentConvexService } from '@/services/convex/commentConvexService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -36,69 +36,24 @@ export const getFlaggedComments = async (
   limit = 10
 ): Promise<{ comments: any[]; count: number; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Fetching flagged comments', { filter, page });
-    
-    // Start building the query to get comments
-    let query = supabase
-      .from('comments')
-      .select(`
-        id,
-        content,
-        created_at,
-        article_id,
-        user_id,
-        status,
-        profiles!user_id(display_name, avatar_url)
-      `, { count: 'exact' });
-    
-    // Apply filters based on the selected filter type
-    if (filter !== 'all') {
-      if (filter === 'flagged') {
-        // Get comments with 'flagged' status, regardless of reporter
-        query = query.eq('status', 'flagged');
-      } else if (filter === 'reported') {
-        // Get comments that have been reported by users specifically
-        query = query
-          .eq('status', 'flagged')
-          .not('flagged_comments.reporter_id', 'is', null);
-      } else if (filter === 'pending') {
-        // Get comments with 'pending' status
-        query = query.eq('status', 'pending');
-      } else if (filter === 'approved') {
-        // Get comments with 'published' status
-        query = query.eq('status', 'published');
-      } else if (filter === 'rejected') {
-        // Get comments with 'rejected' status
-        query = query.eq('status', 'rejected');
-      }
-    }
-    
-    // Apply search if provided
-    if (searchTerm) {
-      query = query.ilike('content', `%${searchTerm}%`);
-    }
-    
-    // Apply pagination
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to).order('created_at', { ascending: false });
-    
-    const { data, error, count } = await query;
-    
+    logger.info(LogSource.DATABASE, 'Fetching flagged comments from Convex', { filter, page });
+
+    const { comments: data, count, error } = await commentConvexService.getFlagged(filter, searchTerm, page, limit);
+
     if (error) {
       logger.error(LogSource.DATABASE, 'Error fetching flagged comments', { error });
       return { comments: [], count: 0, error };
     }
-    
+
     // Transform the data for the UI
     const comments = data?.map((comment: any) => {
       return {
-        id: comment.id,
+        id: comment._id,
         content: comment.content,
         author: {
           id: comment.user_id,
-          name: comment.profiles?.display_name || 'Unknown User',
-          avatar: comment.profiles?.avatar_url || '',
+          name: comment.profile?.display_name || 'Unknown User',
+          avatar: comment.profile?.avatar_url || '',
         },
         articleId: comment.article_id,
         articleTitle: 'Article Title', // We would need to fetch this separately or include in the query
@@ -109,13 +64,13 @@ export const getFlaggedComments = async (
         reportedAt: new Date(comment.created_at),
       };
     }) || [];
-    
-    logger.info(LogSource.DATABASE, 'Flagged comments fetched successfully', { 
-      count, 
+
+    logger.info(LogSource.DATABASE, 'Flagged comments fetched successfully', {
+      count,
       filter,
       commentsCount: comments.length
     });
-    
+
     return { comments, count: count || 0, error: null };
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception fetching flagged comments', e);
@@ -128,43 +83,19 @@ export const getFlaggedComments = async (
  */
 export const approveComment = async (commentId: string): Promise<{ success: boolean; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Approving comment', { commentId });
-    
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession();
-    const moderatorId = session?.user?.id;
-    
-    if (!moderatorId) {
-      return { success: false, error: new Error('Authentication required') };
-    }
-    
-    // Update comment status to published
-    const { error } = await supabase
-      .from('comments')
-      .update({ status: 'published' })
-      .eq('id', commentId);
-      
+    logger.info(LogSource.DATABASE, 'Approving comment via Convex', { commentId });
+
+    // Update comment status to published (Convex uses 'published' or 'approved'?)
+    // Using 'published' to match existing logic, ensure Convex backend validates this if needed.
+    const { success, error } = await commentConvexService.updateStatus(commentId, 'published');
+
     if (error) {
       logger.error(LogSource.DATABASE, 'Error approving comment', { error, commentId });
       return { success: false, error };
     }
-    
-    // Update any flagged content records for this comment
-    const { error: flagError } = await supabase
-      .from('flagged_content')
-      .update({ 
-        status: 'reviewed',
-        reviewer_id: moderatorId,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('content_id', commentId)
-      .eq('content_type', 'comment');
-      
-    if (flagError) {
-      logger.warn(LogSource.DATABASE, 'Error updating flagged content record', { error: flagError, commentId });
-      // Don't fail the operation for this secondary update
-    }
-    
+
+    // flagged_content update skipped as we are migrating away from it or it's handled implicitly
+
     logger.info(LogSource.DATABASE, 'Comment approved successfully', { commentId });
     return { success: true, error: null };
   } catch (e) {
@@ -178,44 +109,16 @@ export const approveComment = async (commentId: string): Promise<{ success: bool
  */
 export const rejectComment = async (commentId: string): Promise<{ success: boolean; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Rejecting comment', { commentId });
-    
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession();
-    const moderatorId = session?.user?.id;
-    
-    if (!moderatorId) {
-      logger.error(LogSource.DATABASE, 'Authentication required for rejecting comment');
-      return { success: false, error: new Error('Authentication required') };
-    }
-    
+    logger.info(LogSource.DATABASE, 'Rejecting comment via Convex', { commentId });
+
     // Update comment status to rejected
-    const { error } = await supabase
-      .from('comments')
-      .update({ status: 'rejected' })
-      .eq('id', commentId);
-      
+    const { success, error } = await commentConvexService.updateStatus(commentId, 'rejected');
+
     if (error) {
       logger.error(LogSource.DATABASE, 'Error rejecting comment', { error, commentId });
       return { success: false, error };
     }
-    
-    // Update any flagged content records for this comment
-    const { error: flagError } = await supabase
-      .from('flagged_content')
-      .update({ 
-        status: 'reviewed',
-        reviewer_id: moderatorId,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('content_id', commentId)
-      .eq('content_type', 'comment');
-      
-    if (flagError) {
-      logger.warn(LogSource.DATABASE, 'Error updating flagged content record', { error: flagError, commentId });
-      // Don't fail the operation for this secondary update
-    }
-    
+
     logger.info(LogSource.DATABASE, 'Comment rejected successfully', { commentId });
     return { success: true, error: null };
   } catch (e) {
@@ -232,39 +135,19 @@ export const flagComment = async (
   reason: string
 ): Promise<{ success: boolean; error: any }> => {
   try {
-    logger.info(LogSource.DATABASE, 'Flagging comment', { commentId, reason });
-    
-    // Get current user if logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    // Insert flagged content record
-    const { error } = await supabase
-      .from('flagged_content')
-      .insert({
-        content_id: commentId,
-        content_type: 'comment',
-        reason,
-        reporter_id: userId || null,
-        status: 'pending'
-      });
-      
+    logger.info(LogSource.DATABASE, 'Flagging comment via Convex', { commentId, reason });
+
+    // In Convex migration, we are simply updating status for now. 
+    // If we need to store reasons, we'd need a separate table or field.
+    // For MVP, updating status to 'flagged' is the priority.
+
+    const { success, error } = await commentConvexService.updateStatus(commentId, 'flagged');
+
     if (error) {
       logger.error(LogSource.DATABASE, 'Error flagging comment', { error, commentId });
       return { success: false, error };
     }
-    
-    // Update comment status to flagged
-    const { error: updateError } = await supabase
-      .from('comments')
-      .update({ status: 'flagged' })
-      .eq('id', commentId);
-      
-    if (updateError) {
-      logger.warn(LogSource.DATABASE, 'Error updating comment status', { error: updateError, commentId });
-      // Don't fail if just the status update fails
-    }
-    
+
     logger.info(LogSource.DATABASE, 'Comment flagged successfully', { commentId });
     return { success: true, error: null };
   } catch (e) {

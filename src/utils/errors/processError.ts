@@ -9,11 +9,11 @@ import { LogSource } from '@/utils/logger/types';
 import { ApiError, ApiErrorType } from './types';
 
 /**
- * Process Supabase error and convert to ApiError
+ * Normalize an unknown error into an ApiError
  */
-export function processSupabaseError(error: any): ApiError {
+export function processApiError(error: any): ApiError {
   // Log the raw error
-  logger.debug(LogSource.API, 'Processing Supabase error', error);
+  logger.debug(LogSource.API, 'Processing API error', error);
   
   if (!error) {
     return new ApiError('Unknown error occurred', ApiErrorType.UNKNOWN);
@@ -28,7 +28,7 @@ export function processSupabaseError(error: any): ApiError {
   }
   
   // Authentication errors
-  if (error.code === 'PGRST301' || error.status === 401 || error.message?.includes('JWT')) {
+  if (error.status === 401 || error.message?.toLowerCase()?.includes('unauthorized')) {
     return new ApiError(
       'Authentication error. Please sign in again.',
       ApiErrorType.AUTH,
@@ -37,7 +37,7 @@ export function processSupabaseError(error: any): ApiError {
   }
   
   // Not found errors
-  if (error.code === 'PGRST116' || error.status === 404) {
+  if (error.status === 404) {
     return new ApiError(
       'The requested resource was not found.',
       ApiErrorType.NOTFOUND,
@@ -45,8 +45,8 @@ export function processSupabaseError(error: any): ApiError {
     );
   }
   
-  // Validation errors
-  if (error.code === 'PGRST109' || error.code === '23502' || error.code === '23503') {
+  // Validation errors (generic)
+  if (error.code === 'VALIDATION_ERROR' || error.status === 400) {
     return new ApiError(
       'Validation error. Please check your input.',
       ApiErrorType.VALIDATION,

@@ -1,5 +1,5 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { profileConvexService } from '@/services/convex/profileConvexService';
+import { commentConvexService } from '@/services/convex/commentConvexService';
 import { ReaderProfile } from '@/types/ReaderProfile';
 
 export interface UserSearchFilters {
@@ -26,39 +26,25 @@ export interface UserStatistics {
 
 export async function fetchAllUsers(filters: UserSearchFilters = {}) {
   const { searchTerm, role, limit = 50, offset = 0 } = filters;
-  
-  console.log('Fetching users with filters:', filters);
-  
+  const page = Math.floor(offset / limit) + 1;
+
+  console.log('Fetching users from Convex with filters:', filters);
+
   try {
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .range(offset, offset + limit - 1)
-      .order('created_at', { ascending: false });
-
-    if (searchTerm) {
-      query = query.or(`username.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-    }
-
-    if (role) {
-      query = query.eq('role', role);
-    }
-
-    console.log('Executing user query...');
-    const { data, error, count } = await query;
+    const { profiles, count, error } = await profileConvexService.getAll(page, limit, searchTerm, role);
 
     if (error) {
-      console.error('Supabase error fetching users:', error);
-      throw new Error(`Database error: ${error.message}`);
+      console.error('Convex error fetching users:', error);
+      throw new Error(`Database error: ${error}`);
     }
 
-    console.log(`Successfully fetched ${data?.length || 0} users`);
+    console.log(`Successfully fetched ${profiles?.length || 0} users`);
 
     // Transform database format to ReaderProfile format
-    const users: ReaderProfile[] = data?.map(user => ({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
+    const users: ReaderProfile[] = profiles?.map(user => ({
+      id: user._id,
+      username: user.username || '',
+      display_name: user.display_name || '',
       email: user.email,
       role: user.role as 'reader' | 'author' | 'moderator' | 'admin',
       bio: user.bio || '',
@@ -68,7 +54,7 @@ export async function fetchAllUsers(filters: UserSearchFilters = {}) {
       public_bio: user.public_bio,
       crypto_wallet_address: user.crypto_wallet_address,
       badge_display_preferences: user.badge_display_preferences,
-      favorite_categories: user.favorite_categories,
+      favorite_categories: user.favorite_categories || undefined,
     })) || [];
 
     return { users, totalCount: count || 0 };
@@ -79,26 +65,47 @@ export async function fetchAllUsers(filters: UserSearchFilters = {}) {
 }
 
 export async function updateUserProfile(userId: string, updates: UserUpdateData) {
-  console.log('Updating user profile:', userId, updates);
-  
+  console.log('Updating user profile in Convex:', userId, updates);
+
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select();
+    const { data, error } = await profileConvexService.update(userId, updates);
 
     if (error) {
-      console.error('Supabase error updating user:', error);
-      throw new Error(`Database error: ${error.message}`);
+      console.error('Convex error updating user:', error);
+      throw new Error(`Database error: ${error}`);
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       throw new Error('User not found or no changes made');
     }
 
-    console.log('User profile updated successfully:', data[0]);
-    return data[0];
+    // Fetch the updated profile to return the full object as expected
+    const { profile } = await profileConvexService.getById(userId);
+
+    // Map to the expected format if needed, but the caller might expect the raw data or ReaderProfile
+    // The original code returned `data[0]` from supabase update which is the full record.
+    // profileConvexService.update returns { _id, ...updates }, so we fetch full to be safe.
+
+    if (!profile) return data; // Fallback
+
+    const mappedProfile: ReaderProfile = {
+      id: profile._id,
+      username: profile.username || '',
+      display_name: profile.display_name || '',
+      email: profile.email,
+      role: profile.role as 'reader' | 'author' | 'moderator' | 'admin',
+      bio: profile.bio || '',
+      avatar_url: profile.avatar_url || '',
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+      public_bio: profile.public_bio,
+      crypto_wallet_address: profile.crypto_wallet_address,
+      badge_display_preferences: profile.badge_display_preferences,
+      favorite_categories: profile.favorite_categories || undefined,
+    };
+
+    console.log('User profile updated successfully:', mappedProfile);
+    return mappedProfile;
   } catch (error) {
     console.error('Exception in updateUserProfile:', error);
     throw error;
@@ -107,32 +114,29 @@ export async function updateUserProfile(userId: string, updates: UserUpdateData)
 
 export async function getUserStatistics(userId: string): Promise<UserStatistics> {
   try {
-    console.log('Fetching user statistics for:', userId);
-    
-    // Get comment count
-    const { count: commentCount } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+    console.log('Fetching user statistics from Convex for:', userId);
 
-    // Get reading stats
-    const { data: readingStats } = await supabase
-      .from('user_reading_stats')
-      .select('articles_read, reading_streak')
-      .eq('user_id', userId)
-      .single();
+    // Get comment count using Convex service
+    const { comments, error } = await commentConvexService.getByUser(userId);
 
-    // Get achievements count
-    const { count: achievementsCount } = await supabase
-      .from('user_achievements')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+    if (error) {
+      console.error('Error fetching comments for stats:', error);
+    }
+
+    const commentCount = comments ? comments.length : 0;
+
+    // TODO: Implement reading stats and achievements in Convex
+    // These tables (user_reading_stats, user_achievements) are not yet in Convex schema.
+    // Returning 0 for now as per migration plan phase 1.
+    const readingStreak = 0;
+    const articlesRead = 0;
+    const achievements = 0;
 
     return {
-      commentCount: commentCount || 0,
-      readingStreak: readingStats?.reading_streak || 0,
-      articlesRead: readingStats?.articles_read || 0,
-      achievements: achievementsCount || 0,
+      commentCount,
+      readingStreak,
+      articlesRead,
+      achievements,
     };
   } catch (error) {
     console.error('Error fetching user statistics:', error);

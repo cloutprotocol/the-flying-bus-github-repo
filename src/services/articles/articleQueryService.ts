@@ -1,63 +1,55 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
 import { ArticleProps } from '@/components/Articles/ArticleCard';
 import { calculateReadTime } from '@/utils/articles/articleRead';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { ConvexHttpClient } from 'convex/browser';
+
+const convexUrl = import.meta.env.VITE_CONVEX_URL!;
+const convexClient = new ConvexHttpClient(convexUrl);
 
 export const getArticleById = async (articleId: string): Promise<{ article: ArticleProps | null, error: any }> => {
   try {
     logger.info(LogSource.ARTICLE, `Fetching article with ID ${articleId}`);
-    
-    const { data, error } = await supabase
-      .from('articles')
-      .select(`
-        *,
-        profiles!articles_author_id_fkey(*),
-        categories:category_id(*),
-        video_articles(video_url, video_duration)
-      `)
-      .eq('id', articleId)
-      .single();
-    
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error fetching article by ID', error);
-      return { article: null, error };
-    }
-    
+
+    const data = await convexClient.query(api.articles.getById, {
+      articleId: articleId as Id<"articles">,
+    });
+
     if (!data) {
       logger.error(LogSource.ARTICLE, 'Article not found');
       return { article: null, error: new Error('Article not found') };
     }
-    
+
     // Extract video information if available
-    const videoData = data.video_articles?.[0];
-    const videoUrl = videoData?.video_url;
-    const duration = videoData?.video_duration;
+    const videoUrl = (data as any).videoData?.video_url;
+    const duration = (data as any).videoData?.video_duration;
 
     logger.info(LogSource.ARTICLE, `Article fetched successfully in service`, {
-      articleId: data.id,
-      category: data.categories?.name,
+      articleId: data._id,
+      category: data.category?.name,
       hasVideo: !!videoUrl,
       videoUrl: videoUrl || 'none'
     });
-    
+
     // Transform the database response into the expected ArticleProps format
     const article: ArticleProps = {
-      id: data.id,
+      id: data._id,
       title: data.title,
       excerpt: data.excerpt || '',
       content: data.content,
-      imageUrl: data.cover_image,
-      category: data.categories?.name || 'Uncategorized',
-      categorySlug: data.categories?.slug || '',
-      categoryColor: data.categories?.color || 'red',
+      imageUrl: data.featured_image_url,
+      category: data.category?.name || 'Uncategorized',
+      categorySlug: data.category?.slug || '',
+      categoryColor: data.category?.color || 'red',
       categoryId: data.category_id,
       readingLevel: 'Intermediate', // Default value
       readTime: calculateReadTime(data.content),
-      author: data.profiles?.display_name || 'Unknown Author',
-      authorAvatar: data.profiles?.avatar_url || '',
+      author: data.author?.display_name || 'Unknown Author',
+      authorAvatar: data.author?.avatar_url || '',
       date: new Date(data.published_at || data.created_at).toLocaleDateString(),
       publishDate: data.published_at ? new Date(data.published_at).toLocaleDateString() : '',
       articleType: data.article_type || 'standard',
@@ -80,34 +72,41 @@ export const getArticlesByStatus = async (
 ) => {
   try {
     logger.info(LogSource.ARTICLE, `Fetching articles with status ${status}`);
-    
-    let query = supabase
-      .from('articles')
-      .select('*', { count: 'exact' });
-    
-    if (status !== 'all') {
-      query = query.eq('status', status);
-    }
-    
-    if (categoryId) {
-      query = query.eq('category_id', categoryId);
-    }
-    
-    const start = (page - 1) * limit;
-    const end = start + limit - 1;
-    
-    const { data, error, count } = await query
-      .order('updated_at', { ascending: false })
-      .range(start, end);
-    
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error fetching articles by status', error);
-      return { articles: [], error, count: 0 };
-    }
-    
-    return { articles: data, error: null, count: count || 0 };
+
+    const result = await convexClient.query(api.articles.getByStatus, {
+      status,
+      categoryId: categoryId as Id<"categories"> | undefined,
+      page,
+      limit,
+    });
+
+
+    return { articles: result.articles, error: null, count: result.count };
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Exception fetching articles by status', e);
+    return { articles: [], error: e, count: 0 };
+  }
+};
+
+export const getPublishedArticles = async (
+  categoryId?: string,
+  page: number = 1,
+  limit: number = 10,
+  sortBy?: 'newest' | 'oldest' | 'a-z'
+) => {
+  try {
+    logger.info(LogSource.ARTICLE, `Fetching published articles`, { categoryId, page, sortBy });
+
+    const result = await convexClient.query(api.articles.getPublished, {
+      categoryId: categoryId as Id<"categories"> | undefined,
+      page,
+      limit,
+      sortBy
+    });
+
+    return { articles: result.articles, error: null, count: result.count };
+  } catch (e) {
+    logger.error(LogSource.ARTICLE, 'Exception fetching published articles', e);
     return { articles: [], error: e, count: 0 };
   }
 };

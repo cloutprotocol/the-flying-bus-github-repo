@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { 
-  grantAuthorRole, 
-  createAuthorAccount, 
-  activateExistingUserAccount,
-  RoleUpgradeResult,
-  AccountActivationResult 
-} from '@/services/roleService';
+import { profileConvexService } from '@/services/convex/profileConvexService';
+import type { RoleUpgradeResult, AccountActivationResult } from '@/types/ReaderProfile';
 
 export interface UseRoleManagementReturn {
   isLoading: boolean;
@@ -33,7 +28,10 @@ export function useRoleManagement(): UseRoleManagementReturn {
     setIsLoading(true);
     
     try {
-      const result = await grantAuthorRole(userId);
+      const res = await profileConvexService.updateRole(userId, 'author');
+      const result: RoleUpgradeResult = res.success
+        ? { success: true, user: undefined }
+        : { success: false, error: res.error as any };
       
       if (result.success) {
         toast({
@@ -75,7 +73,8 @@ export function useRoleManagement(): UseRoleManagementReturn {
     setIsLoading(true);
     
     try {
-      const result = await createAuthorAccount(email, password, displayName, username);
+      // Creating author accounts should go through Convex Auth UI; stub here
+      const result: AccountActivationResult = { success: false, error: 'Use Convex Auth to create accounts' } as any;
       
       if (result.success) {
         toast({
@@ -109,7 +108,8 @@ export function useRoleManagement(): UseRoleManagementReturn {
     setIsLoading(true);
     
     try {
-      const result = await activateExistingUserAccount(userId);
+      const res = await profileConvexService.updateRole(userId, 'author');
+      const result: AccountActivationResult = res.success ? { success: true } as any : { success: false, error: res.error as any } as any;
       
       if (result.success) {
         toast({

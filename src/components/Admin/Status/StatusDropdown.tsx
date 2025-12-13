@@ -12,7 +12,6 @@ import { StatusType } from './StatusBadge';
 import StatusBadge from './StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import { updateArticleStatus } from '@/services/articles/status/articleStatusService';
-import { requestArticleReview } from '@/services/articles/articleReviewService';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -79,38 +78,19 @@ const StatusDropdown: React.FC<StatusDropdownProps> = ({
       });
       
       if (articleId && currentStatus === 'draft' && newStatus === 'pending') {
-        logger.info(LogSource.EDITOR, 'Attempting to submit article for review', { 
-          articleId,
-          currentStatus,
-          newStatus 
-        });
-        
-        // Using requestArticleReview which accepts just the articleId parameter
-        const { success, error } = await requestArticleReview(articleId);
-        
+        logger.info(LogSource.EDITOR, 'Submitting article for review via Convex', { articleId });
+        const { success, error } = await updateArticleStatus(articleId, 'pending');
         if (success) {
           onStatusChange(newStatus);
           toast({
             title: "Article submitted for review",
             description: "Your article has been submitted to moderators for review",
           });
-          
-          logger.info(LogSource.EDITOR, 'Article successfully submitted for review', { 
-            articleId,
-            newStatus 
-          });
         } else {
-          const errorMessage = error?.message || "There was an error submitting your article";
-          
           toast({
             title: "Submission failed",
-            description: errorMessage,
+            description: error?.message || "There was an error submitting your article",
             variant: "destructive"
-          });
-          
-          logger.error(LogSource.EDITOR, 'Article submission failed', { 
-            articleId,
-            error 
           });
         }
       } else {

@@ -20,7 +20,9 @@ import {
   Award
 } from 'lucide-react';
 import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 interface AuthorAnalyticsData {
   totalViews: number;
@@ -64,23 +66,10 @@ export const AuthorAnalytics: React.FC<AuthorAnalyticsProps> = ({ className }) =
         setLoading(true);
         setError(null);
         
-        // Fetch author's articles
-        const { data: articles, error: articlesError } = await supabase
-          .from('articles')
-          .select(`
-            id,
-            title,
-            category,
-            status,
-            created_at
-          `)
-          .eq('author_id', user.id);
-
-        if (articlesError) {
-          throw articlesError;
-        }
-
-        const articleIds = articles?.map(a => a.id) || [];
+        // Fetch author's articles via Convex
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const articles = await convex.query(api.articles.getByAuthor, { authorId: user.id as any as Id<'profiles'> });
+        const articleIds = (articles || []).map((a: any) => a._id);
         
         // Initialize analytics data
         const analyticsData: AuthorAnalyticsData = {
@@ -95,58 +84,21 @@ export const AuthorAnalytics: React.FC<AuthorAnalyticsProps> = ({ className }) =
         };
 
         // Fetch views data (if article_views table exists)
-        try {
-          if (articleIds.length > 0) {
-            const { data: viewsData, error: viewsError } = await supabase
-              .from('article_views')
-              .select('article_id, views, created_at')
-              .in('article_id', articleIds);
-
-            if (!viewsError && viewsData) {
-              analyticsData.totalViews = viewsData.reduce((sum, view) => sum + (view.views || 0), 0);
-              analyticsData.averageViewsPerArticle = analyticsData.totalArticles > 0 
-                ? Math.round(analyticsData.totalViews / analyticsData.totalArticles) 
-                : 0;
-
-              // Find top performing article
-              const articleViews = viewsData.reduce((acc, view) => {
-                acc[view.article_id] = (acc[view.article_id] || 0) + (view.views || 0);
-                return acc;
-              }, {} as Record<string, number>);
-
-              const topArticleId = Object.entries(articleViews)
-                .sort(([,a], [,b]) => b - a)[0]?.[0];
-
-              if (topArticleId) {
-                const topArticle = articles?.find(a => a.id === topArticleId);
-                if (topArticle) {
-                  analyticsData.topPerformingArticle = {
-                    title: topArticle.title,
-                    views: articleViews[topArticleId]
-                  };
-                }
-              }
-            }
-          }
-        } catch (viewsErr) {
-          console.warn('Could not fetch views data:', viewsErr);
+        // Views not tracked via separate table; estimate using article.view_count
+        analyticsData.totalViews = (articles || []).reduce((sum: number, a: any) => sum + (a.view_count || 0), 0);
+        analyticsData.averageViewsPerArticle = analyticsData.totalArticles > 0
+          ? Math.round(analyticsData.totalViews / analyticsData.totalArticles)
+          : 0;
+        const top = (articles || [])
+          .slice()
+          .sort((a: any, b: any) => (b.view_count || 0) - (a.view_count || 0))[0];
+        if (top) {
+          analyticsData.topPerformingArticle = { title: top.title, views: top.view_count || 0 };
         }
 
         // Fetch comments data
-        try {
-          if (articleIds.length > 0) {
-            const { data: commentsData, error: commentsError } = await supabase
-              .from('comments')
-              .select('article_id, created_at')
-              .in('article_id', articleIds);
-
-            if (!commentsError && commentsData) {
-              analyticsData.totalComments = commentsData.length;
-            }
-          }
-        } catch (commentsErr) {
-          console.warn('Could not fetch comments data:', commentsErr);
-        }
+        // Comments per article not directly available; keep as 0 for now
+        analyticsData.totalComments = 0;
 
         // Calculate category performance
         if (articles) {

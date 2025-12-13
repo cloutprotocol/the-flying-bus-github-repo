@@ -1,7 +1,8 @@
-
-import { supabase } from '@/integrations/supabase/client';
 import logger, { LogSource } from '@/utils/logger';
 import { StatusType } from '@/components/Admin/Status/StatusBadge';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export interface ArticleReviewItem {
   id: string;
@@ -25,52 +26,24 @@ export const getArticlesForApproval = async (
 ): Promise<{ articles: ArticleReviewItem[]; count: number; error: any }> => {
   try {
     logger.info(LogSource.DATABASE, 'Fetching articles for approval', { status, categoryFilter, page });
-    
-    let query = supabase
-      .from('articles')
-      .select(`
-        id, 
-        title, 
-        status,
-        created_at,
-        updated_at,
-        categories(id, name),
-        profiles!articles_author_id_fkey(id, display_name)
-      `, { count: 'exact' });
-    
-    // Apply status filter if not 'all'
-    if (status !== 'all') {
-      if (status === 'pending') {
-        // Handle both 'pending' and 'pending_review' statuses for backward compatibility
-        query = query.in('status', ['pending', 'pending_review']);
-      } else {
-        query = query.eq('status', status);
-      }
-    }
-    
-    // Apply category filter if not 'all'
-    if (categoryFilter !== 'all') {
-      query = query.eq('categories.name', categoryFilter);
-    }
-    
-    // Apply search if provided
-    if (searchTerm) {
-      query = query.or(`title.ilike.%${searchTerm}%,profiles!articles_author_id_fkey.display_name.ilike.%${searchTerm}%`);
-    }
-    
-    // Apply pagination
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to).order('updated_at', { ascending: false });
-    
-    const { data, error, count } = await query;
-    
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error fetching articles for approval', { error });
-      throw error;
-    }
-    
-    // Assign a priority based on age of submission (could be more sophisticated in a real app)
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    // Map legacy statuses: treat 'pending' and 'pending_review' as pending_review
+    const statusFilter = status === 'all' ? undefined : (status === 'pending' ? 'pending_review' : status);
+    const { articles, count }: any = await convex.query(api.articles.getByStatus, {
+      status: statusFilter,
+      page,
+      limit,
+    });
+
+    // Optionally filter by category name and search on client for now
+    const filtered = (articles ?? []).filter((a: any) => {
+      const catOk = categoryFilter === 'all' ? true : (a.category?.name || '').toLowerCase() === categoryFilter.toLowerCase();
+      const term = searchTerm.trim().toLowerCase();
+      const searchOk = !term || a.title.toLowerCase().includes(term) || (a.author?.display_name || '').toLowerCase().includes(term);
+      return catOk && searchOk;
+    });
+
+    // Assign a priority based on age of submission
     const assignPriority = (date: string): 'low' | 'medium' | 'high' => {
       const submissionDate = new Date(date);
       const now = new Date();
@@ -80,25 +53,24 @@ export const getArticlesForApproval = async (
       if (daysDifference >= 3) return 'medium';
       return 'low';
     };
-    
     // Transform the data for the UI
-    const articles: ArticleReviewItem[] = data?.map(article => ({
-      id: article.id,
+    const items: ArticleReviewItem[] = filtered.map((article: any) => ({
+      id: article._id,
       title: article.title,
-      author: article.profiles?.display_name || 'Unknown',
+      author: article.author?.display_name || 'Unknown',
       status: article.status as StatusType,
       submittedAt: new Date(article.updated_at),
-      category: article.categories?.name || 'Uncategorized',
+      category: article.category?.name || 'Uncategorized',
       priority: assignPriority(article.updated_at)
-    })) || [];
+    }));
     
     logger.info(LogSource.DATABASE, 'Articles for approval fetched successfully', { 
-      count, 
+      count: count ?? filtered.length, 
       status,
-      articlesFound: articles.length
+      articlesFound: items.length
     });
     
-    return { articles, count: count || 0, error: null };
+    return { articles: items, count: count ?? filtered.length, error: null };
   } catch (e) {
     logger.error(LogSource.DATABASE, 'Exception fetching articles for approval', e);
     return { articles: [], count: 0, error: e };

@@ -34,21 +34,21 @@ type ActionType = typeof actionTypes
 
 type Action =
   | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
+    type: ActionType["ADD_TOAST"]
+    toast: ToasterToast
+  }
   | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
+    type: ActionType["UPDATE_TOAST"]
+    toast: Partial<ToasterToast>
+  }
   | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
+    type: ActionType["DISMISS_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
   | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
+    type: ActionType["REMOVE_TOAST"]
+    toastId?: ToasterToast["id"]
+  }
 
 interface State {
   toasts: ToasterToast[]
@@ -106,9 +106,9 @@ export const reducer = (state: State, action: Action): State => {
         toasts: state.toasts.map((t) =>
           t.id === toastId || toastId === undefined
             ? {
-                ...t,
-                open: false,
-              }
+              ...t,
+              open: false,
+            }
             : t
         ),
       }
@@ -141,28 +141,28 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 // Priority toasts that should always be shown regardless of duplicates
-const PRIORITY_TOASTS = ['error', 'destructive', 'loading'];
+const PRIORITY_TOASTS = ['loading'];
 
 // Add an activeToasts Set to track currently displaying toasts with the same title
 const activeToasts = new Set<string>();
 
 function toast({ ...props }: Toast) {
   const id = genId()
-  
+
   // Generate a unique key for this toast based on title and variant
   const toastKey = `${props.title?.toString() || ''}-${props.variant || 'default'}`;
-  
+
   // Check if we already have a similar toast showing - except for priority toasts
   const isPriorityToast = props.variant && PRIORITY_TOASTS.includes(props.variant);
   if (!isPriorityToast && activeToasts.has(toastKey)) {
     console.log(`Toast with key ${toastKey} already active, not showing duplicate`);
     return {
       id,
-      dismiss: () => {}, // No-op
-      update: () => {}, // No-op
+      dismiss: () => { }, // No-op
+      update: () => { }, // No-op
     };
   }
-  
+
   // Mark this toast as active
   activeToasts.add(toastKey);
 
@@ -171,7 +171,7 @@ function toast({ ...props }: Toast) {
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
-    
+
   const dismiss = () => {
     activeToasts.delete(toastKey); // Remove from active toasts
     dispatch({ type: "DISMISS_TOAST", toastId: id })
@@ -191,7 +191,7 @@ function toast({ ...props }: Toast) {
       },
     },
   })
-  
+
   // Automatically remove from active toasts after timeout
   setTimeout(() => {
     activeToasts.delete(toastKey);

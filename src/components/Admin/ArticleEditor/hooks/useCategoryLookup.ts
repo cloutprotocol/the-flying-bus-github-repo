@@ -1,7 +1,9 @@
 
 import { useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 import { useToast } from '@/hooks/use-toast';
 import { ArticleFormSchemaType } from '@/utils/validation/articleFormSchema';
 
@@ -27,6 +29,7 @@ export const useCategoryLookup = ({
 }: UseCategoryLookupProps) => {
   const { toast } = useToast();
   const { setValue } = form;
+  const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
 
   useEffect(() => {
     if (isNewArticle && (categorySlug || categoryName) && !form.getValues('categoryId')) {
@@ -34,16 +37,12 @@ export const useCategoryLookup = ({
         try {
           console.log('useCategoryLookup: Looking up category:', { categorySlug, categoryName });
           
-          let query = supabase.from('categories').select('id, name, slug');
-          
           if (categorySlug) {
             // First try direct slug match
-            const directQuery = query.eq('slug', categorySlug);
-            const { data: directData, error: directError } = await directQuery.maybeSingle();
-            
-            if (directData && !directError) {
+            const directData = await convex.query(api.categories.getBySlug, { slug: categorySlug });
+            if (directData) {
               console.log('useCategoryLookup: Found category with direct slug:', directData);
-              setValue('categoryId', directData.id);
+              setValue('categoryId', (directData._id as Id<'categories'>) as any);
               return;
             }
             
@@ -51,22 +50,20 @@ export const useCategoryLookup = ({
             const mappedSlug = SLUG_MAPPING[categorySlug];
             if (mappedSlug) {
               console.log('useCategoryLookup: Trying mapped slug:', { originalSlug: categorySlug, mappedSlug });
-              const mappedQuery = supabase.from('categories').select('id, name, slug').eq('slug', mappedSlug);
-              const { data: mappedData, error: mappedError } = await mappedQuery.maybeSingle();
-              
-              if (mappedData && !mappedError) {
+              const mappedData = await convex.query(api.categories.getBySlug, { slug: mappedSlug });
+              if (mappedData) {
                 console.log('useCategoryLookup: Found category with mapped slug:', mappedData);
-                setValue('categoryId', mappedData.id);
+                setValue('categoryId', (mappedData._id as Id<'categories'>) as any);
                 return;
               }
             }
           } else if (categoryName) {
-            query = query.eq('name', categoryName);
-            const { data, error } = await query.maybeSingle();
-            
-            if (data && !error) {
-              console.log('useCategoryLookup: Found category by name:', data);
-              setValue('categoryId', data.id);
+            // Fallback: fetch all and match by name
+            const all = await convex.query(api.categories.getAll, {} as any);
+            const match = (all || []).find((c: any) => c.name === categoryName);
+            if (match) {
+              console.log('useCategoryLookup: Found category by name:', match);
+              setValue('categoryId', (match._id as Id<'categories'>) as any);
               return;
             }
           }

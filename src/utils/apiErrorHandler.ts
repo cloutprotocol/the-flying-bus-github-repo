@@ -8,6 +8,6 @@
 
 // Re-export everything from the new error handling structure
 export { ApiErrorType, ApiError } from './errors/types';
-export { processSupabaseError } from './errors/processError';
+
 export { showErrorToast } from './errors/displayError';
 export { handleApiError } from './errors/index';

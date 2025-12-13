@@ -3,8 +3,7 @@ import {
   hasAuthorPrivileges, 
   hasAdminPrivileges, 
   hasModeratorPrivileges,
-  getRedirectUrlForRole 
-} from '@/services/roleService';
+} from '@/services/roleHelpers';
 
 /**
  * Utility functions for role-based operations
@@ -36,7 +35,12 @@ export function canAccessAuthor(user: ReaderProfile | null): boolean {
  */
 export function getDashboardUrl(user: ReaderProfile | null): string {
   if (!user) return '/';
-  return getRedirectUrlForRole(user.role);
+  switch (user.role) {
+    case 'admin': return '/admin/dashboard';
+    case 'moderator': return '/admin/dashboard';
+    case 'author': return '/admin/my-articles';
+    default: return '/';
+  }
 }
 
 /**

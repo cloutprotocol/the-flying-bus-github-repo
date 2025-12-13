@@ -4,19 +4,18 @@
  * Shows review status and history for authors
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
+import {
   Clock,
   CheckCircle,
   XCircle,
   MessageSquare,
   Calendar,
   User,
-  RefreshCw,
   AlertCircle
 } from 'lucide-react';
 import {
@@ -26,16 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { 
-  getArticleReviewHistory,
-  ArticleReview
-} from '@/services/articleReviewWorkflowService';
-import { ownershipUIUtils } from '@/services/articleOwnershipService';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 interface ArticleReviewStatusProps {
   articleId: string;
   articleTitle: string;
-  currentStatus: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published';
+  currentStatus: string;
   submittedAt?: string;
   className?: string;
 }
@@ -47,36 +44,15 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
   submittedAt,
   className
 }) => {
-  const [reviewHistory, setReviewHistory] = useState<ArticleReview[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const fetchReviewHistory = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const result = await getArticleReviewHistory(articleId);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      setReviewHistory(result.reviews);
-    } catch (err) {
-      console.error('Error fetching review history:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load review history');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Convex Query
+  // Only fetch if dialog is open (optimization) or always? Always is fine, or conditional.
+  // Conditional: `items` is undefined if skipped.
+  const reviewHistory = useQuery(api.articles.getReviewHistory, showHistory ? { articleId: articleId as Id<"articles"> } : "skip");
 
   const handleShowHistory = () => {
     setShowHistory(true);
-    if (reviewHistory.length === 0) {
-      fetchReviewHistory();
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -96,6 +72,7 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'rejected':
+      case 'needs_changes':
         return <XCircle className="h-4 w-4 text-red-500" />;
       case 'published':
         return <CheckCircle className="h-4 w-4 text-blue-500" />;
@@ -113,6 +90,7 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
       case 'approved':
         return 'Great! Your article has been approved and will be published soon.';
       case 'rejected':
+      case 'needs_changes':
         return 'Your article needs some changes before it can be published. Please review the feedback and resubmit.';
       case 'published':
         return 'Congratulations! Your article has been published and is now live.';
@@ -122,7 +100,16 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    const color = ownershipUIUtils.getStatusBadgeColor(status);
+    const map: Record<string, string> = {
+      draft: 'gray',
+      pending_review: 'yellow',
+      approved: 'green',
+      published: 'blue',
+      rejected: 'red',
+      needs_changes: 'red'
+    };
+    const color = map[status] || 'gray';
+
     const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       gray: 'secondary',
       yellow: 'outline',
@@ -131,6 +118,10 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
       blue: 'default'
     };
     return variantMap[color] || 'secondary';
+  };
+
+  const formatStatusText = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   return (
@@ -146,7 +137,7 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <Badge variant={getStatusColor(currentStatus)}>
-                {ownershipUIUtils.getStatusText(currentStatus)}
+                {formatStatusText(currentStatus)}
               </Badge>
             </div>
             {submittedAt && (
@@ -155,15 +146,15 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
               </div>
             )}
           </div>
-          
+
           <p className="text-sm text-muted-foreground">
             {getStatusMessage(currentStatus)}
           </p>
-          
+
           {currentStatus !== 'draft' && (
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleShowHistory}
               >
@@ -184,18 +175,9 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
               Review history for "{articleTitle}"
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Error loading review history: {error}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {loading ? (
+            {reviewHistory === undefined ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
@@ -212,20 +194,20 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {reviewHistory.map((review) => (
-                  <Card key={review.id}>
+                  <Card key={review._id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(review.status)}
                           <span className="font-medium">
-                            {ownershipUIUtils.getStatusText(review.status)}
+                            {formatStatusText(review.status)}
                           </span>
                         </div>
                         <Badge variant={getStatusColor(review.status)}>
                           {review.status}
                         </Badge>
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                         <div className="flex items-center gap-1">
                           <User className="h-3 w-3" />
@@ -236,7 +218,7 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
                           {formatDate(review.created_at)}
                         </div>
                       </div>
-                      
+
                       {review.feedback && (
                         <div className="mt-2 p-3 bg-muted rounded-md">
                           <p className="text-sm">{review.feedback}</p>
@@ -247,7 +229,7 @@ export const ArticleReviewStatus: React.FC<ArticleReviewStatusProps> = ({
                 ))}
               </div>
             )}
-            
+
             <div className="flex justify-end">
               <Button variant="outline" onClick={() => setShowHistory(false)}>
                 Close

@@ -7,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle, User, Mail, Key } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { validateInvitationToken, findUserByEmail } from '@/services/invitationService';
-import { hasAuthorPrivileges } from '@/services/roleService';
+import { validateInvitationToken, findUserByEmail, type InvitationTokenData } from '@/services/invitationConvexService';
+import { useAuth } from '@/hooks/useAuth';
+import { hasAuthorPrivileges } from '@/services/roleHelpers';
 import { useRoleManagement } from '@/hooks/useRoleManagement';
-import { registrationFlowCoordinator, type InvitationRegistrationData } from '@/services/registrationFlowCoordinator';
+// Using Convex Auth via AuthProvider; no registration coordinator
 import { useRegistrationError } from '@/hooks/useRegistrationError';
 import { RegistrationErrorDisplay } from '@/components/Auth/RegistrationErrorDisplay';
-import type { InvitationTokenData } from '@/services/invitationService';
 
 type RegistrationState = 'loading' | 'ready' | 'registering' | 'success' | 'error';
 
@@ -24,6 +24,7 @@ const InvitationRegister = () => {
   const { isLoading: roleLoading } = useRoleManagement();
   
   const [state, setState] = useState<RegistrationState>('loading');
+  const { register: convexRegister } = useAuth();
   const [invitationData, setInvitationData] = useState<InvitationTokenData | null>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -200,15 +201,9 @@ const InvitationRegister = () => {
 
     try {
       // Use the enhanced registration flow coordinator
-      const registrationData: InvitationRegistrationData = {
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        invitationToken: token
-      };
-
-      const result = await registrationFlowCoordinator.coordinateInvitationRegistration(registrationData);
+      // Register via Convex Auth; ensure profile created afterward
+      const success = await convexRegister(formData.email, formData.password, formData.firstName + formData.lastName, formData.firstName + ' ' + formData.lastName);
+      const result = { success } as any;
       
       if (!result.success) {
         if (result.error) {

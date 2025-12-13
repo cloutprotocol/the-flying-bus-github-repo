@@ -115,7 +115,7 @@ export function usePerformanceMonitoring(options: UsePerformanceMonitoringOption
  * Hook for request deduplication
  */
 export function useRequestDeduplication() {
-  const executeWithDeduplication = useCallback(async <T>(
+  const executeWithDeduplication = useCallback(async <T,>(
     requestKey: string,
     operation: () => Promise<T>,
     ttl?: number
@@ -130,15 +130,15 @@ export function useRequestDeduplication() {
  * Hook for caching
  */
 export function usePerformanceCache() {
-  const setCache = useCallback(<T>(key: string, data: T, ttl?: number) => {
+  const setCache = useCallback(<T,>(key: string, data: T, ttl?: number) => {
     performanceMonitoringService.setCache(key, data, ttl);
   }, []);
 
-  const getCache = useCallback(<T>(key: string): T | null => {
+  const getCache = useCallback(<T,>(key: string): T | null => {
     return performanceMonitoringService.getCache<T>(key);
   }, []);
 
-  const executeWithCache = useCallback(async <T>(
+  const executeWithCache = useCallback(async <T,>(
     cacheKey: string,
     operation: () => Promise<T>,
     ttl?: number

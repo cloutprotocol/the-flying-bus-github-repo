@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { useDashboardLoadingState } from '@/hooks/useSimpleLoadingState';
@@ -41,82 +42,33 @@ export const useSimpleDashboardMetrics = (): UseSimpleDashboardMetricsReturn => 
 
   const fetchMetrics = async (): Promise<SimpleDashboardMetrics> => {
     logger.info(LogSource.DASHBOARD, 'Fetching dashboard metrics');
-
-    // Simple parallel queries without complex abstractions
-    const [
-      articlesResult,
-      commentsResult,
-      pendingArticlesResult,
-      pendingCommentsResult,
-      pendingInvitationsResult,
-      recentArticlesResult
-    ] = await Promise.all([
-      // Total articles count
-      supabase
-        .from('articles')
-        .select('*', { count: 'exact', head: true }),
-      
-      // Comments count
-      supabase
-        .from('comments')
-        .select('*', { count: 'exact', head: true }),
-      
-      // Pending articles
-      supabase
-        .from('articles')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['pending', 'under_review']),
-      
-      // Pending comments (flagged content)
-      supabase
-        .from('flagged_content')
-        .select('*', { count: 'exact', head: true })
-        .eq('content_type', 'comment')
-        .eq('status', 'pending'),
-      
-      // Pending invitations
-      supabase
-        .from('invitation_tokens')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending'),
-      
-      // Recent articles (last 5)
-      supabase
-        .from('articles')
-        .select('id, title, status, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(5)
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const [allArticles, allComments, allInvites] = await Promise.all([
+      convex.query(api.articles.getByStatus, { status: 'all' } as any),
+      convex.query(api.comments.getAll as any, {} as any).catch(() => null),
+      convex.query(api.invitations.getAllTokens, {} as any).catch(() => null),
     ]);
 
-    // Check for errors in any of the queries
-    const errors = [
-      articlesResult.error,
-      commentsResult.error,
-      pendingArticlesResult.error,
-      pendingCommentsResult.error,
-      pendingInvitationsResult.error,
-      recentArticlesResult.error
-    ].filter(Boolean);
+    const articles = (allArticles as any)?.articles || [];
+    const comments = (allComments as any)?.comments || [];
+    const tokens = (allInvites as any)?.tokens || [];
 
-    if (errors.length > 0) {
-      logger.error(LogSource.DASHBOARD, 'Error fetching dashboard metrics', errors[0]);
-      throw new Error(`Failed to load dashboard metrics: ${errors[0]?.message || 'Unknown error'}`);
-    }
+    const recent = [...articles]
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 5)
+      .map((a: any) => ({ id: a._id, title: a.title, status: a.status, lastEdited: new Date(a.updated_at).toLocaleDateString() }));
 
-    // Build metrics object
+    const pendingArticles = articles.filter((a: any) => ['pending', 'under_review', 'pending_review'].includes(a.status)).length;
+    const pendingInvitations = tokens.filter((t: any) => t.status === 'pending').length;
+
     const dashboardMetrics: SimpleDashboardMetrics = {
-      totalArticles: articlesResult.count || 0,
-      articleViews: 0, // Simplified - remove view count for now
-      commentCount: commentsResult.count || 0,
-      pendingArticles: pendingArticlesResult.count || 0,
-      pendingComments: pendingCommentsResult.count || 0,
-      pendingInvitations: pendingInvitationsResult.count || 0,
-      recentArticles: (recentArticlesResult.data || []).map(article => ({
-        id: article.id,
-        title: article.title,
-        status: article.status,
-        lastEdited: new Date(article.updated_at).toLocaleDateString()
-      }))
+      totalArticles: articles.length,
+      articleViews: 0,
+      commentCount: comments.length,
+      pendingArticles,
+      pendingComments: 0,
+      pendingInvitations,
+      recentArticles: recent,
     };
 
     logger.info(LogSource.DASHBOARD, 'Dashboard metrics fetched successfully', {

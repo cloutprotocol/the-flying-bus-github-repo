@@ -1,5 +1,4 @@
-import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
-import { SupabaseClient } from '@supabase/supabase-js';
+// Supabase query builder removed; Convex is used instead
 
 export interface ArticleFilterParams {
   categoryId?: string | null;
@@ -44,64 +43,5 @@ export function updateFilters(
   };
 }
 
-export function buildArticleQuery(
-  supabase: SupabaseClient,
-  filters: ArticleFilterParams
-): PostgrestFilterBuilder<any, any, any> {
-  // Use explicit select with categories join to get category data
-  let query = supabase
-    .from('articles')
-    .select(`
-      id,
-      title,
-      excerpt,
-      content,
-      cover_image,
-      category_id,
-      published_at,
-      created_at,
-      author_id,
-      status,
-      article_type,
-      categories(id, name, slug, color)
-    `, { count: 'exact' })
-    .eq('status', 'published');
-
-  // Apply category filter
-  if (filters.categoryId) {
-    query = query.eq('category_id', filters.categoryId);
-  }
-
-  // Reading level filter is commented out since the column doesn't exist
-  // We'll keep the interface intact but not apply the filter
-  // if (filters.readingLevel) {
-  //   query = query.eq('reading_level', filters.readingLevel);
-  // }
-
-  // Apply search filter
-  if (filters.searchQuery) {
-    query = query.ilike('title', `%${filters.searchQuery}%`);
-  }
-
-  // Apply sorting
-  switch (filters.sortBy) {
-    case 'newest':
-      query = query.order('published_at', { ascending: false });
-      break;
-    case 'oldest':
-      query = query.order('published_at', { ascending: true });
-      break;
-    case 'a-z':
-      query = query.order('title', { ascending: true });
-      break;
-  }
-
-  // Apply pagination
-  const startIndex = ((filters.page || 1) - 1) * (filters.pageSize || 6);
-  query = query.range(
-    startIndex,
-    startIndex + (filters.pageSize || 6) - 1
-  );
-
-  return query;
-}
+// Note: Convex replaces the Supabase query builder. Consumers should
+// call Convex queries/mutations directly with filters.

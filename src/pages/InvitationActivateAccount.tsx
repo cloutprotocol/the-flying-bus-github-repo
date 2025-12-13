@@ -7,13 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle, User, Mail, Key } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { validateInvitationToken, findUserByEmail } from '@/services/invitationService';
-import { hasAuthorPrivileges } from '@/services/roleService';
+import { validateInvitationToken, findUserByEmail, type InvitationTokenData } from '@/services/invitationConvexService';
+import { hasAuthorPrivileges } from '@/services/roleHelpers';
 import { useRoleManagement } from '@/hooks/useRoleManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useRegistrationError } from '@/hooks/useRegistrationError';
 import { RegistrationErrorDisplay } from '@/components/Auth/RegistrationErrorDisplay';
-import type { InvitationTokenData } from '@/services/invitationService';
 
 type ActivationState = 'loading' | 'ready' | 'activating' | 'success' | 'error';
 
@@ -132,7 +131,7 @@ const InvitationActivateAccount = () => {
 
     try {
       // First, sign in the user to verify credentials
-      const loginSuccess = await login(email, password);
+      const loginSuccess = await login(email.trim().toLowerCase(), password);
       
       if (!loginSuccess) {
         setFieldError('password', 'Invalid email or password');

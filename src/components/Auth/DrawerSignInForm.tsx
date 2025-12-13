@@ -16,14 +16,14 @@ const initialFormState = {
   password: '',
 };
 
-const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({ 
-  isSubmitting, 
+const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
+  isSubmitting,
   setIsSubmitting,
   onSuccess
 }) => {
   const { toast } = useToast();
   const { login } = useAuth();
-  
+
   const [signInForm, setSignInForm] = useState(initialFormState);
 
   const handleSignInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,34 +38,30 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
-      console.log('Attempting login with:', signInForm.email);
-      const success = await login(signInForm.email, signInForm.password);
-      
+      const email = signInForm.email.trim().toLowerCase();
+      console.log('Attempting login with:', email);
+      const success = await login(email, signInForm.password);
+
+      console.log('Login result:', success);
+
       if (success) {
         console.log('Login successful, resetting form and calling onSuccess');
-        
+
         // Reset form
         resetForm();
-        
-        // Delay closing drawer slightly to allow auth state to update
+
+        // Delay closing drawer to allow profile to load
         setTimeout(() => {
           // Call onSuccess to close the drawer
           onSuccess();
-          
-          toast({
-            title: "Welcome back!",
-            description: "You've successfully signed in.",
-          });
-        }, 300);
+
+          // Toast handled in AuthProvider
+        }, 1500); // Increased delay to ensure profile loads
       } else {
-        console.log('Login failed');
-        toast({
-          title: "Sign in failed",
-          description: "Invalid email or password.",
-          variant: "destructive",
-        });
+        console.log('Login failed - check console for details');
+        // Toast handled in AuthProvider
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -86,7 +82,7 @@ const DrawerSignInForm: React.FC<DrawerSignInFormProps> = ({
         onValueChange={handleSignInChange}
         isSubmitting={isSubmitting}
       />
-      
+
       <DrawerFormActions
         isSubmitting={isSubmitting}
         submitLabel="Sign In"

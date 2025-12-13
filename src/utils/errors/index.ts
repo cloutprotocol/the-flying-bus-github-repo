@@ -10,7 +10,7 @@ export * from './processError';
 export * from './displayError';
 
 import { ApiError } from './types';
-import { processSupabaseError } from './processError';
+import { processApiError } from './processError';
 import { showErrorToast } from './displayError';
 
 /**
@@ -20,7 +20,7 @@ import { showErrorToast } from './displayError';
  * @returns Processed ApiError object
  */
 export function handleApiError(error: any, showToast = true): ApiError {
-  const apiError = error instanceof ApiError ? error : processSupabaseError(error);
+  const apiError = error instanceof ApiError ? error : processApiError(error);
   
   if (showToast) {
     showErrorToast(apiError);

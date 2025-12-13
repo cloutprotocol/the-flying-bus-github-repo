@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Award, Star } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+// Badges/Achievements are not yet represented in Convex schema.
 import type { ReaderProfile, PrivacySettings } from '@/types/ReaderProfile';
 
 interface ProfileBadgesProps {
@@ -22,18 +22,9 @@ const ProfileBadges = ({ profile, privacySettings }: ProfileBadgesProps) => {
   const fetchAchievements = async () => {
     try {
       setLoading(true);
-
+      // No Convex data available; default empty achievements
       if (privacySettings?.show_achievements !== false) {
-        // Fetch achievements without the broken relation for now
-        const { data: userAchievements } = await supabase
-          .from('user_achievements')
-          .select('*')
-          .eq('user_id', profile.id)
-          .order('achieved_at', { ascending: false });
-
-        if (userAchievements) {
-          setAchievements(userAchievements);
-        }
+        setAchievements([]);
       }
     } catch (error) {
       console.error('Error fetching achievements:', error);

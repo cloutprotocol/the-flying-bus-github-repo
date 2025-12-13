@@ -4,7 +4,8 @@
  */
 
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { handleVoteError } from '@/utils/errors/handleVoteError';
@@ -18,38 +19,10 @@ const VOTED_ITEMS_KEY = 'votedItems';
  */
 export const checkIfUserHasVoted = async (itemId: string): Promise<{ hasVoted: boolean; userChoice: 'yes' | 'no' | null }> => {
   try {
-    // First check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      logger.debug(LogSource.VOTING, 'Checking if authenticated user has voted', {
-        itemId,
-        userId: session.user.id
-      });
-      
-      // Check database for user vote
-      const { data, error } = await supabase
-        .from('article_votes')
-        .select('vote')
-        .eq('article_id', itemId)
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-      
-      if (error) {
-        handleVoteError(error, false);
-      }
-      
-      if (data) {
-        logger.info(LogSource.VOTING, 'User has already voted', {
-          itemId,
-          vote: data.vote
-        });
-        
-        return {
-          hasVoted: true,
-          userChoice: data.vote as 'yes' | 'no'
-        };
-      }
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const vote = await convex.query(api.votes.getUserVote, { articleId: itemId });
+    if (vote) {
+      return { hasVoted: true, userChoice: vote as 'yes' | 'no' };
     } else {
       // Fallback to localStorage for non-authenticated users
       try {
@@ -81,40 +54,9 @@ export const checkIfUserHasVoted = async (itemId: string): Promise<{ hasVoted: b
  */
 export const fetchVoteCounts = async (itemId: string): Promise<{yes: number, no: number}> => {
   try {
-    logger.debug(LogSource.VOTING, 'Fetching vote counts', { itemId });
-    
-    // Get the yes votes
-    const { count: yesCount, error: yesError } = await supabase
-      .from('article_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('article_id', itemId)
-      .eq('vote', 'yes');
-      
-    if (yesError) {
-      handleVoteError(yesError, false);
-      return { yes: 0, no: 0 };
-    }
-    
-    // Get the no votes
-    const { count: noCount, error: noError } = await supabase
-      .from('article_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('article_id', itemId)
-      .eq('vote', 'no');
-      
-    if (noError) {
-      handleVoteError(noError, false);
-      return { yes: 0, no: 0 };
-    }
-    
-    const result = {
-      yes: yesCount || 0,
-      no: noCount || 0
-    };
-    
-    logger.debug(LogSource.VOTING, 'Vote counts fetched', result);
-    
-    return result;
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const result = await convex.query(api.votes.getCounts, { articleId: itemId });
+    return result || { yes: 0, no: 0 };
   } catch (error) {
     handleVoteError(error, false);
     return { yes: 0, no: 0 };
@@ -129,36 +71,11 @@ export const fetchVoteCounts = async (itemId: string): Promise<{yes: number, no:
 export const recordVote = async (itemId: string, choice: 'yes' | 'no'): Promise<void> => {
   try {
     logger.info(LogSource.VOTING, 'Recording vote', { itemId, choice });
-    
-    // First check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      // Record vote in the database
-      const { error } = await supabase
-        .from('article_votes')
-        .insert({
-          article_id: itemId,
-          user_id: session.user.id,
-          vote: choice
-        });
-      
-      if (error) {
-        handleVoteError(error, true);
-      } else {
-        logger.info(LogSource.VOTING, 'Vote recorded successfully', {
-          itemId,
-          userId: session.user.id,
-          choice
-        });
-        
-        toast({
-          title: "Vote recorded",
-          description: `Your vote (${choice}) has been counted!`,
-          variant: "default",
-        });
-      }
-    } else {
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    try {
+      await convex.mutation(api.votes.recordVote, { articleId: itemId, choice });
+      toast({ title: 'Vote recorded', description: `Your vote (${choice}) has been counted!`, variant: 'default' });
+    } catch {
       // Fallback to localStorage for non-authenticated users
       try {
         const votedItems = JSON.parse(localStorage.getItem(VOTED_ITEMS_KEY) || '{}');
@@ -194,34 +111,9 @@ export const recordVote = async (itemId: string, choice: 'yes' | 'no'): Promise<
  * @returns Unsubscribe function
  */
 export const subscribeToVoteUpdates = (
-  itemId: string, 
-  callback: (votes: {yes: number, no: number}) => void
+  _itemId: string, 
+  _callback: (votes: {yes: number, no: number}) => void
 ): (() => void) => {
-  logger.debug(LogSource.REALTIME, 'Setting up vote subscription', { itemId });
-  
-  // Set up realtime subscription for votes
-  const votesChannel = supabase
-    .channel(`votes_${itemId}`)
-    .on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'article_votes',
-        filter: `article_id=eq.${itemId}` 
-      }, 
-      async () => {
-        // Fetch latest vote counts when changes occur
-        const counts = await fetchVoteCounts(itemId);
-        callback(counts);
-      }
-    )
-    .subscribe();
-    
-  logger.debug(LogSource.REALTIME, 'Vote subscription established', { itemId });
-    
-  // Return unsubscribe function
-  return () => {
-    logger.debug(LogSource.REALTIME, 'Removing vote subscription', { itemId });
-    supabase.removeChannel(votesChannel);
-  };
+  // Use Convex reactive queries in components instead of manual subscriptions
+  return () => {};
 };

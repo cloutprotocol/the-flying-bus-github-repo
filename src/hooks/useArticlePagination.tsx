@@ -1,9 +1,11 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleSortType, ArticleData, UseArticlePaginationReturn } from './article/types';
-import { ArticleFilterParams, getDefaultFilters, updateFilters, buildArticleQuery } from './article/articleFilters';
+import { ArticleFilterParams, getDefaultFilters, updateFilters } from './article/articleFilters';
 import { transformArticleData } from './article/articleTransformData';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -138,9 +140,18 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
           requestId
         });
         
-        const query = buildArticleQuery(supabase, filters);
-        logger.info(LogSource.ARTICLE, 'Query built, fetching data...');
-        const { data, error: fetchError, count } = await query;
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const page = filters.page || 1;
+        const pageSize = filters.pageSize || 6;
+        const sortBy = filters.sortBy || 'newest';
+        const res: any = await convex.query(api.articles.getPublished, {
+          categoryId: filters.categoryId ? (filters.categoryId as any as Id<'categories'>) : undefined,
+          page,
+          limit: pageSize,
+          sortBy,
+        });
+        const data = res?.articles || [];
+        const count = res?.count ?? data.length;
 
         // Don't update state if component unmounted or request is stale
         if (isStale || !isMountedRef.current) {
@@ -150,16 +161,6 @@ export function useArticlePagination(initialFilters: ArticleFilterParams = {}): 
             isMounted: isMountedRef.current
           });
           return;
-        }
-
-        if (fetchError) {
-          logger.error(LogSource.ARTICLE, 'Error fetching articles', { 
-            error: fetchError.message,
-            details: fetchError.details,
-            hint: fetchError.hint,
-            code: fetchError.code
-          });
-          throw new Error(`Error fetching articles: ${fetchError.message}`);
         }
 
         // Check if data was returned

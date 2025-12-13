@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed; stubbing security monitoring. Integrate with Convex logs if needed.
 
 export interface SecurityEvent {
   id?: string;
@@ -28,25 +28,7 @@ class SecurityMonitoringService {
    * Log a security event
    */
   async logSecurityEvent(event: Omit<SecurityEvent, 'id' | 'timestamp'>): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('security_events')
-        .insert({
-          ...event,
-          timestamp: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log security event:', error);
-      }
-
-      // If it's a critical event, we might want to trigger immediate alerts
-      if (event.severity === 'critical') {
-        await this.handleCriticalEvent(event);
-      }
-    } catch (err) {
-      console.error('Error logging security event:', err);
-    }
+    try { if (event.severity === 'critical') await this.handleCriticalEvent(event); } catch {}
   }
 
   /**
@@ -136,18 +118,7 @@ class SecurityMonitoringService {
     endDate: Date
   ): Promise<SecurityMetrics> {
     try {
-      const { data, error } = await supabase
-        .from('security_events')
-        .select('*')
-        .gte('timestamp', startDate.toISOString())
-        .lte('timestamp', endDate.toISOString())
-        .order('timestamp', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      const events = data || [];
+      const events: SecurityEvent[] = [];
       const totalEvents = events.length;
       
       const severityCounts = events.reduce((acc, event) => {
@@ -203,7 +174,6 @@ class SecurityMonitoringService {
     try {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-      
       const metrics = await this.getSecurityMetrics(oneHourAgo, now);
       
       let threatLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';

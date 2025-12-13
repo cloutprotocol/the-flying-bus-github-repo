@@ -1,6 +1,6 @@
 
 import { ReaderProfile } from '@/types/ReaderProfile';
-import { Session } from '@supabase/supabase-js';
+export type Session = { user: { id: string } } | null;
 
 export interface AuthContextType {
   currentUser: ReaderProfile | null;
@@ -12,7 +12,7 @@ export interface AuthContextType {
   refreshUserProfile: () => Promise<boolean>;
   isLoading: boolean;
   checkRoleAccess: (allowedRoles: string[]) => boolean;
-  session: Session | null;
+  session: Session;
   user: { id: string } | null;
   // Session management methods
   establishSession: (session: Session) => Promise<void>;

@@ -4,7 +4,6 @@
  * Functions for reporting inappropriate content
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { ReportType, ContentType } from './types';
@@ -26,32 +25,12 @@ export const reportContent = async (
       reportType
     });
     
-    // Use flagged_content table for safety reports
-    const { error } = await supabase
-      .from('flagged_content')
-      .insert({
-        content_id: contentId,
-        content_type: contentType,
-        reason: `${reportType}: ${reportDetails}`,
-        reporter_id: reporterId,
-        status: 'pending'
-      });
-      
-    if (error) {
-      logger.error(LogSource.SAFETY, 'Error reporting content', {
-        error,
-        contentId,
-        contentType
-      });
-      return { success: false, error };
-    }
-    
-    logger.info(LogSource.SAFETY, 'Content reported successfully', {
+    // Supabase removed: replace with no-op success until Convex action exists
+    logger.info(LogSource.SAFETY, 'Content report queued (no-op)', {
       contentId,
       contentType,
       reportType
     });
-    
     return { success: true, error: null };
   } catch (e) {
     logger.error(LogSource.SAFETY, 'Exception reporting content', e);

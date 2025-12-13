@@ -3,7 +3,6 @@
  * Functions for storing logs locally and remotely
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { LogEntry, LogLevel } from './types';
 
 // In-memory log buffer for batched processing
@@ -112,14 +111,10 @@ async function processLogBuffer(): Promise<void> {
     // Clear the entries we're about to process
     logBuffer.splice(0, logsToProcess.length);
     
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    // Add user info to all logs
+    // Add basic context to all logs (userId omitted in client util)
     const processedLogs = logsToProcess.map(log => ({
       ...log,
-      userId: userId || log.userId,
+      userId: log.userId,
       url: window.location.href,
       userAgent: navigator.userAgent
     }));

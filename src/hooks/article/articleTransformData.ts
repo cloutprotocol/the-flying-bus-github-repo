@@ -11,21 +11,21 @@ export function transformArticleData(articles: any[]): ArticleData[] {
   
   return articles.map(article => {
     try {
-      // Handle category data from the joined categories table
-      const categoryName = article.categories?.name || 'Uncategorized';
-      const categorySlug = article.categories?.slug || 'uncategorized';
-      const categoryColor = article.categories?.color || 'blue';
-      const categoryId = article.category_id || null;
+      // Handle category from Supabase join or Convex embedded field
+      const categoryName = article.categories?.name || article.category?.name || 'Uncategorized';
+      const categorySlug = article.categories?.slug || article.category?.slug || 'uncategorized';
+      const categoryColor = article.categories?.color || article.category?.color || 'blue';
+      const categoryId = article.category_id || article.category?._id || null;
       
       // Calculate read time based on content length
       const readTime = calculateReadTime(article.content);
       
       return {
-        id: article.id,
+        id: article.id || article._id,
         title: article.title || 'Untitled Article',
         excerpt: article.excerpt || '',
         content: article.content,
-        imageUrl: article.cover_image || null,
+        imageUrl: article.cover_image || article.featured_image_url || null,
         category: categoryName,
         categorySlug: categorySlug,
         categoryColor: categoryColor,
@@ -33,7 +33,7 @@ export function transformArticleData(articles: any[]): ArticleData[] {
         readingLevel: 'All Ages', // Default reading level since the column doesn't exist in DB
         readTime: readTime || 3,
         author: article.author_name || 'Unknown Author',
-        date: formatDate(article.published_at || article.created_at),
+        date: formatDate(article.published_at || article.created_at || article.updated_at),
         publishDate: article.published_at ? formatDate(article.published_at) : null,
         commentCount: article.comment_count || 0,
         videoUrl: article.video_url || null,

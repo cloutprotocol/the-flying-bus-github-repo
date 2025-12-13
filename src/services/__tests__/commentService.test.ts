@@ -1,13 +1,13 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
-import { 
+import {
   getFlaggedComments,
   approveComment,
   rejectComment,
   flagComment
 } from '@/services/commentService';
-import { logger } from '@/utils/logger/logger';
+import { commentConvexService } from '@/services/convex/commentConvexService';
 import { createMockComment, createMockSession } from '@/test/helpers/testData';
 
 // Mock the logger to prevent console spam
@@ -20,40 +20,62 @@ vi.mock('@/utils/logger/logger', () => ({
   }
 }));
 
+// Mock Convex service
+vi.mock('@/services/convex/commentConvexService', () => ({
+  commentConvexService: {
+    getFlagged: vi.fn(),
+    updateStatus: vi.fn(),
+  }
+}));
+
 describe('CommentService', () => {
   // Sample comment data for testing
-  const mockComment = createMockComment();
+  // We need to match Convex structure (_id instead of id) - though our transformer handles it.
+  // The service expects specific return from Convex service.
+  const mockComment = {
+    ...createMockComment(),
+    _id: 'comment-id-1',
+    profile: {
+      display_name: 'Test User',
+      avatar_url: 'http://example.com/avatar.jpg'
+    }
+  };
 
   const mockCommentsList = [
     mockComment,
-    createMockComment({
-      id: 'comment-id-2',
-      content: 'This is another test comment',
-    })
+    {
+      ...createMockComment({
+        id: 'comment-id-2',
+        content: 'This is another test comment',
+      }),
+      _id: 'comment-id-2',
+      profile: {
+        display_name: 'Test User 2',
+        avatar_url: 'http://example.com/avatar2.jpg'
+      }
+    }
   ];
 
   // Reset all mocks before each test
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // Setup default mock responses
-    vi.mocked(supabase.from).mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      neq: vi.fn().mockReturnThis(),
-      range: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      ilike: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: mockComment, error: null }),
-    } as any);
 
-    vi.mocked(supabase.auth.getSession).mockResolvedValue({ 
-      data: { session: createMockSession('user-123') }, 
-      error: null 
+    // Setup Supabase auth mock (still used)
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: createMockSession('user-123') as any },
+      error: null
+    });
+
+    // Setup default Convex mock responses
+    vi.mocked(commentConvexService.getFlagged).mockResolvedValue({
+      comments: mockCommentsList as any,
+      count: 2,
+      error: null
+    });
+
+    vi.mocked(commentConvexService.updateStatus).mockResolvedValue({
+      success: true,
+      error: null
     });
   });
 
@@ -63,43 +85,27 @@ describe('CommentService', () => {
 
   describe('getFlaggedComments', () => {
     it('should return flagged comments', async () => {
-      // Setup specific mock for this test
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        neq: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        ilike: vi.fn().mockReturnThis(),
-        range: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ 
-          data: mockCommentsList, 
-          error: null,
-          count: 2
-        })
-      } as any);
-
       const result = await getFlaggedComments('flagged');
-      
-      expect(supabase.from).toHaveBeenCalledWith('comments');
+
+      expect(commentConvexService.getFlagged).toHaveBeenCalledWith('flagged', '', 1, 10);
       expect(result.comments).toHaveLength(2);
       expect(result.count).toBe(2);
+      // Verify transformation
+      expect(result.comments[0].id).toBe('comment-id-1');
+      expect(result.comments[0].author.name).toBe('Test User');
     });
 
     it('should handle errors and log them', async () => {
       // Setup mock to simulate an error
       const mockError = new Error('Database error');
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        neq: vi.fn().mockReturnThis(),
-        range: vi.fn().mockReturnThis(),
-        order: vi.fn().mockResolvedValue({ 
-          data: null, 
-          error: mockError,
-          count: 0
-        })
-      } as any);
+      vi.mocked(commentConvexService.getFlagged).mockResolvedValue({
+        comments: [],
+        count: 0,
+        error: mockError
+      });
 
       const result = await getFlaggedComments('flagged');
-      
+
       // Should return empty array when there's an error
       expect(result.comments).toEqual([]);
       expect(result.error).toBeTruthy();
@@ -108,17 +114,10 @@ describe('CommentService', () => {
 
   describe('approveComment', () => {
     it('should approve a comment successfully', async () => {
-      // Setup specific mock for this test
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ 
-          error: null 
-        })
-      } as any);
+      const result = await approveComment('comment-id-1');
 
-      const result = await approveComment(mockComment.id);
-      
-      expect(supabase.from).toHaveBeenCalledWith('comments');
+      expect(commentConvexService.updateStatus).toHaveBeenCalledWith('comment-id-1', 'published');
+      expect(supabase.auth.getSession).toHaveBeenCalled();
       expect(result.success).toBeTruthy();
       expect(result.error).toBeNull();
     });
@@ -126,17 +125,10 @@ describe('CommentService', () => {
 
   describe('rejectComment', () => {
     it('should reject a comment successfully', async () => {
-      // Setup specific mock for this test
-      vi.mocked(supabase.from).mockReturnValue({
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ 
-          error: null 
-        })
-      } as any);
+      const result = await rejectComment('comment-id-1');
 
-      const result = await rejectComment(mockComment.id);
-      
-      expect(supabase.from).toHaveBeenCalledWith('comments');
+      expect(commentConvexService.updateStatus).toHaveBeenCalledWith('comment-id-1', 'rejected');
+      expect(supabase.auth.getSession).toHaveBeenCalled();
       expect(result.success).toBeTruthy();
       expect(result.error).toBeNull();
     });
@@ -144,18 +136,12 @@ describe('CommentService', () => {
 
   describe('flagComment', () => {
     it('should flag a comment successfully', async () => {
-      // Setup specific mock for this test
-      vi.mocked(supabase.from).mockReturnValue({
-        insert: vi.fn().mockReturnThis(),
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ 
-          error: null 
-        })
-      } as any);
+      const result = await flagComment('comment-id-1', 'inappropriate content');
 
-      const result = await flagComment(mockComment.id, 'inappropriate content');
-      
-      expect(supabase.from).toHaveBeenCalledWith('flagged_content');
+      // We expect updateStatus to be called with 'flagged'
+      // Note: flag content details are skipped in MVP migration unless we update Convex service to handle it
+      expect(commentConvexService.updateStatus).toHaveBeenCalledWith('comment-id-1', 'flagged');
+
       expect(result.success).toBeTruthy();
       expect(result.error).toBeNull();
     });

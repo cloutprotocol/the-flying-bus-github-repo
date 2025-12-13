@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import { useToast } from '@/components/ui/use-toast';
 
 export interface ApprovalQueueArticle {
@@ -31,58 +33,21 @@ export function useSimpleApprovalQueue(statusFilter = 'pending') {
     try {
       console.log('Fetching approval queue articles with status:', statusFilter);
 
-      // Check if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Authentication required to access admin features');
-      }
-
-      let query = supabase
-        .from('articles')
-        .select(`
-          id,
-          title,
-          status,
-          created_at,
-          updated_at,
-          categories (
-            id,
-            name
-          ),
-          profiles!author_id (
-            id,
-            display_name
-          )
-        `);
-
-      // Apply status filter
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'pending') {
-          // Handle both 'pending' and 'pending_review' statuses for backward compatibility
-          query = query.in('status', ['pending', 'pending_review']);
-        } else {
-          query = query.eq('status', statusFilter);
-        }
-      }
-
-      // Order by updated_at descending
-      query = query.order('updated_at', { ascending: false });
-
-      const { data, error: queryError } = await query;
-
-      if (queryError) {
-        console.error('Query error:', queryError);
-        
-        // Provide more specific error messages
-        if (queryError.message.includes('RLS')) {
-          throw new Error('Access denied: Admin privileges required to view pending articles');
-        }
-        
-        throw new Error(`Database query failed: ${queryError.message}`);
-      }
-
-      console.log('Articles fetched successfully:', data?.length || 0);
-      setArticles(data || []);
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      // Fetch pending/published etc via Convex and client-side filter
+      const res: any = await convex.query(api.articles.getByStatus, { status: statusFilter === 'all' ? undefined : statusFilter });
+      const items = (res?.articles || []).slice().sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      const mapped = items.map((a: any) => ({
+        id: String(a._id),
+        title: a.title,
+        status: a.status,
+        created_at: a.created_at,
+        updated_at: a.updated_at,
+        categories: a.category ? { id: String(a.category._id || a.category_id), name: a.category.name } : undefined,
+        profiles: a.author ? { id: String(a.author._id), display_name: a.author.display_name } : undefined,
+      }));
+      console.log('Articles fetched successfully:', mapped.length);
+      setArticles(mapped);
     } catch (err) {
       console.error('Error fetching approval queue articles:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));

@@ -1,4 +1,5 @@
-import { AuthError } from '@supabase/supabase-js';
+// Minimal AuthError shape to avoid Supabase dependency
+type AuthError = { code?: string; message: string; name?: string };
 
 // Error types for registration flows
 export interface RegistrationError extends Error {

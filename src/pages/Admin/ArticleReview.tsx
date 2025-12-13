@@ -12,8 +12,9 @@ import ReviewsList from '@/components/Admin/Reviews/ReviewsList';
 import { ReviewCommentType } from '@/components/Admin/Reviews/ReviewComment';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { getDraftById } from '@/services/draftService';
-import { reviewArticle } from '@/services/articleService';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const ArticleReview = () => {
@@ -33,16 +34,16 @@ const ArticleReview = () => {
 
       setLoading(true);
       try {
-        const { draft, error } = await getDraftById(articleId);
-        
-        if (error) {
-          console.error('Error fetching article:', error);
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const draft: any = await convex.query(api.articles.getById, { articleId: articleId as any as Id<'articles'> });
+        if (!draft) {
+          console.error('Error fetching article: not found');
           toast({
             title: "Error",
             description: "Could not load the article for review",
             variant: "destructive"
           });
-        } else if (draft) {
+        } else {
           setArticle(draft);
           setStatus(draft.status as StatusType);
         }
@@ -101,10 +102,9 @@ const ArticleReview = () => {
     
     setActionInProgress(true);
     try {
-      const { success, error } = await reviewArticle(articleId, { 
-        status: 'published',
-        feedback: 'Article approved for publication' 
-      });
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.articles.updateStatus, { id: articleId as any as Id<'articles'>, status: 'published' });
+      const success = true; const error = null as any;
       
       if (success) {
         setStatus('published');
@@ -140,10 +140,9 @@ const ArticleReview = () => {
     
     setActionInProgress(true);
     try {
-      const { success, error } = await reviewArticle(articleId, { 
-        status: 'rejected',
-        feedback: 'Article requires revisions before it can be published' 
-      });
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.articles.updateStatus, { id: articleId as any as Id<'articles'>, status: 'rejected' });
+      const success = true; const error = null as any;
       
       if (success) {
         setStatus('rejected');

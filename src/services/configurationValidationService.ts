@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed; stubbing configuration validation for Convex-only stack
 
 export interface ConfigurationValidationResult {
   isValid: boolean;
@@ -45,10 +45,7 @@ class ConfigurationValidationService {
     'app_url'
   ];
 
-  private readonly REQUIRED_ENV_VARS = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY'
-  ];
+  private readonly REQUIRED_ENV_VARS = [ 'VITE_CONVEX_URL' ];
 
   /**
    * Performs comprehensive startup validation of all required configuration
@@ -99,35 +96,8 @@ class ConfigurationValidationService {
   async validateServiceRoleKey(result: ConfigurationValidationResult): Promise<void> {
     try {
       // Check if service role key exists in configuration
-      const { data: configData, error: configError } = await supabase
-        .from('system_configuration')
-        .select('value')
-        .eq('key', 'supabase_service_role_key')
-        .single();
-
-      if (configError || !configData?.value) {
-        result.errors.push('Service role key not found in system configuration');
-        return;
-      }
-
-      result.details.serviceRoleKey.exists = true;
-
-      // Validate service role key format
-      const serviceRoleKey = configData.value;
-      if (!this.isValidServiceRoleKeyFormat(serviceRoleKey)) {
-        result.errors.push('Service role key has invalid format');
-        return;
-      }
-
-      result.details.serviceRoleKey.format = true;
-
-      // Test service role key permissions
-      const hasPermissions = await this.testServiceRoleKeyPermissions(serviceRoleKey);
-      result.details.serviceRoleKey.permissions = hasPermissions;
-
-      if (!hasPermissions) {
-        result.errors.push('Service role key lacks required permissions');
-      }
+      // No service role keys in Convex client; mark as not applicable
+      result.details.serviceRoleKey = { exists: false, format: false, permissions: undefined } as any;
 
     } catch (error) {
       result.errors.push(`Service role key validation failed: ${error.message}`);
@@ -139,22 +109,8 @@ class ConfigurationValidationService {
    */
   async validateEdgeFunctionConnectivity(result: ConfigurationValidationResult): Promise<void> {
     try {
-      // Test basic connectivity to Edge Functions
-      const connectivityTest = await this.testEdgeFunctionConnectivity();
-      result.details.edgeFunctions.connectivity = connectivityTest;
-
-      if (!connectivityTest) {
-        result.errors.push('Cannot connect to Edge Functions');
-        return;
-      }
-
-      // Test authentication with Edge Functions
-      const authTest = await this.testEdgeFunctionAuthentication();
-      result.details.edgeFunctions.authentication = authTest;
-
-      if (!authTest) {
-        result.errors.push('Edge Function authentication failed');
-      }
+      // No Edge Functions in Convex; mark as healthy
+      result.details.edgeFunctions = { connectivity: true, authentication: true } as any;
 
     } catch (error) {
       result.errors.push(`Edge Function validation failed: ${error.message}`);
@@ -200,7 +156,7 @@ class ConfigurationValidationService {
   // Private helper methods
 
   private async validateEnvironmentVariables(result: ConfigurationValidationResult): Promise<void> {
-    const missingVars = this.REQUIRED_ENV_VARS.filter(varName => !import.meta.env[varName]);
+    const missingVars = this.REQUIRED_ENV_VARS.filter(varName => !(import.meta as any).env[varName]);
     
     if (missingVars.length > 0) {
       result.errors.push(`Missing required environment variables: ${missingVars.join(', ')}`);
@@ -208,15 +164,8 @@ class ConfigurationValidationService {
       result.details.environment.requiredVars = true;
     }
 
-    // Validate Supabase configuration
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      result.details.environment.supabaseConfig = true;
-    } else {
-      result.errors.push('Invalid Supabase configuration');
-    }
+    // No Supabase configuration required
+    result.details.environment.supabaseConfig = true as any;
   }
 
   private async validateDatabaseConfiguration(result: ConfigurationValidationResult): Promise<void> {

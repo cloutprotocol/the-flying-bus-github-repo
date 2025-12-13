@@ -7,7 +7,7 @@ import {
   recordVote,
   subscribeToVoteUpdates
 } from '@/utils/voteUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { useConvexAuth } from 'convex/react';
 import { handleVoteError } from '@/utils/errors/handleVoteError';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -18,7 +18,7 @@ export const useDebateVoting = (debateId: string, initialVotes = { yes: 0, no: 0
   const [isVoting, setIsVoting] = useState(false);
   const [userChoice, setUserChoice] = useState<'yes' | 'no' | null>(null);
   const [resultsVisible, setResultsVisible] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated } = useConvexAuth();
   
   // Calculate percentages
   const totalVotes = votes.yes + votes.no;
@@ -26,23 +26,7 @@ export const useDebateVoting = (debateId: string, initialVotes = { yes: 0, no: 0
   const noPercentage = totalVotes > 0 ? Math.round((votes.no / totalVotes) * 100) : 0;
 
   // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-    };
-    
-    checkAuth();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsLoggedIn(!!session);
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  useEffect(() => {}, []);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -61,11 +45,8 @@ export const useDebateVoting = (debateId: string, initialVotes = { yes: 0, no: 0
         const currentVotes = await fetchVoteCounts(debateId);
         setVotes(currentVotes);
         
-        // Subscribe to real-time vote updates
-        unsubscribe = subscribeToVoteUpdates(debateId, (updatedVotes) => {
-          logger.debug(LogSource.VOTING, 'Vote update received:', updatedVotes);
-          setVotes(updatedVotes);
-        });
+        // Convex reactive queries recommended via useVoting hook; no manual subscription
+        unsubscribe = () => {};
       } catch (error) {
         handleVoteError(error, true);
       }
@@ -80,7 +61,7 @@ export const useDebateVoting = (debateId: string, initialVotes = { yes: 0, no: 0
   }, [debateId]);
 
   const handleVote = async (choice: 'yes' | 'no') => {
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       toast({
         title: "Sign in required",
         description: "Please sign in to vote on debates",
@@ -163,7 +144,7 @@ export const useDebateVoting = (debateId: string, initialVotes = { yes: 0, no: 0
     noPercentage,
     handleVote,
     setResultsVisible,
-    isLoggedIn
+    isLoggedIn: isAuthenticated
   };
 };
 

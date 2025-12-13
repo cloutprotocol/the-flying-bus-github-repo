@@ -1,8 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { getUserArticles, UserArticle, deleteUserArticle } from '@/services/userArticleService';
 import { useAuth } from '@/hooks/useAuth';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export function useUserArticles() {
   const [articles, setArticles] = useState<UserArticle[]>([]);
@@ -15,34 +17,29 @@ export function useUserArticles() {
   
   const limit = 10;
 
+  const convexArticles = useQuery(api.articles.getByAuthor, {});
+  const removeArticle = useMutation(api.articles.remove);
+
+  const paginated = useMemo(() => {
+    const items = convexArticles ?? [];
+    const count = items.length;
+    const start = (currentPage - 1) * limit;
+    const pageItems = items.slice(start, start + limit) as any[];
+    return { items: pageItems, count };
+  }, [convexArticles, currentPage]);
+
   const fetchArticles = async (page: number = currentPage) => {
     setIsLoading(true);
     setError(null);
-    
     try {
       console.log('Fetching articles for page:', page);
-      const { articles, count, error } = await getUserArticles(page, limit);
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch articles');
-      }
-      
-      console.log('Articles fetched successfully:', { 
-        articlesCount: articles.length, 
-        totalCount: count 
-      });
-      
-      setArticles(articles);
-      setTotalCount(count);
+      setArticles(paginated.items as any);
+      setTotalCount(paginated.count);
       setCurrentPage(page);
     } catch (err) {
       console.error('Error fetching articles:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to load your articles",
-        variant: "destructive"
-      });
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to load your articles', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -51,11 +48,7 @@ export function useUserArticles() {
   const deleteArticle = async (articleId: string) => {
     try {
       console.log('Deleting article:', articleId);
-      const { success, error } = await deleteUserArticle(articleId);
-      
-      if (!success) {
-        throw new Error(error.message || 'Failed to delete article');
-      }
+      await removeArticle({ id: articleId as Id<'articles'> });
       
       toast({
         title: "Article deleted",
@@ -107,13 +100,7 @@ export function useUserArticles() {
     
     // Authentication is ready, fetch articles
     console.log('Auth ready, fetching articles for user:', currentUser.id?.substring(0, 8));
-    try {
-      fetchArticles(1);
-    } catch (err) {
-      console.error('Error during initial fetch:', err);
-      setError(err instanceof Error ? err : new Error('Failed to initialize articles'));
-      setIsLoading(false);
-    }
+    void fetchArticles(1);
   }, [authInitialized, currentUser]); // Wait for auth to be ready
 
   return {

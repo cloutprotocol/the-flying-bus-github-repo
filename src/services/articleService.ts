@@ -6,10 +6,8 @@
  * It acts as a facade over the more specific article services.
  */
 
-// Export all article services through this facade
-export * from './articles/articleMetricsService';
+// Export Convex-backed article services through this facade
 export * from './articles/articleMutationService';
 export * from './articles/articleQueryService';
-export * from './articles/articleReviewService';
-export * from './articles/articleSubmissionService';
-export * from './articles/draft/unifiedDraftService';
+export * from './articles/validation/articleValidationService';
+export { reviewArticle } from './articles/review/articleReviewHandlerService';

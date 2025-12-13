@@ -4,7 +4,9 @@
  */
 
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
 
 const VOTED_DEBATES_KEY = 'votedDebates';
 
@@ -15,33 +17,9 @@ const VOTED_DEBATES_KEY = 'votedDebates';
  */
 export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted: boolean; userChoice: 'yes' | 'no' | null }> => {
   try {
-    // First check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      // Check database for user vote
-      const { data, error } = await supabase
-        .from('article_votes')
-        .select('vote')
-        .eq('article_id', debateId)
-        .eq('user_id', session.user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
-      
-      if (error) {
-        console.error('Error checking vote status:', error);
-        toast.error('There was a problem checking your vote status');
-        return { hasVoted: false, userChoice: null };
-      }
-      
-      if (data) {
-        console.log(`Found existing vote: ${data.vote} for debate ${debateId}`);
-        return {
-          hasVoted: true,
-          userChoice: data.vote as 'yes' | 'no'
-        };
-      }
-      
-      console.log(`No existing vote found for debate ${debateId}`);
+    const userVote = await convex.query(api.votes.getUserVote, { articleId: debateId });
+    if (userVote) {
+      return { hasVoted: true, userChoice: userVote as 'yes' | 'no' };
     } else {
       // Fallback to localStorage for non-authenticated users
       try {
@@ -74,39 +52,8 @@ export const checkIfUserHasVoted = async (debateId: string): Promise<{ hasVoted:
  */
 export const fetchVoteCounts = async (debateId: string): Promise<{yes: number, no: number}> => {
   try {
-    console.log(`Fetching vote counts for debate: ${debateId}`);
-    
-    // Get the yes votes
-    const { count: yesCount, error: yesError } = await supabase
-      .from('article_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('article_id', debateId)
-      .eq('vote', 'yes');
-      
-    if (yesError) {
-      console.error('Error fetching yes votes:', yesError);
-      return { yes: 0, no: 0 };
-    }
-    
-    // Get the no votes
-    const { count: noCount, error: noError } = await supabase
-      .from('article_votes')
-      .select('*', { count: 'exact', head: true })
-      .eq('article_id', debateId)
-      .eq('vote', 'no');
-      
-    if (noError) {
-      console.error('Error fetching no votes:', noError);
-      return { yes: 0, no: 0 };
-    }
-    
-    const result = {
-      yes: yesCount || 0,
-      no: noCount || 0
-    };
-    
-    console.log(`Vote counts for debate ${debateId}:`, result);
-    return result;
+    const result = await convex.query(api.votes.getCounts, { articleId: debateId });
+    return result || { yes: 0, no: 0 };
   } catch (error) {
     console.error('Error fetching vote counts:', error);
     return { yes: 0, no: 0 };
@@ -163,50 +110,10 @@ export const simulateIpCheck = async (debateId: string): Promise<boolean> => {
  */
 export const recordVote = async (debateId: string, choice: 'yes' | 'no'): Promise<void> => {
   try {
-    // First check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      // Check if user has already voted first
-      const { data: existingVote } = await supabase
-        .from('article_votes')
-        .select('vote')
-        .eq('article_id', debateId)
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (existingVote) {
-        // User has already voted, update their vote
-        const { error } = await supabase
-          .from('article_votes')
-          .update({ vote: choice })
-          .eq('article_id', debateId)
-          .eq('user_id', session.user.id);
-        
-        if (error) {
-          console.error('Error updating vote:', error);
-          toast.error('There was a problem updating your vote');
-          throw error;
-        }
-      } else {
-        // User hasn't voted yet, insert new vote
-        const { error } = await supabase
-          .from('article_votes')
-          .insert({
-            article_id: debateId,
-            user_id: session.user.id,
-            vote: choice
-          });
-        
-        if (error) {
-          console.error('Error recording vote:', error);
-          toast.error('There was a problem saving your vote');
-          throw error;
-        }
-      }
-      
+    try {
+      await convex.mutation(api.votes.recordVote, { articleId: debateId, choice });
       console.log(`Vote recorded successfully: ${choice} for debate ${debateId}`);
-    } else {
+    } catch (err) {
       // Fallback to localStorage for non-authenticated users
       const votedDebates = JSON.parse(localStorage.getItem(VOTED_DEBATES_KEY) || '{}');
       votedDebates[debateId] = choice;
@@ -227,38 +134,11 @@ export const recordVote = async (debateId: string, choice: 'yes' | 'no'): Promis
  * @returns Unsubscribe function
  */
 export const subscribeToVoteUpdates = (
-  debateId: string, 
-  callback: (votes: {yes: number, no: number}) => void
+  _debateId: string, 
+  _callback: (votes: {yes: number, no: number}) => void
 ): (() => void) => {
-  console.log('Setting up real-time subscription for debate:', debateId);
-  
-  // Set up realtime subscription for votes
-  const votesChannel = supabase
-    .channel(`debate_votes_${debateId}_${Date.now()}`) // Add timestamp to ensure unique channel
-    .on('postgres_changes', 
-      { 
-        event: '*', 
-        schema: 'public', 
-        table: 'article_votes',
-        filter: `article_id=eq.${debateId}` 
-      }, 
-      async (payload) => {
-        console.log('Real-time vote change detected:', payload);
-        // Fetch latest vote counts when changes occur
-        const counts = await fetchVoteCounts(debateId);
-        console.log('Updated vote counts:', counts);
-        callback(counts);
-      }
-    )
-    .subscribe((status) => {
-      console.log('Subscription status:', status);
-    });
-    
-  // Return unsubscribe function
-  return () => {
-    console.log('Unsubscribing from vote updates for debate:', debateId);
-    supabase.removeChannel(votesChannel);
-  };
+  // Convex reactive queries should be used instead of manual subscriptions.
+  return () => {};
 };
 
 /**

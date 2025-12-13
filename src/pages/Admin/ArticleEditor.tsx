@@ -8,7 +8,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, List, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ArticleEditor = () => {
@@ -17,7 +17,7 @@ const ArticleEditor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const { isLoggedIn, isInitialized } = useAuth();
   
   const isNewArticle = !articleId;
   const articleType = location.state?.articleType || 'standard';
@@ -35,37 +35,25 @@ const ArticleEditor = () => {
     });
 
     const checkAuth = async () => {
-      try {
-        console.log('ArticleEditor: Checking authentication...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('ArticleEditor: Auth error:', error);
-          setAuthError(error.message);
-          return;
-        }
-        
-        if (!session) {
-          console.log('ArticleEditor: No session found, redirecting to login');
-          toast({
-            title: "Authentication required",
-            description: "You need to be signed in to create or edit articles.",
-            variant: "destructive"
-          });
-          navigate('/login', { state: { returnTo: location.pathname } });
-          return;
-        }
-        
-        console.log('ArticleEditor: Authentication successful, user:', session.user.email);
-        setIsAuthChecked(true);
-      } catch (error) {
-        console.error('ArticleEditor: Exception during auth check:', error);
-        setAuthError(error instanceof Error ? error.message : 'Unknown auth error');
+      console.log('ArticleEditor: Checking authentication via Convex...');
+      if (!isInitialized) return; // Wait for Convex auth to initialize
+
+      if (!isLoggedIn) {
+        console.log('ArticleEditor: Not authenticated, redirecting to login');
+        toast({
+          title: "Authentication required",
+          description: "You need to be signed in to create or edit articles.",
+          variant: "destructive"
+        });
+        navigate('/login', { state: { returnTo: location.pathname } });
+        return;
       }
+
+      setIsAuthChecked(true);
     };
-    
+
     checkAuth();
-  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId, categorySlug]);
+  }, [navigate, location.pathname, toast, isNewArticle, articleType, articleId, categorySlug, isInitialized, isLoggedIn]);
 
   const handleNavigation = (path: string | number) => {
     if (typeof path === 'number') {
@@ -106,24 +94,7 @@ const ArticleEditor = () => {
     );
   }
 
-  // Show auth error if there is one
-  if (authError) {
-    return (
-      <AdminPortalLayout>
-        <div className="space-y-6">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Authentication Error: {authError}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate('/login')}>
-            Go to Login
-          </Button>
-        </div>
-      </AdminPortalLayout>
-    );
-  }
+  // Auth errors are handled via toast; redirects to login when not authenticated
 
   return (
     <DebugProvider>

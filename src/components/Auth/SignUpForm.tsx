@@ -63,7 +63,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchTab, redirectPath }) =>
     try {
       // Use the register method from auth context (includes auto-login)
       const success = await register(
-        signUpForm.email,
+        signUpForm.email.trim().toLowerCase(),
         signUpForm.password,
         signUpForm.username,
         signUpForm.displayName

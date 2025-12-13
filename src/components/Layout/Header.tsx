@@ -5,6 +5,8 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RainbowButton } from '@/components/ui/rainbow-button';
 import Logo from '@/components/ui/logo';
+import { HeaderButtons } from '@/components/ui/header-buttons';
+import MobileNavAuth from '@/components/ui/NavbarComponents/MobileNavAuth';
 
 const Header = () => {
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -31,12 +33,11 @@ const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="rounded-md">Sign In</Button>
-            <RainbowButton className="text-sm py-1">Join Us</RainbowButton>
+            <HeaderButtons />
           </div>
 
           {/* Mobile menu button */}
-          <button 
+          <button
             onClick={toggleNav}
             className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100"
           >
@@ -54,9 +55,8 @@ const Header = () => {
               <Link to="/storyboard" className="px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">Storyboard</Link>
               <Link to="/learning" className="px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">Learning</Link>
             </nav>
-            <div className="mt-4 flex space-x-2">
-              <Button variant="outline" size="sm" className="flex-1 rounded-md">Sign In</Button>
-              <RainbowButton className="flex-1 text-sm py-1">Join Us</RainbowButton>
+            <div className="mt-4">
+              <MobileNavAuth />
             </div>
           </div>
         )}

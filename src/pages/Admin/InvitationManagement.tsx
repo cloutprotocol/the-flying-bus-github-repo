@@ -18,10 +18,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from 'lucide-react';
-import { 
-  updateInvitationRequestStatus,
-  InvitationRequest 
-} from '@/services/invitationService';
+import AdminService from '@/services/adminService';
 import { useAdminInvitationRequests } from '@/hooks/useAdminDataIndependence';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedUserFeedback, useEnhancedUserFeedback } from '@/components/Common/EnhancedUserFeedback';
@@ -93,7 +90,7 @@ const InvitationManagement = () => {
     try {
       console.log(`Admin operation: ${status} invitation ${id} (attempt ${retryAttempt}/${maxRetries})`);
       
-      const result = await updateInvitationRequestStatus(id, status, user.id);
+      const result = await AdminService.updateInvitationRequestStatus(id, status, user.id);
       
       if (result.error) {
         console.error('Status update failed:', result);

@@ -17,8 +17,8 @@ import { CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { getRecentActivities, Activity as ActivityType } from '@/services/activityService';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 // Use the Activity type from the service
 type Activity = ActivityType;
@@ -80,7 +80,6 @@ function getDashboardDescription(user: any): string {
 const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics>({});
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasInitialized = useRef(false);
   const isLoading = useRef(false);
@@ -105,131 +104,15 @@ const Dashboard: React.FC = () => {
     sessionUserId: session?.user?.id
   });
 
-  // Simplified metrics calculation
-  const calculateSimpleMetrics = async (): Promise<DashboardMetrics> => {
-    try {
-      console.log('Calculating metrics for role:', userRole);
+  // Convex reactive queries
+  const metricsQuery = useQuery(api.dashboard.getMetrics, { role: userRole });
+  const recentActivities = useQuery(api.dashboard.getRecentActivities, { limit: 5 });
 
-      if (userRole === 'admin') {
-        // Admin metrics - try to get basic counts
-        const [articlesResult, usersResult, commentsResult] = await Promise.allSettled([
-          supabase.from('articles').select('*', { count: 'exact', head: true }),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('comments').select('*', { count: 'exact', head: true })
-        ]);
-
-        return {
-          totalArticles: articlesResult.status === 'fulfilled' ? (articlesResult.value.count || 0) : 0,
-          totalUsers: usersResult.status === 'fulfilled' ? (usersResult.value.count || 0) : 0,
-          commentCount: commentsResult.status === 'fulfilled' ? (commentsResult.value.count || 0) : 0,
-          pendingReviews: 0, // Simplified for now
-          systemHealth: 'good'
-        };
-      } else if (userRole === 'moderator') {
-        // Moderator metrics
-        const [articlesResult, commentsResult] = await Promise.allSettled([
-          supabase.from('articles').select('*', { count: 'exact', head: true }),
-          supabase.from('comments').select('*', { count: 'exact', head: true })
-        ]);
-
-        return {
-          totalArticles: articlesResult.status === 'fulfilled' ? (articlesResult.value.count || 0) : 0,
-          commentCount: commentsResult.status === 'fulfilled' ? (commentsResult.value.count || 0) : 0,
-          pendingReviews: 0,
-          categoriesCount: 0
-        };
-      } else if (userRole === 'author' && currentUser) {
-        // Author metrics - only their own content
-        const myArticlesResult = await supabase
-          .from('articles')
-          .select('*', { count: 'exact', head: true })
-          .eq('author_id', currentUser.id);
-
-        return {
-          myArticles: myArticlesResult.count || 0,
-          myArticleViews: 0, // Simplified for now
-          myComments: 0, // Simplified for now
-          articlesInReview: 0,
-          articlesPublished: myArticlesResult.count || 0
-        };
-      }
-
-      return {};
-    } catch (error) {
-      console.error('Error calculating metrics:', error);
-      return {};
-    }
-  };
-
-  const fetchDashboardData = async () => {
-    // Prevent multiple simultaneous fetches
-    if (isLoading.current) {
-      console.log('Dashboard: Already loading, skipping fetch');
-      return;
-    }
-
-    try {
-      console.log('Dashboard: Starting data fetch for role:', userRole);
-      isLoading.current = true;
-      setLoading(true);
-      setError(null);
-
-      // Calculate metrics
-      const calculatedMetrics = await calculateSimpleMetrics();
-      setMetrics(calculatedMetrics);
-      console.log('Dashboard: Metrics loaded:', calculatedMetrics);
-
-      // Simple activity feed
-      try {
-        if (userRole === 'admin' || userRole === 'moderator') {
-          const activitiesResult = await getRecentActivities(5);
-          
-          if (activitiesResult.activities && !activitiesResult.error) {
-            setActivities(activitiesResult.activities);
-          } else {
-            // Fallback to user registration activities if no activities exist
-            const profilesResult = await supabase
-              .from('profiles')
-              .select('id, username, display_name, avatar_url, created_at')
-              .order('created_at', { ascending: false })
-              .limit(5);
-
-            if (profilesResult.data && !profilesResult.error) {
-              const fallbackActivities: Activity[] = profilesResult.data.map((profile, index) => ({
-                id: profile.id || `activity-${index}`,
-                user_id: profile.id,
-                activity_type: 'article_created' as const,
-                entity_type: 'user',
-                entity_id: profile.id,
-                metadata: { description: `New user ${profile.username || profile.display_name || 'unknown'} registered` },
-                created_at: profile.created_at || new Date().toISOString(),
-                profile: {
-                  display_name: profile.display_name || profile.username || 'Unknown User',
-                  avatar_url: profile.avatar_url
-                }
-              }));
-              setActivities(fallbackActivities);
-            } else {
-              setActivities([]);
-            }
-          }
-        } else {
-          setActivities([]);
-        }
-      } catch (activityError) {
-        console.warn('Activity feed failed:', activityError);
-        setActivities([]);
-      }
-
-    } catch (err) {
-      console.error('Dashboard error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
-    } finally {
-      setLoading(false);
-      isLoading.current = false;
-      console.log('Dashboard: Fetch completed');
-    }
-  };
+  // Reflect reactive data into local state for existing rendering logic
+  useEffect(() => {
+    if (metricsQuery) setMetrics(metricsQuery as DashboardMetrics);
+    if (recentActivities) setActivities(recentActivities as any);
+  }, [metricsQuery, recentActivities]);
 
   useEffect(() => {
     // Wait for auth to be initialized and ensure we have proper access
@@ -243,11 +126,8 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    if (!hasInitialized.current) {
-      console.log('Dashboard: Initializing for role:', userRole);
-      hasInitialized.current = true;
-      fetchDashboardData();
-    }
+    // Data is reactive via Convex queries; no explicit fetch required
+    if (!hasInitialized.current) hasInitialized.current = true;
   }, [authInitialized, hasAccess, userRole, currentUser]);
 
   // Show loading state while authentication is being determined
@@ -367,7 +247,7 @@ const Dashboard: React.FC = () => {
 
 
         {/* Role-based Metrics Grid */}
-        {loading ? (
+        {!metricsQuery ? (
           <div className={`grid gap-4 ${metricCards.length <= 2 ? 'md:grid-cols-2' : metricCards.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3 lg:grid-cols-5'}`}>
             {Array.from({ length: metricCards.length || 4 }).map((_, i) => (
               <Card key={i}>
@@ -451,7 +331,7 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {activities.map((activity) => {
+            {activities.map((activity) => {
                   // Get user info from profile or fallback
                   const displayName = activity.profile?.display_name || 'Unknown User';
                   const avatarUrl = activity.profile?.avatar_url;

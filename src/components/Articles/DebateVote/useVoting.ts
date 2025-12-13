@@ -8,7 +8,8 @@ import {
   fetchVoteCounts,
   subscribeToVoteUpdates
 } from './voteUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { useConvexAuth, useQuery } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 
 export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) => {
   const [votes, setVotes] = useState(initialVotes);
@@ -16,31 +17,18 @@ export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) =>
   const [isVoting, setIsVoting] = useState(false);
   const [userChoice, setUserChoice] = useState<'yes' | 'no' | null>(null);
   const [resultsVisible, setResultsVisible] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isAuthenticated } = useConvexAuth();
   
   // Calculate percentages
   const totalVotes = votes.yes + votes.no;
   const yesPercentage = totalVotes > 0 ? Math.round((votes.yes / totalVotes) * 100) : 0;
   const noPercentage = totalVotes > 0 ? Math.round((votes.no / totalVotes) * 100) : 0;
 
-  // Check authentication status
+  // Reactive vote counts via Convex
+  const counts = useQuery(api.votes.getCounts, debateId ? { articleId: debateId } : 'skip');
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-    };
-    
-    checkAuth();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsLoggedIn(!!session);
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    if (counts) setVotes(counts);
+  }, [counts?.yes, counts?.no]);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -63,11 +51,7 @@ export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) =>
       console.log('Current votes from database:', currentVotes);
       setVotes(currentVotes);
       
-      // Subscribe to real-time vote updates
-      unsubscribe = subscribeToVoteUpdates(debateId, (updatedVotes) => {
-        console.log('Vote update received:', updatedVotes);
-        setVotes(updatedVotes);
-      });
+      // Real-time handled by Convex reactive query above
     };
     
     initializeVotes();
@@ -79,7 +63,7 @@ export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) =>
   }, [debateId]);
 
   const handleVote = async (choice: 'yes' | 'no') => {
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       toast.error("Please sign in to vote on debates!", {
         description: "Create an account or sign in to participate in debates.",
         action: {
@@ -148,6 +132,6 @@ export const useVoting = (debateId: string, initialVotes = { yes: 0, no: 0 }) =>
     noPercentage,
     handleVote,
     setResultsVisible,
-    isLoggedIn
+    isLoggedIn: isAuthenticated
   };
 };

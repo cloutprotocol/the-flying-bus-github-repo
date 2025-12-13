@@ -7,7 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } fr
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import type { PrivacySettings } from '@/types/ReaderProfile';
 
 interface PrivacyFormData {
@@ -34,86 +35,33 @@ const UserPrivacySettings = () => {
     },
   });
 
+  const settings = useQuery(
+    api.privacy.getByUser,
+    currentUser ? { userId: currentUser.id as any } : 'skip'
+  );
+  const upsert = useMutation(api.privacy.upsert);
   useEffect(() => {
-    if (currentUser) {
-      fetchPrivacySettings();
-    }
-  }, [currentUser]);
-
-  const fetchPrivacySettings = async () => {
     if (!currentUser) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('privacy_settings')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        // Transform and validate the data
-        const transformedData: PrivacySettings = {
-          user_id: data.user_id,
-          profile_visibility: data.profile_visibility as 'public' | 'private',
-          show_reading_activity: data.show_reading_activity,
-          show_comment_history: data.show_comment_history,
-          show_badges: data.show_badges,
-          show_achievements: data.show_achievements,
-          updated_at: data.updated_at,
-        };
-
-        setPrivacySettings(transformedData);
-        form.reset({
-          profileVisibility: transformedData.profile_visibility,
-          showReadingActivity: transformedData.show_reading_activity,
-          showCommentHistory: transformedData.show_comment_history,
-          showBadges: transformedData.show_badges,
-          showAchievements: transformedData.show_achievements,
-        });
-      } else {
-        // Create default privacy settings
-        const defaultSettings = {
-          user_id: currentUser.id,
-          profile_visibility: 'public' as const,
-          show_reading_activity: true,
-          show_comment_history: true,
-          show_badges: true,
-          show_achievements: true,
-        };
-
-        const { data: newSettings, error: createError } = await supabase
-          .from('privacy_settings')
-          .insert(defaultSettings)
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        
-        const transformedNewSettings: PrivacySettings = {
-          user_id: newSettings.user_id,
-          profile_visibility: newSettings.profile_visibility as 'public' | 'private',
-          show_reading_activity: newSettings.show_reading_activity,
-          show_comment_history: newSettings.show_comment_history,
-          show_badges: newSettings.show_badges,
-          show_achievements: newSettings.show_achievements,
-          updated_at: newSettings.updated_at,
-        };
-        
-        setPrivacySettings(transformedNewSettings);
-      }
-    } catch (error) {
-      console.error('Error fetching privacy settings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load privacy settings. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+    if (settings === undefined) return;
+    if (!settings) return;
+    const transformedData: PrivacySettings = {
+      user_id: settings.user_id as any,
+      profile_visibility: settings.profile_visibility as any,
+      show_reading_activity: (settings as any).show_reading_history ?? true,
+      show_comment_history: true,
+      show_badges: true,
+      show_achievements: false,
+      updated_at: settings.updated_at,
+    };
+    setPrivacySettings(transformedData);
+    form.reset({
+      profileVisibility: transformedData.profile_visibility,
+      showReadingActivity: transformedData.show_reading_activity,
+      showCommentHistory: transformedData.show_comment_history,
+      showBadges: transformedData.show_badges,
+      showAchievements: transformedData.show_achievements,
+    });
+  }, [currentUser, settings]);
 
   const onSubmit = async (data: PrivacyFormData) => {
     if (!currentUser) return;
@@ -130,14 +78,13 @@ const UserPrivacySettings = () => {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('privacy_settings')
-        .upsert({
-          user_id: currentUser.id,
-          ...updateData,
-        });
-
-      if (error) throw error;
+      await upsert({
+        userId: currentUser.id as any,
+        profile_visibility: data.profileVisibility,
+        show_reading_history: data.showReadingActivity,
+        allow_comments: data.showCommentHistory,
+        email_notifications: data.showBadges, // approximate mapping
+      });
       
       toast({
         title: "Privacy settings updated",

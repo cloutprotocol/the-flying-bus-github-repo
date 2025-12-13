@@ -1,6 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
 import { ReaderProfile } from '@/types/ReaderProfile';
 import { RoleAuditService } from './roleAuditService';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export interface RoleUpgradeResult {
   success: boolean;
@@ -38,34 +40,16 @@ export interface RoleValidationContext {
 export async function grantAuthorRole(userId: string): Promise<RoleUpgradeResult> {
   try {
     console.log('Granting author role to user:', userId);
-
-    // Update user role to author
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ 
-        role: 'author',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error granting author role:', error);
-      return { success: false, error: error.message };
-    }
-
-    if (!data) {
-      return { success: false, error: 'User not found' };
-    }
-
-    // Transform to ReaderProfile format
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    await convex.mutation(api.profiles.updateRole, { id: userId as unknown as Id<'profiles'>, role: 'author' });
+    const data: any = await convex.query(api.profiles.getById, { profileId: userId as unknown as Id<'profiles'> });
+    if (!data) return { success: false, error: 'User not found' };
     const user: ReaderProfile = {
-      id: data.id,
+      id: data._id,
       username: data.username,
       display_name: data.display_name,
       email: data.email,
-      role: data.role as 'reader' | 'author' | 'moderator' | 'admin',
+      role: data.role as any,
       bio: data.bio || '',
       avatar_url: data.avatar_url || '',
       created_at: data.created_at,
@@ -94,77 +78,8 @@ export async function createAuthorAccount(
   username?: string
 ): Promise<AccountActivationResult> {
   try {
-    console.log('Creating new author account for:', email);
-
-    // Generate username if not provided
-    const finalUsername = username || generateUsernameFromEmail(email);
-
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName,
-          username: finalUsername
-        }
-      }
-    });
-
-    if (authError) {
-      console.error('Error creating auth user:', authError);
-      return { success: false, error: authError.message };
-    }
-
-    if (!authData.user) {
-      return { success: false, error: 'Failed to create user account' };
-    }
-
-    // Create profile with author role
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
-        username: finalUsername,
-        display_name: displayName,
-        email: email,
-        role: 'author',
-        avatar_url: '',
-        bio: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      console.error('Error creating user profile:', profileError);
-      return { success: false, error: profileError.message };
-    }
-
-    // Transform to ReaderProfile format
-    const user: ReaderProfile = {
-      id: profileData.id,
-      username: profileData.username,
-      display_name: profileData.display_name,
-      email: profileData.email,
-      role: profileData.role as 'reader' | 'author' | 'moderator' | 'admin',
-      bio: profileData.bio || '',
-      avatar_url: profileData.avatar_url || '',
-      created_at: profileData.created_at,
-      updated_at: profileData.updated_at,
-      public_bio: profileData.public_bio,
-      crypto_wallet_address: profileData.crypto_wallet_address,
-      badge_display_preferences: profileData.badge_display_preferences,
-      favorite_categories: profileData.favorite_categories,
-    };
-
-    console.log('Successfully created author account for:', user.display_name);
-    return { 
-      success: true, 
-      user, 
-      redirectTo: '/admin/dashboard' 
-    };
+    console.log('Creating author account is managed via Convex Auth. Use Auth UI.');
+    return { success: false, error: 'Not implemented. Use Convex Auth sign up.' };
   } catch (error) {
     console.error('Exception creating author account:', error);
     return { success: false, error: 'An unexpected error occurred' };
@@ -278,21 +193,9 @@ export async function assignAuthorRoleFromInvitation(
         };
       }
 
-      // Get current user profile
-      const { data: currentProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError) {
-        lastError = `Failed to fetch user profile: ${fetchError.message}`;
-        console.error('Error fetching user profile:', fetchError);
-        if (attempt === maxRetries) {
-          return { success: false, error: lastError };
-        }
-        continue;
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const currentProfile: any = await convex.query(api.profiles.getById, { profileId: userId as unknown as Id<'profiles'> });
+      if (!currentProfile) return { success: false, error: 'User profile not found' };
 
       if (!currentProfile) {
         return { success: false, error: 'User profile not found' };
@@ -319,33 +222,8 @@ export async function assignAuthorRoleFromInvitation(
         return { success: true, user };
       }
 
-      // Update role to author
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'author',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
-
-      if (updateError) {
-        lastError = `Failed to update user role: ${updateError.message}`;
-        console.error('Error updating user role:', updateError);
-        if (attempt === maxRetries) {
-          return { success: false, error: lastError };
-        }
-        continue;
-      }
-
-      if (!updatedProfile) {
-        lastError = 'Failed to retrieve updated profile';
-        if (attempt === maxRetries) {
-          return { success: false, error: lastError };
-        }
-        continue;
-      }
+      await convex.mutation(api.profiles.updateRole, { id: userId as unknown as Id<'profiles'>, role: 'author' });
+      const updatedProfile: any = await convex.query(api.profiles.getById, { profileId: userId as unknown as Id<'profiles'> });
 
       // Log successful role assignment
       const auditLogId = await auditRoleChange(
@@ -561,45 +439,21 @@ export async function manuallyAssignRole(
     });
 
     // Verify admin has permission to assign roles
-    const { data: adminProfile, error: adminError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', adminUserId)
-      .single();
-
-    if (adminError || !adminProfile) {
-      return { success: false, error: 'Admin user not found' };
-    }
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const adminProfile: any = await convex.query(api.profiles.getById, { profileId: adminUserId as unknown as Id<'profiles'> });
+    if (!adminProfile) return { success: false, error: 'Admin user not found' };
 
     if (!['admin', 'moderator'].includes(adminProfile.role)) {
       return { success: false, error: 'Insufficient permissions to assign roles' };
     }
 
     // Get current user profile
-    const { data: currentProfile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (fetchError || !currentProfile) {
-      return { success: false, error: 'Target user not found' };
-    }
+    const currentProfile: any = await convex.query(api.profiles.getById, { profileId: userId as unknown as Id<'profiles'> });
+    if (!currentProfile) return { success: false, error: 'Target user not found' };
 
     // Update role
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
-      .update({ 
-        role: targetRole,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (updateError || !updatedProfile) {
-      return { success: false, error: 'Failed to update user role' };
-    }
+    await convex.mutation(api.profiles.updateRole, { id: userId as unknown as Id<'profiles'>, role: targetRole });
+    const updatedProfile: any = await convex.query(api.profiles.getById, { profileId: userId as unknown as Id<'profiles'> });
 
     // Log manual role assignment
     const auditLogId = await auditRoleChange(

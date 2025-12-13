@@ -1,10 +1,11 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ArticleFormData } from '@/types/ArticleEditorTypes';
-import { submitArticleOptimized, ArticleSubmissionResult } from '@/services/articles/articleSubmissionService';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -13,8 +14,9 @@ export const useArticleSubmission = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const submitMutation = useMutation(api.articles.submit);
 
-  const submitArticle = async (formData: ArticleFormData): Promise<ArticleSubmissionResult> => {
+  const submitArticle = async (formData: ArticleFormData): Promise<{ success: boolean; articleId?: string }> => {
     if (!user?.id) {
       throw new Error('User authentication required');
     }
@@ -22,34 +24,42 @@ export const useArticleSubmission = () => {
     setIsSubmitting(true);
 
     try {
-      logger.info(LogSource.ARTICLE, 'Submitting article', {
+      logger.info(LogSource.ARTICLE, 'Submitting article via Convex', {
         articleType: formData.articleType,
         title: formData.title
       });
 
-      const result = await submitArticleOptimized(user.id, formData, false);
+      // Map formData to Convex mutation args
+      const articleId = await submitMutation({
+        id: formData.id ? (formData.id as Id<"articles">) : undefined,
+        title: formData.title,
+        content: formData.content,
+        excerpt: formData.excerpt,
+        imageUrl: formData.imageUrl,
+        categoryId: formData.categoryId,
+        articleType: formData.articleType,
+        slug: formData.slug,
+        shouldHighlight: formData.shouldHighlight,
+        publishImmediately: false,
+      });
 
-      if (result.success) {
-        toast({
-          title: "Article submitted",
-          description: "Your article has been submitted for review!",
-        });
+      toast({
+        title: "Article submitted",
+        description: "Your article has been submitted for review!",
+      });
 
-        // Navigate based on article type
-        if (formData.articleType === 'storyboard' && result.articleId) {
-          navigate(`/storyboard/${result.articleId}`);
-        } else {
-          navigate('/admin/my-articles');
-        }
+      // Navigate based on article type
+      if (formData.articleType === 'storyboard' && articleId) {
+        navigate(`/storyboard/${articleId}`);
       } else {
-        throw new Error(result.error || 'Submission failed');
+        navigate('/admin/my-articles');
       }
 
-      return result;
+      return { success: true, articleId };
 
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Error submitting article', error);
-      
+
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",

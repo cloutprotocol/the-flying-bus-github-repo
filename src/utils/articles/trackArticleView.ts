@@ -1,5 +1,7 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -26,43 +28,10 @@ export const trackArticleView = async (
       return false;
     }
 
-    // Check if the article exists and is published before tracking the view
-    const { data: articleExists, error: checkError } = await supabase
-      .from('articles')
-      .select('id, status')
-      .eq('id', articleId)
-      .single();
-    
-    if (checkError) {
-      logger.warn(LogSource.DATABASE, 'Error checking article status for view tracking', { 
-        error: checkError, 
-        articleId 
-      });
-      return false;
-    }
-    
-    // Critical check: Only track views for published articles
-    if (!articleExists || articleExists.status !== 'published') {
-      logger.info(LogSource.DATABASE, 'Skipping view tracking - article not published', { 
-        articleId,
-        status: articleExists?.status || 'not found'
-      });
-      return false;
-    }
-
-    const { error } = await supabase
-      .from('article_views')
-      .insert({
-        article_id: articleId,
-        user_id: userId || null
-      });
-
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error tracking article view', error);
-      return false;
-    }
-
-    logger.debug(LogSource.DATABASE, 'Article view tracked successfully', { articleId });
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    // Increment view count directly; server validates article
+    await convex.mutation(api.articles.incrementViewCount, { id: articleId as Id<'articles'> });
+    logger.debug(LogSource.DATABASE, 'Article view tracked via Convex', { articleId });
     return true;
   } catch (error) {
     logger.error(LogSource.DATABASE, 'Exception tracking article view', error);

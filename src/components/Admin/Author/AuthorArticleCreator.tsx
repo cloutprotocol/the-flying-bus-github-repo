@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  PenLine, 
-  Save, 
+import {
+  PenLine,
+  Save,
   Send,
   AlertCircle,
   CheckCircle,
@@ -24,8 +24,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { requestArticleReview } from '@/services/articles/articleReviewService';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 
 const articleSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
@@ -45,13 +45,14 @@ export const AuthorArticleCreator: React.FC<AuthorArticleCreatorProps> = ({
   onArticleCreated,
   className
 }) => {
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const { user } = useAuth();
+  const categories = useQuery(api.categories.getActive) || [];
+
+  const submitMutation = useMutation(api.articles.submit);
 
   const {
     register,
@@ -64,76 +65,39 @@ export const AuthorArticleCreator: React.FC<AuthorArticleCreatorProps> = ({
     mode: 'onChange'
   });
 
-  // Load categories on mount
-  React.useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('id, name')
-          .order('name');
-
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (err) {
-        console.error('Error loading categories:', err);
-        setError('Failed to load categories');
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  const createArticle = async (data: ArticleFormData, status: 'draft' | 'pending_review') => {
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Generate slug from title
-    const slug = data.title
-      .toLowerCase()
+  const generateSlug = (title: string) => {
+    return title.toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    const articleData = {
-      title: data.title,
-      content: data.content,
-      excerpt: data.excerpt || data.content.substring(0, 200) + '...',
-      category_id: data.category_id,
-      author_id: user.id, // Automatic author assignment
-      status,
-      article_type: 'standard',
-      slug: `${slug}-${Date.now()}`, // Ensure uniqueness
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...(status === 'pending_review' && {
-        submitted_for_review_at: new Date().toISOString()
-      })
-    };
-
-    const { data: article, error } = await supabase
-      .from('articles')
-      .insert(articleData)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return article;
+      .replace(/(^-|-$)/g, '') + '-' + Date.now();
   };
 
   const handleSaveDraft = async (data: ArticleFormData) => {
+    if (!user) {
+      setError('User not authenticated');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
 
-      const article = await createArticle(data, 'draft');
-      
+      const articleId = await submitMutation({
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt,
+        categoryId: data.category_id, // Map form field to mutation arg
+        status: 'draft',
+        articleType: 'standard',
+        slug: generateSlug(data.title),
+        publishImmediately: false,
+      });
+
       setSuccess('Article saved as draft successfully!');
       reset();
-      
-      if (onArticleCreated) {
-        onArticleCreated(article.id);
+
+      if (onArticleCreated && articleId) {
+        onArticleCreated(articleId);
       }
     } catch (err) {
       console.error('Error saving draft:', err);
@@ -144,18 +108,32 @@ export const AuthorArticleCreator: React.FC<AuthorArticleCreatorProps> = ({
   };
 
   const handleSubmitForReview = async (data: ArticleFormData) => {
+    if (!user) {
+      setError('User not authenticated');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
 
-      const article = await createArticle(data, 'pending_review');
-      
+      const articleId = await submitMutation({
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt,
+        categoryId: data.category_id,
+        status: 'pending_review',
+        articleType: 'standard',
+        slug: generateSlug(data.title),
+        publishImmediately: false,
+      });
+
       setSuccess('Article submitted for review successfully!');
       reset();
-      
-      if (onArticleCreated) {
-        onArticleCreated(article.id);
+
+      if (onArticleCreated && articleId) {
+        onArticleCreated(articleId);
       }
     } catch (err) {
       console.error('Error submitting for review:', err);
@@ -216,13 +194,12 @@ export const AuthorArticleCreator: React.FC<AuthorArticleCreatorProps> = ({
               <select
                 id="category_id"
                 {...register('category_id')}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  errors.category_id ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-md ${errors.category_id ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select a category...</option>
                 {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
+                  <option key={category._id} value={category._id}>
                     {category.name}
                   </option>
                 ))}
@@ -280,7 +257,7 @@ export const AuthorArticleCreator: React.FC<AuthorArticleCreatorProps> = ({
                 )}
                 Save as Draft
               </Button>
-              
+
               <Button
                 type="button"
                 onClick={handleSubmit(handleSubmitForReview)}

@@ -1,7 +1,7 @@
-
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 
 export interface StoryboardSeriesData {
   title: string;
@@ -47,43 +47,31 @@ export const createStoryboardSeries = async (
       episodeCount: request.episodes.length
     });
 
-    const { data, error } = await supabase.rpc('create_storyboard_series', {
-      p_user_id: userId,
-      p_series_data: request.seriesData as any,
-      p_episodes_data: request.episodes as any
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const { seriesId } = await convex.mutation(api.storyboard.createSeriesWithEpisodes, {
+      series: {
+        title: request.seriesData.title,
+        slug: request.seriesData.slug,
+        description: request.seriesData.description,
+        coverImage: request.seriesData.coverImage,
+        categoryId: request.seriesData.categoryId,
+        excerpt: request.seriesData.excerpt,
+        status: request.seriesData.status ?? 'active',
+      },
+       episodes: request.episodes.map((ep) => ({
+        title: ep.title,
+        description: ep.description,
+        videoUrl: ep.videoUrl,
+        thumbnailUrl: ep.thumbnailUrl,
+        duration: ep.duration,
+        number: ep.number,
+        content: ep.content,
+      })),
     });
 
-    if (error) {
-      logger.error(LogSource.DATABASE, 'Error creating storyboard series', error);
-      throw error;
-    }
+    logger.info(LogSource.DATABASE, 'Storyboard series created successfully', { seriesId });
 
-    if (!data || data.length === 0) {
-      throw new Error('No response from storyboard creation function');
-    }
-
-    const result = data[0];
-    
-    if (!result.success) {
-      logger.error(LogSource.DATABASE, 'Storyboard creation failed', {
-        error: result.error_message
-      });
-      return {
-        success: false,
-        error_message: result.error_message
-      };
-    }
-
-    logger.info(LogSource.DATABASE, 'Storyboard series created successfully', {
-      seriesId: result.series_id,
-      duration: result.duration_ms
-    });
-
-    return {
-      success: true,
-      series_id: result.series_id,
-      duration_ms: result.duration_ms
-    };
+    return { success: true, series_id: seriesId, duration_ms: undefined };
 
   } catch (error) {
     logger.error(LogSource.DATABASE, 'Exception creating storyboard series', error);
@@ -96,30 +84,10 @@ export const createStoryboardSeries = async (
 
 export const fetchStoryboardSeries = async (seriesId: string) => {
   try {
-    const { data: series, error: seriesError } = await supabase
-      .from('storyboard_series')
-      .select(`
-        *,
-        categories(name, slug),
-        profiles(display_name, username)
-      `)
-      .eq('id', seriesId)
-      .single();
-
-    if (seriesError) throw seriesError;
-
-    const { data: episodes, error: episodesError } = await supabase
-      .from('storyboard_episodes')
-      .select('*')
-      .eq('series_id', seriesId)
-      .order('episode_number');
-
-    if (episodesError) throw episodesError;
-
-    return {
-      series,
-      episodes: episodes || []
-    };
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const data: any = await convex.query(api.storyboard.getSeries, { seriesId: seriesId as any });
+    if (!data) throw new Error('Series not found');
+    return { series: data, episodes: data.episodes ?? [] };
   } catch (error) {
     logger.error(LogSource.DATABASE, 'Error fetching storyboard series', error);
     throw error;
@@ -128,17 +96,8 @@ export const fetchStoryboardSeries = async (seriesId: string) => {
 
 export const fetchAllStoryboardSeries = async () => {
   try {
-    const { data, error } = await supabase
-      .from('storyboard_series')
-      .select(`
-        *,
-        categories(name, slug),
-        profiles(display_name, username)
-      `)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const data = await convex.query(api.storyboard.listActive, {});
     return data || [];
   } catch (error) {
     logger.error(LogSource.DATABASE, 'Error fetching storyboard series list', error);

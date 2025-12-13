@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import MainLayout from '@/components/Layout/MainLayout';
 import PublicProfilePage from '@/components/Profile/PublicProfilePage';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import type { ReaderProfile, PrivacySettings } from '@/types/ReaderProfile';
 
 const PublicProfile = () => {
@@ -13,91 +14,58 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Convex reactive queries
+  const profileData = useQuery(api.profiles.getByUsername, username ? { username } : 'skip');
+  const privacyData = useQuery(
+    api.privacy.getByUser,
+    profileData?._id ? { userId: profileData._id } : 'skip'
+  );
+
   useEffect(() => {
-    if (username) {
-      fetchProfile();
-    }
-  }, [username]);
-
-  const fetchProfile = async () => {
     if (!username) return;
-
-    try {
-      setLoading(true);
-
-      // Get profile by username
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (!profileData) {
-        setNotFound(true);
-        return;
-      }
-
-      // Transform the data to match ReaderProfile interface
-      const transformedProfile: ReaderProfile = {
-        id: profileData.id,
-        email: profileData.email,
-        display_name: profileData.display_name,
-        username: profileData.username,
-        role: profileData.role,
-        avatar_url: profileData.avatar_url,
-        bio: profileData.bio,
-        public_bio: profileData.public_bio,
-        crypto_wallet_address: profileData.crypto_wallet_address,
-        badge_display_preferences: profileData.badge_display_preferences,
-        favorite_categories: profileData.favorite_categories,
-        created_at: profileData.created_at,
-        updated_at: profileData.updated_at,
-      };
-
-      setProfile(transformedProfile);
-
-      // Get privacy settings
-      const { data: privacyData, error: privacyError } = await supabase
-        .from('privacy_settings')
-        .select('*')
-        .eq('user_id', profileData.id)
-        .maybeSingle();
-
-      if (privacyError && privacyError.code !== 'PGRST116') {
-        throw privacyError;
-      }
-
-      if (privacyData) {
-        // Transform privacy data to ensure proper typing
-        const transformedPrivacy: PrivacySettings = {
-          user_id: privacyData.user_id,
-          profile_visibility: privacyData.profile_visibility as 'public' | 'private',
-          show_reading_activity: privacyData.show_reading_activity,
-          show_comment_history: privacyData.show_comment_history,
-          show_badges: privacyData.show_badges,
-          show_achievements: privacyData.show_achievements,
-          updated_at: privacyData.updated_at,
-        };
-        setPrivacySettings(transformedPrivacy);
-
-        // Check if profile is private
-        if (transformedPrivacy.profile_visibility === 'private') {
-          setNotFound(true);
-          return;
-        }
-      }
-
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    setLoading(true);
+    if (profileData === undefined) return; // still loading
+    if (!profileData) {
       setNotFound(true);
-    } finally {
       setLoading(false);
+      return;
     }
-  };
+
+    const transformedProfile: ReaderProfile = {
+      id: profileData._id as any,
+      email: profileData.email,
+      display_name: profileData.display_name || '',
+      username: profileData.username || '',
+      role: profileData.role as any,
+      avatar_url: profileData.avatar_url || '',
+      bio: profileData.bio || '',
+      public_bio: profileData.public_bio,
+      crypto_wallet_address: profileData.crypto_wallet_address,
+      badge_display_preferences: profileData.badge_display_preferences,
+      favorite_categories: (profileData.favorite_categories as any) || undefined,
+      created_at: profileData.created_at,
+      updated_at: profileData.updated_at,
+    };
+    setProfile(transformedProfile);
+
+    if (privacyData === undefined) return; // still loading
+    if (privacyData) {
+      const transformedPrivacy: PrivacySettings = {
+        user_id: privacyData.user_id as any,
+        profile_visibility: privacyData.profile_visibility as any,
+        show_reading_activity: (privacyData as any).show_reading_history ?? true,
+        show_comment_history: true,
+        show_badges: true,
+        show_achievements: false,
+        updated_at: privacyData.updated_at,
+      };
+      setPrivacySettings(transformedPrivacy);
+      if (transformedPrivacy.profile_visibility === 'private') {
+        setNotFound(true);
+      }
+    }
+    setLoading(false);
+  }, [username, profileData, privacyData]);
 
   if (loading) {
     return (

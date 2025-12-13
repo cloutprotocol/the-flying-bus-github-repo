@@ -4,7 +4,8 @@ import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/for
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
 
 interface MetadataFieldsProps {
   form: any; // Generic form type to work with all form types
@@ -20,20 +21,13 @@ const MetadataFields: React.FC<MetadataFieldsProps> = ({ form, articleType = 'st
   useEffect(() => {
     const checkFeaturedArticle = async () => {
       try {
-        const { data, error } = await supabase
-          .from('articles')
-          .select('id, title')
-          .eq('featured', true)
-          .limit(1);
-
-        if (error) {
-          console.error('Error checking featured article:', error);
-          return;
-        }
-
-        if (data && data.length > 0) {
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        // Fetch published articles and find featured
+        const result = await convex.query(api.articles.getByStatus, { status: 'published' });
+        const featured = (result?.articles || []).find((a: any) => a.featured);
+        if (featured) {
           setHasFeaturedArticle(true);
-          setFeaturedArticleTitle(data[0].title);
+          setFeaturedArticleTitle(featured.title);
         }
       } catch (err) {
         console.error('Exception checking featured article:', err);

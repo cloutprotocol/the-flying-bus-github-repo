@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { StandardArticleFormData } from '@/utils/validation/separateFormSchemas';
-import { UnifiedSubmissionService } from '@/services/articles/unifiedSubmissionService';
-import { ArticleFormData } from '@/types/ArticleEditorTypes';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
-import { generateSubmissionSlug } from '@/utils/article/slugGenerator';
+import { useMutation } from 'convex/react';
+import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 interface UseStandardArticleSubmissionProps {
   form: UseFormReturn<StandardArticleFormData>;
@@ -22,36 +22,16 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const convertToArticleFormData = (data: StandardArticleFormData): ArticleFormData => {
-    console.log('Converting standard form data:', data);
-    
-    // Keep the original status - no conversion needed
-    const convertedStatus = data.status;
-    
-    // Always generate a fresh slug for submission to avoid duplicates
-    const submissionSlug = generateSubmissionSlug(data.title || '');
-    
-    return {
-      id: articleId,
-      title: data.title || '',
-      content: data.content || '',
-      excerpt: data.excerpt || '',
-      imageUrl: data.imageUrl || '',
-      categoryId: data.categoryId || '',
-      slug: submissionSlug, // Use fresh generated slug
-      articleType: 'standard',
-      status: convertedStatus as any,
-      // Convert Date to string if needed, otherwise use as-is
-      publishDate: data.publishDate 
-        ? (data.publishDate instanceof Date ? data.publishDate.toISOString() : data.publishDate)
-        : null,
-      shouldHighlight: data.shouldHighlight || false,
-      allowVoting: data.allowVoting || false
-    };
+  const submitMutation = useMutation(api.articles.submit);
+
+  const generateSlug = (title: string) => {
+    return title.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'untitled';
   };
 
   const handleSaveDraft = async (): Promise<void> => {
-    if (!user?.id) {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to save drafts.",
@@ -60,34 +40,33 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       return;
     }
 
-    console.log('useStandardArticleSubmission.handleSaveDraft called');
     setIsSaving(true);
     try {
       const formData = form.getValues();
-      const convertedData = convertToArticleFormData(formData);
-      
-      logger.info(LogSource.ARTICLE, 'Saving standard article draft', {
-        articleType: convertedData.articleType,
-        title: convertedData.title,
-        slug: convertedData.slug
+      const slug = formData.slug || generateSlug(formData.title || '');
+
+      const resultId = await submitMutation({
+        id: articleId as Id<"articles"> | undefined,
+        title: formData.title,
+        content: formData.content,
+        excerpt: formData.excerpt,
+        imageUrl: formData.imageUrl,
+        categoryId: formData.categoryId,
+        articleType: 'standard',
+        slug: slug,
+        shouldHighlight: formData.shouldHighlight,
+        status: 'draft',
+        publishImmediately: false,
       });
-      
-      console.log('Calling UnifiedSubmissionService.saveDraft with slug:', convertedData.slug);
-      
-      const result = await UnifiedSubmissionService.saveDraft(convertedData, user.id);
-      
-      if (result.success) {
-        toast({
-          title: "Draft saved",
-          description: "Your changes have been saved successfully.",
-        });
-        
-        // Update form with the returned article ID if this was a new article
-        if (result.articleId && !articleId) {
-          form.setValue('id' as any, result.articleId);
-        }
-      } else {
-        throw new Error(result.error || 'Failed to save draft');
+
+      toast({
+        title: "Draft saved",
+        description: "Your changes have been saved successfully.",
+      });
+
+      // Update form with the returned article ID if this was a new article
+      if (resultId && !articleId) {
+        form.setValue('id' as any, resultId);
       }
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Save draft error', error);
@@ -103,14 +82,7 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
   };
 
   const handleSubmit = async (data: StandardArticleFormData): Promise<void> => {
-    console.log('useStandardArticleSubmission.handleSubmit called with data:', {
-      title: data.title,
-      categoryId: data.categoryId,
-      articleType: data.articleType
-    });
-
-    if (!user?.id) {
-      console.error('No user ID found for submission');
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to submit articles.",
@@ -119,47 +91,37 @@ export const useStandardArticleSubmission = ({ form, articleId }: UseStandardArt
       return;
     }
 
-    console.log('User authenticated, proceeding with submission. User ID:', user.id);
-    logger.info(LogSource.ARTICLE, 'Starting standard article submission');
-
     try {
-      const convertedData = convertToArticleFormData(data);
-      
-      console.log('Converted data for submission:', {
-        title: convertedData.title,
-        categoryId: convertedData.categoryId,
-        articleType: convertedData.articleType,
-        slug: convertedData.slug,
-        status: convertedData.status
+      const slug = data.slug || generateSlug(data.title || '');
+
+      await submitMutation({
+        id: articleId as Id<"articles"> | undefined,
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt,
+        imageUrl: data.imageUrl,
+        categoryId: data.categoryId,
+        articleType: 'standard',
+        slug: slug,
+        shouldHighlight: data.shouldHighlight,
+        status: 'pending_review',
+        publishImmediately: false,
       });
-      
-      console.log('About to call UnifiedSubmissionService.submitForReview...');
-      
-      const result = await UnifiedSubmissionService.submitForReview(convertedData, user.id);
-      
-      console.log('UnifiedSubmissionService.submitForReview completed with result:', result);
-      
-      if (result.success) {
-        console.log('Submission successful, showing success toast');
-        toast({
-          title: "Submission successful",
-          description: "Your article has been submitted for review!",
-        });
-        console.log('Navigating to /admin/my-articles');
-        navigate('/admin/my-articles');
-      } else {
-        console.error('Submission failed with error:', result.error);
-        throw new Error(result.error || 'Failed to submit article');
-      }
+
+      toast({
+        title: "Submission successful",
+        description: "Your article has been submitted for review!",
+      });
+      navigate('/admin/my-articles');
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Submit error', error);
-      console.error('Submission error in useStandardArticleSubmission:', error);
+      console.error('Submission error:', error);
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
         variant: "destructive"
       });
-      throw error; // Re-throw so the form can handle it
+      throw error;
     }
   };
 

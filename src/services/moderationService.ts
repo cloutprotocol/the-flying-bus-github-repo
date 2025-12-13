@@ -1,7 +1,8 @@
-
-import { supabase } from '@/integrations/supabase/client';
 import { LogSource } from '@/utils/logger/types';
 import { logger } from '@/utils/logger/logger';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 // Content types for moderation
 export type ContentType = 'article' | 'comment' | 'profile' | 'media';
@@ -26,29 +27,14 @@ export const logModerationAction = async (
       action,
       moderatorId
     });
-    
-    // Use flagged_content table to store moderation logs temporarily
-    // This is not ideal but works until a proper moderation_logs table is created
-    const { error } = await supabase
-      .from('flagged_content')
-      .insert({
-        content_id: contentId,
-        content_type: contentType,
-        status: 'reviewed', // Changed from 'resolved' to 'reviewed'
-        reason: `${action}: ${notes || 'No additional notes'}`,
-        reporter_id: moderatorId,
-        reviewer_id: moderatorId,
-        reviewed_at: new Date().toISOString()
-      });
-      
-    if (error) {
-      logger.error(LogSource.MODERATION, 'Error logging moderation action', {
-        error,
-        contentId,
-        contentType
-      });
-      return { success: false, error };
-    }
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    await convex.mutation(api.activities.logActivity, {
+      user_id: moderatorId as unknown as Id<'profiles'>,
+      activity_type: `moderation:${action}`,
+      entity_type: contentType,
+      entity_id: contentId,
+      metadata: { notes: notes || null },
+    } as any);
     
     logger.info(LogSource.MODERATION, 'Moderation action logged successfully', {
       contentId,
@@ -72,130 +58,46 @@ export const getModerationStats = async (): Promise<{
 }> => {
   try {
     logger.info(LogSource.MODERATION, 'Fetching moderation statistics');
-    
-    // Get counts of flagged content by status
-    const { data: flaggedCountsByStatus, error: countError } = await supabase
-      .from('flagged_content')
-      .select('status')
-      .then(response => {
-        // Handle count aggregation manually since .group() might not be supported
-        if (response.error) {
-          return { data: null, error: response.error };
-        }
-        
-        // Process data to group by status
-        const counts: Record<string, number> = {};
-        if (response.data) {
-          response.data.forEach(item => {
-            if (!counts[item.status]) {
-              counts[item.status] = 0;
-            }
-            counts[item.status]++;
-          });
-        }
-        
-        // Convert to expected format
-        const result = Object.entries(counts).map(([status, count]) => ({ 
-          status, 
-          count 
-        }));
-        
-        return { data: result, error: null };
-      });
-      
-    if (countError) {
-      logger.error(LogSource.MODERATION, 'Error fetching flagged content counts', countError);
-      return { stats: null, error: countError };
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const types = ['moderation:approve','moderation:reject','moderation:flag','moderation:review'];
+
+    const byAction: Array<{ action: string; count: number }> = [];
+    const allActivities: any[] = [];
+    for (const t of types) {
+      const res: any = await convex.query(api.activities.getByType, { activityType: t });
+      const count = res?.count ?? (res?.activities?.length ?? 0);
+      byAction.push({ action: t.split(':')[1], count });
+      if (res?.activities) allActivities.push(...res.activities);
     }
-    
-    // Get counts of flagged content by type
-    const { data: flaggedCountsByType, error: typeError } = await supabase
-      .from('flagged_content')
-      .select('content_type')
-      .then(response => {
-        // Handle count aggregation manually
-        if (response.error) {
-          return { data: null, error: response.error };
-        }
-        
-        // Process data to group by content_type
-        const counts: Record<string, number> = {};
-        if (response.data) {
-          response.data.forEach(item => {
-            if (!counts[item.content_type]) {
-              counts[item.content_type] = 0;
-            }
-            counts[item.content_type]++;
-          });
-        }
-        
-        // Convert to expected format
-        const result = Object.entries(counts).map(([content_type, count]) => ({ 
-          content_type, 
-          count 
-        }));
-        
-        return { data: result, error: null };
-      });
-      
-    if (typeError) {
-      logger.error(LogSource.MODERATION, 'Error fetching content type counts', typeError);
-      return { stats: null, error: typeError };
+    // derive content types from metadata/entity_type
+    const byContentTypeMap: Record<string, number> = {};
+    for (const a of allActivities) {
+      const ct = (a.entity_type || 'unknown').toLowerCase();
+      byContentTypeMap[ct] = (byContentTypeMap[ct] || 0) + 1;
     }
-    
-    // Get recent moderation activity
-    const { data: recentActivity, error: activityError } = await supabase
-      .from('flagged_content')
-      .select(`
-        id,
-        content_id,
-        content_type,
-        status,
-        reviewed_at,
-        reviewer:reviewer_id (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
-      .not('reviewer_id', 'is', null)
-      .order('reviewed_at', { ascending: false })
-      .limit(10);
-      
-    if (activityError) {
-      logger.error(LogSource.MODERATION, 'Error fetching recent activity', activityError);
-      return { stats: null, error: activityError };
-    }
-    
-    // Get pending count
-    const { count: pendingCount, error: pendingError } = await supabase
-      .from('flagged_content')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    
-    if (pendingError) {
-      logger.error(LogSource.MODERATION, 'Error fetching pending count', pendingError);
-      return { stats: null, error: pendingError };
-    }
-    
-    // Get total count
-    const { count: totalCount, error: totalError } = await supabase
-      .from('flagged_content')
-      .select('*', { count: 'exact', head: true });
-    
-    if (totalError) {
-      logger.error(LogSource.MODERATION, 'Error fetching total count', totalError);
-      return { stats: null, error: totalError };
-    }
-    
+    const byContentType = Object.entries(byContentTypeMap).map(([content_type, count]) => ({ content_type, count }));
+
+    // recent activity: sort by created_at desc, take 10
+    allActivities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const recentActivity = allActivities.slice(0, 10).map(a => ({
+      id: a._id,
+      content_id: a.entity_id,
+      content_type: a.entity_type,
+      status: 'reviewed',
+      reviewed_at: a.created_at,
+      reviewer: { display_name: '', avatar_url: '' },
+      reason: a.metadata?.notes ?? '',
+    }));
+
     const stats = {
-      byStatus: flaggedCountsByStatus,
-      byContentType: flaggedCountsByType,
+      byStatus: [],
+      byContentType,
       recentActivity,
-      pendingCount: pendingCount || 0,
-      totalCount: totalCount || 0
+      pendingCount: 0,
+      totalCount: allActivities.length,
+      byAction,
     };
-    
+
     logger.info(LogSource.MODERATION, 'Moderation statistics fetched successfully');
     return { stats, error: null };
   } catch (e) {
@@ -213,49 +115,15 @@ export const getModeratorPerformance = async (): Promise<{
 }> => {
   try {
     logger.info(LogSource.MODERATION, 'Fetching moderator performance metrics');
-    
-    // Get counts of moderated content by moderator
-    const { data: moderatorCounts, error: countError } = await supabase
-      .from('flagged_content')
-      .select(`
-        reviewer_id,
-        profiles:reviewer_id (display_name, avatar_url)
-      `)
-      .not('reviewer_id', 'is', null)
-      .then(response => {
-        if (response.error) {
-          return { data: null, error: response.error };
-        }
-        
-        // Process data to group by reviewer
-        const countsByReviewer: Record<string, any> = {};
-        if (response.data) {
-          response.data.forEach(item => {
-            if (!countsByReviewer[item.reviewer_id]) {
-              countsByReviewer[item.reviewer_id] = {
-                reviewer_id: item.reviewer_id,
-                count: 0,
-                profiles: item.profiles
-              };
-            }
-            countsByReviewer[item.reviewer_id].count++;
-          });
-        }
-        
-        return { 
-          data: Object.values(countsByReviewer), 
-          error: null 
-        };
-      });
-      
-    if (countError) {
-      logger.error(LogSource.MODERATION, 'Error fetching moderator counts', countError);
-      return { performance: null, error: countError };
+    const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+    const res: any = await convex.query(api.activities.getByType, { activityType: 'moderation:review' });
+    const byReviewer: Record<string, { reviewer_id: string; count: number; profiles?: any }> = {};
+    for (const a of res?.activities ?? []) {
+      const uid = a.user_id;
+      if (!byReviewer[uid]) byReviewer[uid] = { reviewer_id: uid, count: 0 };
+      byReviewer[uid].count++;
     }
-    
-    const performance = {
-      moderatorActivity: moderatorCounts
-    };
+    const performance = { moderatorActivity: Object.values(byReviewer) };
     
     logger.info(LogSource.MODERATION, 'Moderator performance metrics fetched successfully');
     return { performance, error: null };
@@ -294,7 +162,7 @@ export const getModerationMetrics = async (): Promise<{
       moderatorsCount: performance?.moderatorActivity?.length || 0,
       topModerators: performance?.moderatorActivity?.slice(0, 5) || [],
       // Add placeholder data for metrics not yet implemented
-      reportedCount: stats?.byStatus?.find((s: any) => s.status === 'pending')?.count || 0,
+      reportedCount: stats?.byAction?.find((s: any) => s.action === 'flag')?.count || 0,
       flaggedUsersCount: 0,
       // Add action counts (get from recentActivity or return placeholders)
       byAction: [

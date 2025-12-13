@@ -1,4 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 
 export type QueryExecutionMode = 'authenticated' | 'anonymous' | 'fallback';
 
@@ -72,83 +74,66 @@ class DataLoadingManager {
    * Execute query with authenticated session
    */
   private async executeAuthenticatedQuery<T>(options: QueryOptions): Promise<QueryResult<T>> {
-    let query = supabase.from(options.table);
+    try {
+      const convexUrl = import.meta.env.VITE_CONVEX_URL!;
+      const convex = new ConvexHttpClient(convexUrl);
 
-    if (options.select) {
-      query = query.select(options.select);
-    }
+      if (options.table === 'articles') {
+        const categoryId = options.filters?.category_id as string | undefined;
+        const featured = options.filters?.featured as boolean | undefined;
+        const result = await convex.query(api.articles.getPublished, {
+          categoryId: categoryId ? (categoryId as Id<'categories'>) : undefined,
+          page: 1,
+          limit: options.limit ?? 10,
+          sortBy: options.orderBy?.column === 'published_at' && options.orderBy?.ascending === true ? 'oldest' : 'newest'
+        });
 
-    if (options.filters) {
-      Object.entries(options.filters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          query = query.in(key, value);
-        } else if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
+        let articles = result.articles || [];
+        if (featured !== undefined) {
+          articles = articles.filter((a: any) => !!a.featured === featured);
         }
-      });
+
+        // Map to legacy field names expected by callers
+        const mapped = articles.map((a: any) => ({
+          id: a._id,
+          title: a.title,
+          excerpt: a.excerpt,
+          cover_image: a.featured_image_url,
+          categories: a.category ? { id: a.category._id, name: a.category.name, slug: a.category.slug, color: a.category.color } : null,
+          profiles: a.author ? { id: a.author._id, display_name: a.author.display_name } : null,
+          created_at: a.created_at,
+          published_at: a.published_at,
+          article_type: a.article_type,
+          status: a.status,
+          featured: a.featured,
+        }));
+
+        return { data: mapped as unknown as T[], error: null, executionMode: 'authenticated' };
+      }
+
+      if (options.table === 'categories') {
+        const categories = await convex.query(api.categories.getAll, {});
+        const mapped = categories.map((c: any) => ({
+          id: c._id,
+          name: c.name,
+          slug: c.slug,
+          color: c.color,
+        }));
+        return { data: mapped as unknown as T[], error: null, executionMode: 'authenticated' };
+      }
+
+      return { data: [] as unknown as T[], error: null, executionMode: 'authenticated' };
+    } catch (error) {
+      return { data: null as any, error, executionMode: 'authenticated' };
     }
-
-    if (options.orderBy) {
-      query = query.order(options.orderBy.column, { ascending: options.orderBy.ascending ?? true });
-    }
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const { data, error } = await query;
-
-    return {
-      data: data as T[],
-      error,
-      executionMode: 'authenticated'
-    };
   }
 
   /**
    * Execute query without authentication (for public content)
    */
   private async executeAnonymousQuery<T>(options: QueryOptions): Promise<QueryResult<T>> {
-    // Create a temporary client without auth headers
-    const anonClient = supabase;
-    
-    let query = anonClient.from(options.table);
-
-    if (options.select) {
-      query = query.select(options.select);
-    }
-
-    // For anonymous queries, only include public content filters
-    const publicFilters = { ...options.filters };
-    if (options.table === 'articles') {
-      publicFilters.status = 'published';
-    }
-
-    if (publicFilters) {
-      Object.entries(publicFilters).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          query = query.in(key, value);
-        } else if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
-      });
-    }
-
-    if (options.orderBy) {
-      query = query.order(options.orderBy.column, { ascending: options.orderBy.ascending ?? true });
-    }
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const { data, error } = await query;
-
-    return {
-      data: data as T[],
-      error,
-      executionMode: 'anonymous'
-    };
+    // Anonymous and authenticated behave the same for Convex public content
+    return this.executeAuthenticatedQuery<T>({ ...options, requireAuth: false });
   }
 
 
@@ -181,14 +166,13 @@ class DataLoadingManager {
    * Preload critical data - simplified
    */
   async preloadCriticalData(): Promise<void> {
-    // Simple preloading without complex optimization
     try {
       await Promise.allSettled([
-        this.executeQuery({ table: 'articles', select: '*', filters: { status: 'published' }, limit: 20 }),
-        this.executeQuery({ table: 'categories', select: '*' })
+        this.executeQuery({ table: 'articles', limit: 10 }),
+        this.executeQuery({ table: 'categories' })
       ]);
-    } catch (error) {
-      // Silently fail - preloading is not critical
+    } catch {
+      // No-op
     }
   }
 }

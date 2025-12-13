@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { getCategoryIcon } from '@/utils/getCategoryIcon';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -51,22 +52,12 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       try {
         console.log('CategorySelector: Fetching categories for new article');
         setLoading(true);
-        const { data, error } = await supabase
-          .from('categories')
-          .select('id, name, slug')
-          .order('name');
-        
-        if (error) {
-          console.error('CategorySelector: Error fetching categories:', error);
-          logger.error(LogSource.EDITOR, 'Error fetching categories', error);
-          return;
-        }
-
-        if (data) {
-          console.log('CategorySelector: Categories fetched successfully:', data);
-          setCategories(data);
-          logger.info(LogSource.EDITOR, 'Categories fetched for new article');
-        }
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const data = await convex.query(api.categories.getAll, {} as any);
+        const mapped = (data || []).map((c: any) => ({ id: c._id, name: c.name, slug: c.slug }));
+        console.log('CategorySelector: Categories fetched successfully:', mapped);
+        setCategories(mapped);
+        logger.info(LogSource.EDITOR, 'Categories fetched for new article');
       } catch (err) {
         console.error('CategorySelector: Exception fetching categories:', err);
         logger.error(LogSource.EDITOR, 'Exception fetching categories', err);

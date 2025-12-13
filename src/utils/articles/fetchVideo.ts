@@ -1,18 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
-export const fetchVideoDetails = async (articleId: string) => {
-  const { data, error } = await supabase
-    .from('video_articles')
-    .select('*')
-    .eq('article_id', articleId)
-    .single();
-
-  if (error) {
-    console.error('Error fetching video details:', error);
-    return null;
-  }
-
-  return data;
+export const fetchVideoDetails = async (_articleId: string) => {
+  // Legacy Supabase path removed. Video details now come from Convex-backed articles.
+  // For now, return null to indicate no separate video metadata.
+  return null as any;
 };
-

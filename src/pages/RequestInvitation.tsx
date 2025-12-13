@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { Mail, User, Calendar, MessageCircle, Info } from 'lucide-react';
-import { createInvitationRequest } from '@/services/invitationService';
+import { createInvitationRequest } from '@/services/invitationConvexService';
 import CaptchaChallenge from '@/components/Common/CaptchaChallenge';
 import { AsyncOperationManager } from '@/utils/asyncOperationManager';
 import { UserFeedback } from '@/components/Common/UserFeedback';

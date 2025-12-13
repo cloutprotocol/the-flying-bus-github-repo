@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, BookOpen, Clock, Activity } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import type { ReaderProfile, PrivacySettings } from '@/types/ReaderProfile';
 
 interface ActivityItem {
@@ -35,32 +37,21 @@ const ProfileActivity = ({ profile, privacySettings }: ProfileActivityProps) => 
 
       // Fetch recent comments if allowed
       if (privacySettings?.show_comment_history !== false) {
-        const { data: comments } = await supabase
-          .from('comments')
-          .select(`
-            id,
-            content,
-            created_at,
-            article_id
-          `)
-          .eq('user_id', profile.id)
-          .eq('status', 'published')
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (comments) {
-          for (const comment of comments) {
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const comments = await convex.query(api.comments.getByUser, { userId: profile.id as any as Id<'profiles'> });
+        (comments || [])
+          .slice()
+          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10)
+          .forEach((c: any) => {
             allActivities.push({
-              id: comment.id,
+              id: String(c._id),
               type: 'comment',
               title: 'Left a comment',
-              excerpt: comment.content.length > 100 
-                ? comment.content.substring(0, 100) + '...' 
-                : comment.content,
-              date: comment.created_at,
+              excerpt: c.content.length > 100 ? c.content.substring(0, 100) + '...' : c.content,
+              date: c.created_at,
             });
-          }
-        }
+          });
       }
 
       // Sort all activities by date

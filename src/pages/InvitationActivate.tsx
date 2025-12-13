@@ -4,8 +4,7 @@ import MainLayout from '@/components/Layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { validateInvitationToken, findUserByEmail } from '@/services/invitationService';
-import type { InvitationTokenData } from '@/services/invitationService';
+import { validateInvitationToken, findUserByEmail, type InvitationTokenData } from '@/services/invitationConvexService';
 
 type ValidationState = 'loading' | 'valid' | 'invalid' | 'expired' | 'used' | 'error';
 
@@ -27,9 +26,9 @@ const InvitationActivate = () => {
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
-        setValidationResult({ 
-          state: 'invalid', 
-          error: 'No invitation token provided' 
+        setValidationResult({
+          state: 'invalid',
+          error: 'No invitation token provided'
         });
         return;
       }
@@ -37,7 +36,7 @@ const InvitationActivate = () => {
       try {
         // Validate the token
         const tokenResult = await validateInvitationToken(token, email || undefined);
-        
+
         if (tokenResult.error) {
           // Determine the specific error type
           const errorMessage = tokenResult.error.toLowerCase();
@@ -52,9 +51,9 @@ const InvitationActivate = () => {
         }
 
         if (!tokenResult.data) {
-          setValidationResult({ 
-            state: 'invalid', 
-            error: 'Invalid token data' 
+          setValidationResult({
+            state: 'invalid',
+            error: 'Invalid token data'
           });
           return;
         }
@@ -71,9 +70,9 @@ const InvitationActivate = () => {
 
       } catch (error) {
         console.error('Token validation error:', error);
-        setValidationResult({ 
-          state: 'error', 
-          error: 'An unexpected error occurred while validating your invitation' 
+        setValidationResult({
+          state: 'error',
+          error: 'An unexpected error occurred while validating your invitation'
         });
       }
     };
@@ -117,7 +116,7 @@ const InvitationActivate = () => {
             <p className="text-gray-600 mb-6">
               Your invitation for <strong>{invitationData?.invitation.child_name}</strong> has been approved.
             </p>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg mb-6 text-left">
               <h3 className="font-semibold text-blue-900 mb-2">Invitation Details:</h3>
               <ul className="text-sm text-blue-800 space-y-1">
@@ -132,7 +131,7 @@ const InvitationActivate = () => {
                 <p className="text-gray-700">
                   We found an existing account with your email address. Click below to activate your author privileges.
                 </p>
-                <Button 
+                <Button
                   onClick={handleActivateExistingAccount}
                   className="w-full"
                   size="lg"
@@ -145,7 +144,7 @@ const InvitationActivate = () => {
                 <p className="text-gray-700">
                   You'll need to create a new account to get started. Your information will be pre-filled for convenience.
                 </p>
-                <Button 
+                <Button
                   onClick={handleCreateNewAccount}
                   className="w-full"
                   size="lg"
@@ -171,7 +170,7 @@ const InvitationActivate = () => {
                 You can request a new invitation, and we'll review your request again.
               </p>
             </div>
-            <Button 
+            <Button
               onClick={handleRequestNewInvitation}
               className="w-full"
               size="lg"
@@ -196,14 +195,14 @@ const InvitationActivate = () => {
               </p>
             </div>
             <div className="space-y-3">
-              <Button 
+              <Button
                 onClick={() => navigate('/reader-auth')}
                 className="w-full"
                 size="lg"
               >
                 Sign In to Your Account
               </Button>
-              <Button 
+              <Button
                 onClick={() => navigate('/')}
                 variant="outline"
                 className="w-full"
@@ -233,14 +232,14 @@ const InvitationActivate = () => {
               </p>
             </div>
             <div className="space-y-3">
-              <Button 
+              <Button
                 onClick={handleRequestNewInvitation}
                 className="w-full"
                 size="lg"
               >
                 Request New Invitation
               </Button>
-              <Button 
+              <Button
                 onClick={() => navigate('/')}
                 variant="outline"
                 className="w-full"

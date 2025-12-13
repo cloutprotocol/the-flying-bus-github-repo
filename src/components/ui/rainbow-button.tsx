@@ -3,7 +3,7 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 interface RainbowButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> { }
 
 export const RainbowButton = React.forwardRef<HTMLButtonElement, RainbowButtonProps>(({
   children,
@@ -31,11 +31,11 @@ export const RainbowButton = React.forwardRef<HTMLButtonElement, RainbowButtonPr
         // Dark mode border adjustment
         "dark:shadow-[0_0_0_1px_rgba(156,163,175,0.3)]",
 
+        // Text color forced to white
+        "!text-white",
+
         className,
       )}
-      style={{
-        color: '#111827 !important',
-      }}
       {...props}
     >
       {children}

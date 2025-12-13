@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import { useToast } from '@/components/ui/use-toast';
 
 export interface SimpleComment {
@@ -31,48 +33,24 @@ export function useSimpleCommentModeration() {
     try {
       console.log('Fetching comments with filter:', filter, 'search:', searchTerm);
 
-      let query = supabase
-        .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          article_id,
-          user_id,
-          status,
-          profiles!user_id(display_name, avatar_url)
-        `);
-
-      // Apply filters based on the selected filter type
-      if (filter !== 'all') {
-        if (filter === 'flagged') {
-          query = query.eq('status', 'flagged');
-        } else if (filter === 'pending') {
-          query = query.eq('status', 'pending');
-        } else if (filter === 'approved') {
-          query = query.eq('status', 'published');
-        } else if (filter === 'rejected') {
-          query = query.eq('status', 'rejected');
-        }
-      }
-
-      // Apply search if provided
-      if (searchTerm) {
-        query = query.ilike('content', `%${searchTerm}%`);
-      }
-
-      // Order by created_at descending
-      query = query.order('created_at', { ascending: false });
-
-      const { data, error: queryError } = await query;
-
-      if (queryError) {
-        console.error('Comment query error:', queryError);
-        throw new Error(`Database query failed: ${queryError.message}`);
-      }
-
-      console.log('Comments fetched successfully:', data?.length || 0);
-      setComments(data || []);
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const res: any = await convex.query(api.comments.getFlagged, {
+        filter,
+        searchTerm,
+        page: 1,
+        limit: 100,
+      });
+      const items = (res?.comments || []).map((c: any) => ({
+        id: String(c._id),
+        content: c.content,
+        created_at: c.created_at,
+        article_id: String(c.article_id),
+        user_id: String(c.user_id),
+        status: c.status,
+        profiles: c.profile ? { display_name: c.profile.display_name, avatar_url: c.profile.avatar_url } : undefined,
+      }));
+      console.log('Comments fetched successfully:', items.length);
+      setComments(items);
     } catch (err) {
       console.error('Error fetching comments:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
@@ -96,14 +74,8 @@ export function useSimpleCommentModeration() {
     setProcessingIds(prev => [...prev, commentId]);
 
     try {
-      const { error } = await supabase
-        .from('comments')
-        .update({ status: 'published' })
-        .eq('id', commentId);
-
-      if (error) {
-        throw new Error(`Failed to approve comment: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.comments.updateStatus, { id: commentId as any as Id<'comments'>, status: 'approved' });
 
       // Remove from list if not viewing approved filter
       if (filter !== 'approved') {
@@ -132,14 +104,8 @@ export function useSimpleCommentModeration() {
     setProcessingIds(prev => [...prev, commentId]);
 
     try {
-      const { error } = await supabase
-        .from('comments')
-        .update({ status: 'rejected' })
-        .eq('id', commentId);
-
-      if (error) {
-        throw new Error(`Failed to reject comment: ${error.message}`);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      await convex.mutation(api.comments.updateStatus, { id: commentId as any as Id<'comments'>, status: 'rejected' });
 
       // Remove from list if not viewing rejected filter
       if (filter !== 'rejected') {

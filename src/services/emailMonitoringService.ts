@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed; stubbing email monitoring.
 
 export interface EmailMetrics {
   sent: number;
@@ -37,20 +37,7 @@ class EmailMonitoringService {
    * Log an email event to the database
    */
   async logEmailEvent(event: Omit<EmailEvent, 'id' | 'timestamp'>): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('email_events')
-        .insert({
-          ...event,
-          timestamp: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Failed to log email event:', error);
-      }
-    } catch (err) {
-      console.error('Error logging email event:', err);
-    }
+    try { /* no-op */ } catch {}
   }
 
   /**
@@ -62,22 +49,7 @@ class EmailMonitoringService {
     template?: string
   ): Promise<EmailMetrics> {
     try {
-      let query = supabase
-        .from('email_events')
-        .select('type')
-        .gte('timestamp', startDate.toISOString())
-        .lte('timestamp', endDate.toISOString());
-
-      if (template) {
-        query = query.eq('template', template);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
+      const data: any[] = [];
       const eventCounts = data.reduce((acc, event) => {
         acc[event.type] = (acc[event.type] || 0) + 1;
         return acc;
@@ -127,27 +99,8 @@ class EmailMonitoringService {
   ): Promise<TokenAnalytics> {
     try {
       // Get token creation and usage data
-      const { data: tokens, error: tokensError } = await supabase
-        .from('invitation_tokens')
-        .select('created_at, used_at, expires_at')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-
-      if (tokensError) {
-        throw tokensError;
-      }
-
-      // Get failed validation attempts
-      const { data: securityEvents, error: securityError } = await supabase
-        .from('security_events')
-        .select('event_type')
-        .eq('event_type', 'token_validation_failed')
-        .gte('timestamp', startDate.toISOString())
-        .lte('timestamp', endDate.toISOString());
-
-      if (securityError) {
-        console.warn('Could not fetch security events:', securityError);
-      }
+      const tokens: any[] = [];
+      const securityEvents: any[] = [];
 
       const now = new Date();
       const generated = tokens.length;
@@ -195,9 +148,7 @@ class EmailMonitoringService {
    */
   async getRecentErrors(limit: number = 50): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('email_events')
-        .select('*')
+      const data: any[] = [];
         .eq('type', 'failed')
         .order('timestamp', { ascending: false })
         .limit(limit);

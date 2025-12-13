@@ -1,11 +1,11 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { ArticleFormData, StoryboardEpisode } from '@/types/ArticleEditorTypes';
-import { submitArticleOptimized } from '@/services/articles/articleSubmissionService';
-import { saveDraftOptimized } from '@/services/articles/draft/optimizedDraftService';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 
@@ -35,18 +35,20 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
     ...initialFormData,
     ...initialData,
     // Initialize with one episode for storyboard articles
-    storyboardEpisodes: initialData?.articleType === 'storyboard' 
+    storyboardEpisodes: initialData?.articleType === 'storyboard'
       ? initialData?.storyboardEpisodes?.length ? initialData.storyboardEpisodes : [initialStoryboardEpisode]
       : initialData?.storyboardEpisodes || []
   }));
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const submitMutation = useMutation(api.articles.submit);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -127,24 +129,32 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
     setIsSaving(true);
 
     try {
-      logger.info(LogSource.ARTICLE, 'Saving draft', {
+      logger.info(LogSource.ARTICLE, 'Saving draft via Convex', {
         articleType: formData.articleType,
         title: formData.title
       });
 
-      const result = await saveDraftOptimized(user.id, formData);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save draft');
-      }
+      const articleId = await submitMutation({
+        id: formData.id ? (formData.id as Id<"articles">) : undefined,
+        title: formData.title,
+        content: formData.content,
+        excerpt: formData.excerpt,
+        imageUrl: formData.imageUrl,
+        categoryId: formData.categoryId,
+        articleType: formData.articleType,
+        slug: formData.slug,
+        shouldHighlight: formData.shouldHighlight,
+        status: "draft",
+        publishImmediately: false,
+      });
 
       // Update form data with the returned article ID
-      if (result.articleId && !formData.id) {
-        setFormData(prev => ({ ...prev, id: result.articleId }));
+      if (articleId && !formData.id) {
+        setFormData(prev => ({ ...prev, id: articleId }));
       }
 
       setHasUnsavedChanges(false);
-      
+
       toast({
         title: "Draft saved",
         description: "Your changes have been saved successfully.",
@@ -154,7 +164,7 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
 
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Error saving draft', error);
-      
+
       toast({
         title: "Save failed",
         description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
@@ -165,7 +175,7 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
     } finally {
       setIsSaving(false);
     }
-  }, [user?.id, formData, toast]);
+  }, [user?.id, formData, toast, submitMutation]);
 
   const submitForReview = useCallback(async (): Promise<boolean> => {
     if (!user?.id) {
@@ -190,20 +200,28 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
     setIsSubmitting(true);
 
     try {
-      logger.info(LogSource.ARTICLE, 'Submitting article for review', {
+      logger.info(LogSource.ARTICLE, 'Submitting article for review via Convex', {
         articleType: formData.articleType,
         title: formData.title
       });
 
-      const result = await submitArticleOptimized(user.id, formData, false);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to submit article');
-      }
+      const articleId = await submitMutation({
+        id: formData.id ? (formData.id as Id<"articles">) : undefined,
+        title: formData.title,
+        content: formData.content,
+        excerpt: formData.excerpt,
+        imageUrl: formData.imageUrl,
+        categoryId: formData.categoryId,
+        articleType: formData.articleType,
+        slug: formData.slug,
+        shouldHighlight: formData.shouldHighlight,
+        status: "pending_review",
+        publishImmediately: false,
+      });
 
       setHasUnsavedChanges(false);
 
-      const successMessage = formData.articleType === 'storyboard' 
+      const successMessage = formData.articleType === 'storyboard'
         ? "Your storyboard series has been submitted successfully!"
         : "Your article has been submitted for review!";
 
@@ -213,8 +231,8 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
       });
 
       // Navigate based on article type
-      if (formData.articleType === 'storyboard' && result.articleId) {
-        navigate(`/storyboard/${result.articleId}`);
+      if (formData.articleType === 'storyboard' && articleId) {
+        navigate(`/storyboard/${articleId}`);
       } else {
         navigate('/admin/my-articles');
       }
@@ -223,7 +241,7 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
 
     } catch (error) {
       logger.error(LogSource.ARTICLE, 'Error submitting article', error);
-      
+
       toast({
         title: "Submission failed",
         description: error instanceof Error ? error.message : "Failed to submit article. Please try again.",
@@ -234,7 +252,7 @@ export const useOptimizedArticleForm = (initialData?: Partial<ArticleFormData>) 
     } finally {
       setIsSubmitting(false);
     }
-  }, [user?.id, formData, validateForm, toast, navigate]);
+  }, [user?.id, formData, validateForm, toast, navigate, submitMutation]);
 
   return {
     formData,

@@ -1,7 +1,9 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 /**
  * Update an article's status (draft, pending, published, etc.)
@@ -12,34 +14,23 @@ import { LogSource } from '@/utils/logger/types';
  */
 export const updateArticleStatus = async (
   articleId: string,
-  status: 'draft' | 'pending_review' | 'approved' | 'published' | 'rejected' | 'archived'
+  status: 'draft' | 'pending' | 'pending_review' | 'published' | 'rejected' | 'archived'
 ): Promise<{ success: boolean; error?: any }> => {
   try {
-    console.log(`Updating article ${articleId} to status '${status}'`);
-    logger.info(LogSource.ARTICLE, `Updating article ${articleId} status to '${status}'`);
+    const convexUrl = import.meta.env.VITE_CONVEX_URL!;
+    const convexClient = new ConvexHttpClient(convexUrl);
+    const normalized = status === 'pending' ? 'pending_review' : status;
 
-    // Add published_at date if status is published
-    const updateData: any = { status };
-    if (status === 'published') {
-      updateData.published_at = new Date().toISOString();
-    }
+    logger.info(LogSource.ARTICLE, `Updating article ${articleId} status to '${normalized}'`);
 
-    const { error } = await supabase
-      .from('articles')
-      .update(updateData)
-      .eq('id', articleId);
+    await convexClient.mutation(api.articles.updateStatus, {
+      id: articleId as Id<'articles'>,
+      status: normalized,
+    });
 
-    if (error) {
-      console.error(`Failed to update article ${articleId} status:`, error);
-      logger.error(LogSource.ARTICLE, `Failed to update article ${articleId} status`, { error });
-      return { success: false, error };
-    }
-    
-    console.log(`Successfully updated article ${articleId} status to '${status}'`);
-    logger.info(LogSource.ARTICLE, `Successfully updated article ${articleId} status to '${status}'`);
+    logger.info(LogSource.ARTICLE, `Successfully updated article ${articleId} status to '${normalized}'`);
     return { success: true };
   } catch (e) {
-    console.error(`Exception updating article ${articleId} status:`, e);
     logger.error(LogSource.ARTICLE, `Exception updating article ${articleId} status`, { error: e });
     return { success: false, error: e };
   }

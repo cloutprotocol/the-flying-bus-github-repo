@@ -1,8 +1,10 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
 import { withErrorHandling } from '@/utils/errorHandling';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { ConvexHttpClient } from 'convex/browser';
 
 /**
  * Get view count for an article
@@ -14,16 +16,8 @@ export const getArticleViews = async (articleId: string) => {
         throw new Error('Invalid article ID');
       }
       
-      const { count, error } = await supabase
-        .from('article_views')
-        .select('*', { count: 'exact', head: true })
-        .eq('article_id', articleId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      return { count: count || 0 };
+      // View counts are not yet migrated to Convex; return 0 as a safe default
+      return { count: 0 };
     },
     {
       errorMessage: 'Failed to fetch article view count',
@@ -42,18 +36,12 @@ export const checkArticlePublished = async (articleId: string): Promise<boolean>
       logger.warn(LogSource.ARTICLE, 'Invalid article ID when checking publication status');
       return false;
     }
-    
-    const { data, error } = await supabase
-      .from('articles')
-      .select('id, status')
-      .eq('id', articleId)
-      .maybeSingle();
-    
-    if (error) {
-      logger.error(LogSource.ARTICLE, 'Error checking article publication status', { error, articleId });
-      return false;
-    }
-    
+    const convexUrl = import.meta.env.VITE_CONVEX_URL!;
+    const convexClient = new ConvexHttpClient(convexUrl);
+    const data = await convexClient.query(api.articles.getById, {
+      articleId: articleId as Id<'articles'>,
+    });
+
     const isPublished = data?.status === 'published';
     logger.debug(LogSource.ARTICLE, `Article publication check: ${isPublished ? 'published' : 'not published'}`, { 
       articleId, 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed; media management via Convex is not implemented yet. Using stubs.
 import { useToast } from '@/components/ui/use-toast';
 
 export interface SimpleMediaAsset {
@@ -31,46 +31,8 @@ export function useSimpleMediaManager() {
     try {
       console.log('Fetching media assets with filter:', filter, 'search:', searchTerm);
 
-      let query = supabase
-        .from('media_assets')
-        .select('*');
-
-      // Apply filter
-      if (filter === 'image') {
-        query = query.eq('file_type', 'image');
-      } else if (filter === 'video') {
-        query = query.eq('file_type', 'video');
-      }
-
-      // Apply search
-      if (searchTerm) {
-        query = query.or(`filename.ilike.%${searchTerm}%,alt_text.ilike.%${searchTerm}%`);
-      }
-
-      // Order by created_at descending
-      query = query.order('created_at', { ascending: false });
-
-      const { data, error: queryError } = await query;
-
-      if (queryError) {
-        console.error('Media query error:', queryError);
-        throw new Error(`Database query failed: ${queryError.message}`);
-      }
-
-      // Transform the data to include public URLs
-      const mediaWithUrls = (data || []).map(item => {
-        const url = supabase.storage
-          .from('media')
-          .getPublicUrl(item.storage_path).data.publicUrl;
-
-        return {
-          ...item,
-          url
-        };
-      });
-
-      console.log('Media assets fetched successfully:', mediaWithUrls.length);
-      setMedia(mediaWithUrls);
+      // Stubbed: no Convex media listing yet
+      setMedia([]);
     } catch (err) {
       console.error('Error fetching media assets:', err);
       setError(err instanceof Error ? err : new Error('Unknown error'));
@@ -91,37 +53,7 @@ export function useSimpleMediaManager() {
   const handleDelete = async (id: string) => {
     try {
       // First, get the asset to know its storage path
-      const { data: asset, error: fetchError } = await supabase
-        .from('media_assets')
-        .select('storage_path')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        throw new Error(`Failed to fetch asset: ${fetchError.message}`);
-      }
-
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('media')
-        .remove([asset.storage_path]);
-
-      if (storageError) {
-        console.warn('Storage deletion failed:', storageError);
-        // Continue with database deletion even if storage fails
-      }
-
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('media_assets')
-        .delete()
-        .eq('id', id);
-
-      if (dbError) {
-        throw new Error(`Failed to delete from database: ${dbError.message}`);
-      }
-
-      // Update local state
+      // Stubbed: update local state only
       setMedia(prev => prev.filter(item => item.id !== id));
 
       toast({
@@ -143,31 +75,15 @@ export function useSimpleMediaManager() {
 
   const handleUpdateMetadata = async (id: string, updates: { title?: string; alt_text?: string }) => {
     try {
-      const { data: updated, error } = await supabase
-        .from('media_assets')
-        .update({
-          filename: updates.title,
-          alt_text: updates.alt_text
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to update metadata: ${error.message}`);
-      }
-
-      // Update local state
-      setMedia(prev => 
-        prev.map(item => item.id === id ? { ...item, ...updated } : item)
-      );
+      // Stubbed: update memory only
+      setMedia(prev => prev.map(item => item.id === id ? { ...item, filename: updates.title || item.filename, alt_text: updates.alt_text } : item));
 
       toast({
         title: "Success",
         description: "Media metadata updated successfully",
       });
 
-      return updated;
+      return { id, ...updates } as any;
     } catch (err) {
       console.error('Error updating media metadata:', err);
       toast({

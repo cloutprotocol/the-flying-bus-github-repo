@@ -322,7 +322,7 @@ export function useComponentLifecycle(
     return lifecycleManager.createAbortController();
   }, [lifecycleManager]);
 
-  const safeSetState = useCallback(<T>(setter: (value: T) => void, value: T) => {
+  const safeSetState = useCallback(<T,>(setter: (value: T) => void, value: T) => {
     lifecycleManager.safeSetState(setter, value);
   }, [lifecycleManager]);
 

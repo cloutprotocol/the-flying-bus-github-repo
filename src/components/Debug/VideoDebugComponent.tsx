@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 
 interface VideoDebugProps {
   articleId: string;
@@ -13,29 +15,20 @@ const VideoDebugComponent: React.FC<VideoDebugProps> = ({ articleId }) => {
     const fetchDebugData = async () => {
       try {
         console.log('VideoDebugComponent - Fetching data for article:', articleId);
-        
-        const { data, error } = await supabase
-          .from('articles')
-          .select(`
-            id, 
-            title, 
-            category_id,
-            article_type,
-            categories(id, name, slug, color),
-            video_articles(video_url, video_duration)
-          `)
-          .eq('id', articleId)
-          .eq('status', 'published')
-          .single();
-
-        if (error) {
-          console.error('VideoDebugComponent - Error:', error);
-          setError(error.message);
+        const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+        const data = await convex.query(api.articles.getById, { articleId: articleId as any as Id<'articles'> });
+        if (!data || data.status !== 'published') {
+          setError('Article not found or not published');
           return;
         }
-
         console.log('VideoDebugComponent - Raw data:', data);
-        setDebugData(data);
+        setDebugData({
+          id: String(data._id),
+          title: data.title,
+          categories: data.category ? { name: data.category.name } : null,
+          article_type: data.article_type,
+          video_articles: data.videoData ? [{ video_url: data.videoData.video_url, video_duration: data.videoData.video_duration }] : [],
+        });
       } catch (e) {
         console.error('VideoDebugComponent - Exception:', e);
         setError(e instanceof Error ? e.message : 'Unknown error');

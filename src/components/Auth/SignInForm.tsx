@@ -16,7 +16,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login, isLoggedIn } = useAuth();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signInForm, setSignInForm] = useState({
     email: '',
@@ -40,27 +40,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
-      console.log('Attempting login with:', signInForm.email);
-      const success = await login(signInForm.email, signInForm.password);
-      
+      const email = signInForm.email.trim().toLowerCase();
+      console.log('Attempting login with:', email);
+      const success = await login(email, signInForm.password);
+
       setHasAttemptedLogin(true);
-      
+
       if (success) {
         console.log('Login successful');
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in.",
-        });
+        // Toast handled in AuthProvider
         // The useEffect will handle navigation after successful login
       } else {
         console.log('Login failed');
-        toast({
-          title: "Sign in failed",
-          description: "Invalid email or password.",
-          variant: "destructive",
-        });
+        // Toast handled in AuthProvider
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -83,14 +77,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSwitchTab, redirectPath }) =>
           isSubmitting={isSubmitting}
         />
       </CardContent>
-      
+
       <CardFooter className="flex flex-col gap-4">
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in...' : 'Sign In'}
         </Button>
-        <Button 
-          type="button" 
-          variant="link" 
+        <Button
+          type="button"
+          variant="link"
           onClick={onSwitchTab}
           className="text-xs"
           disabled={isSubmitting}

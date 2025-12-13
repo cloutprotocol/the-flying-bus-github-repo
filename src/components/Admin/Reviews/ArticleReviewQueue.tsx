@@ -29,13 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { 
-  getArticlesPendingReview,
-  approveArticle,
-  rejectArticle,
-  getArticleReviewHistory,
-  ArticleReview
-} from '@/services/articleReviewWorkflowService';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
+type ArticleReview = {
+  id: string;
+  article_id: string;
+  reviewer_id: string;
+  status: 'pending_review' | 'approved' | 'rejected';
+  feedback?: string;
+  created_at: string;
+  reviewer?: { id: string; display_name: string; avatar_url?: string };
+};
 import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
 
 interface PendingArticle {
@@ -78,14 +83,20 @@ export const ArticleReviewQueue: React.FC<ArticleReviewQueueProps> = ({ classNam
     try {
       setLoading(true);
       setError(null);
-      
-      const result = await getArticlesPendingReview();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      setArticles(result.articles);
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const res: any = await convex.query(api.articles.getByStatus, { status: 'pending_review', page: 1, limit: 50 });
+      const items = (res?.articles || []).map((a: any) => ({
+        id: String(a._id),
+        title: a.title,
+        content: a.content,
+        status: a.status,
+        created_at: a.created_at,
+        updated_at: a.updated_at,
+        submitted_for_review_at: a.submitted_for_review_at,
+        author_id: String(a.author_id),
+        profiles: a.author ? { id: String(a.author._id), display_name: a.author.display_name, avatar_url: a.author.avatar_url } : undefined,
+      }));
+      setArticles(items);
     } catch (err) {
       console.error('Error fetching pending articles:', err);
       setError(err instanceof Error ? err.message : 'Failed to load pending articles');
@@ -101,10 +112,9 @@ export const ArticleReviewQueue: React.FC<ArticleReviewQueueProps> = ({ classNam
     
     // Fetch review history for this article
     try {
-      const historyResult = await getArticleReviewHistory(article.id);
-      if (!historyResult.error) {
-        setReviewHistory(historyResult.reviews);
-      }
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
+      const reviews: any = await convex.query(api.articles.getReviewHistory, { articleId: article.id as any as Id<'articles'> });
+      setReviewHistory(reviews || []);
     } catch (err) {
       console.error('Error fetching review history:', err);
     }
@@ -116,19 +126,15 @@ export const ArticleReviewQueue: React.FC<ArticleReviewQueueProps> = ({ classNam
     try {
       setSubmitting(true);
       
-      let result;
+      const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
       if (reviewAction === 'approve') {
-        result = await approveArticle(selectedArticle.id, feedback);
+        await convex.mutation(api.articles.updateStatus, { id: selectedArticle.id as any as Id<'articles'>, status: 'approved' });
       } else {
         if (!feedback.trim()) {
           alert('Feedback is required when rejecting an article.');
           return;
         }
-        result = await rejectArticle(selectedArticle.id, feedback);
-      }
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to submit review');
+        await convex.mutation(api.articles.updateStatus, { id: selectedArticle.id as any as Id<'articles'>, status: 'rejected' });
       }
       
       // Remove the article from the pending list

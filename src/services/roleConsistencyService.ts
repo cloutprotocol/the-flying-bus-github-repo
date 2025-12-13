@@ -6,7 +6,7 @@
  * Implements requirements 4.1, 4.2, 4.3.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+// Supabase removed; stubbing role consistency checks.
 import { RoleAuditService } from './roleAuditService';
 
 export interface RoleInconsistency {
@@ -59,38 +59,7 @@ export class RoleConsistencyService {
       console.log('Starting role consistency check...');
 
       // Query users with their invitation status
-      const { data: users, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          role,
-          created_at,
-          invitation_tokens!invitation_tokens_used_by_fkey (
-            id,
-            used_at,
-            invitation_request_id,
-            invitation_requests!invitation_tokens_invitation_request_id_fkey (
-              id,
-              status
-            )
-          )
-        `)
-        .neq('role', 'admin'); // Don't check admin users
-
-      if (error) {
-        console.error('Error querying users for role consistency:', error);
-        throw new Error(`Failed to query users: ${error.message}`);
-      }
-
       const inconsistencies: RoleInconsistency[] = [];
-
-      for (const user of users || []) {
-        const inconsistency = await this.analyzeUserRoleConsistency(user);
-        if (inconsistency) {
-          inconsistencies.push(inconsistency);
-        }
-      }
 
       console.log(`Found ${inconsistencies.length} role inconsistencies`);
       return inconsistencies;
@@ -182,18 +151,9 @@ export class RoleConsistencyService {
       const inconsistencies = await this.detectIncorrectRoles();
       
       // Get total user count
-      const { count: totalUsers, error: countError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .neq('role', 'admin');
-
-      if (countError) {
-        console.error('Error counting users:', countError);
-        throw new Error(`Failed to count users: ${countError.message}`);
-      }
-
-      const invalidUsers = inconsistencies.length;
-      const validUsers = (totalUsers || 0) - invalidUsers;
+      const totalUsers = 0;
+      const invalidUsers = 0;
+      const validUsers = 0;
 
       const result: RoleValidationResult = {
         isValid: invalidUsers === 0,

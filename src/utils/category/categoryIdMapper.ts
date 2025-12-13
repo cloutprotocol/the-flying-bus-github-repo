@@ -1,7 +1,8 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 
 interface CategoryMapping {
   id: string;
@@ -15,17 +16,10 @@ export const getCategoryBySlug = async (slug: string): Promise<CategoryMapping |
   try {
     // Use cache if available
     if (!categoryCache) {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name, slug')
-        .order('name');
-      
-      if (error) {
-        logger.error(LogSource.EDITOR, 'Error fetching categories for mapping', error);
-        return null;
-      }
-      
-      categoryCache = data || [];
+      const convexUrl = import.meta.env.VITE_CONVEX_URL!;
+      const convex = new ConvexHttpClient(convexUrl);
+      const categories = await convex.query(api.categories.getAll, {});
+      categoryCache = (categories || []).map((c: any) => ({ id: c._id, name: c.name, slug: c.slug }));
     }
 
     // Find direct match first

@@ -17,11 +17,10 @@ export function validate<T>(
     return { isValid: true, data: validatedData, errors: null };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.warn(`Validation error in ${context}:`, error.errors);
       return { isValid: false, data: null, errors: error };
     }
-    
-    console.error(`Unexpected validation error in ${context}:`, error);
+
+    console.error('Unexpected validation error:', error);
     return { isValid: false, data: null, errors: null };
   }
 }
@@ -45,13 +44,13 @@ export const formatZodErrors = (error: z.ZodError): Record<string, string> => {
 /**
  * Validate data and format errors for display
  */
-export const validateAndFormatErrors = <T>(
+export const validateAndFormatErrors = <T,>(
   schema: z.ZodType<T>,
   data: unknown,
   context: string
 ): { isValid: boolean; data: T | null; formErrors: Record<string, string> } => {
   const result = validate(schema, data);
-  
+
   return {
     isValid: result.isValid,
     data: result.data,
@@ -76,20 +75,20 @@ export const passwordSchema = z.string()
 /**
  * Client-side function to validate a form and provide feedback
  */
-export const validateForm = <T>(
+export const validateForm = <T,>(
   schema: z.ZodType<T>,
   data: unknown,
   options?: { toast?: (message: string) => void; context?: string }
 ): { isValid: boolean; data: T | null; errors: Record<string, string> } => {
   const context = options?.context || 'form';
   const result = validate(schema, data);
-  
+
   if (!result.isValid && result.errors && options?.toast) {
     // Show error toast with first error message
     const firstError = result.errors.errors[0];
     options.toast(`Validation error: ${firstError.message}`);
   }
-  
+
   return {
     isValid: result.isValid,
     data: result.data,
