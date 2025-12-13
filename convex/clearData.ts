@@ -3,9 +3,9 @@
  * WARNING: This will delete all data!
  */
 
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
-export const clearAllTables = mutation({
+export const clearAllTables = internalMutation({
   handler: async (ctx) => {
     const results: Record<string, number> = {};
 
@@ -55,10 +55,16 @@ export const clearAllTables = mutation({
       }
     }
 
+    const anyFailures = Object.values(results).some((count) => count < 0);
+    const total = Object.values(results).reduce(
+      (sum, count) => sum + (count > 0 ? count : 0),
+      0
+    );
+
     return {
-      success: true,
+      success: !anyFailures,
       cleared: results,
-      total: Object.values(results).reduce((sum, count) => sum + (count > 0 ? count : 0), 0),
+      total,
     };
   },
 });

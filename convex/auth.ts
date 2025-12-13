@@ -20,31 +20,11 @@ const PasswordWithNormalizedEmail = Password({
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     PasswordWithNormalizedEmail,
-    Google,
+    Google(),
   ],
 });
 
 export default auth;
 
-import { query } from "./_generated/server";
-
-export const debugAuth = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
-    const isAuthed = userId !== null;
-    const identity = await ctx.auth.getUserIdentity();
-    const key = process.env.CONVEX_AUTH_PRIVATE_KEY || '';
-    const keySnippet = key.length > 50 ? key.slice(0, 40) + '...' : key;
-    // Check for literal backslash-n
-    const hasLiteralBackslashN = key.includes('\\n');
-
-    return {
-      isAuthed,
-      userId,
-      identity,
-      keySnippet,
-      hasLiteralBackslashN
-    };
-  },
-});
+// Removed insecure debugAuth endpoint. If a diagnostic endpoint is needed,
+// implement server-side admin checks and restrict to development only.

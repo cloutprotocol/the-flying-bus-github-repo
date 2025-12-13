@@ -12,7 +12,7 @@ import { query, mutation } from "./_generated/server";
 
 // Get video article by article ID
 export const getByArticleId = query({
-  args: { articleId: v.id("articles") },
+  args: { articleId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("video_articles")
@@ -28,7 +28,7 @@ export const getByArticleId = query({
 // Create video article
 export const create = mutation({
   args: {
-    article_id: v.id("articles"),
+    article_id: v.string(),
     video_url: v.string(),
     video_duration: v.optional(v.number()),
     video_platform: v.optional(v.string()),

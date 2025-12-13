@@ -12,7 +12,7 @@ import { query, mutation } from "./_generated/server";
 
 // Get debate article by article ID
 export const getByArticleId = query({
-  args: { articleId: v.id("articles") },
+  args: { articleId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("debate_articles")
@@ -28,11 +28,11 @@ export const getByArticleId = query({
 // Create debate article
 export const create = mutation({
   args: {
-    article_id: v.id("articles"),
+    article_id: v.string(),
     pro_content: v.string(),
     con_content: v.string(),
-    pro_author_id: v.optional(v.id("profiles")),
-    con_author_id: v.optional(v.id("profiles")),
+    pro_author_id: v.optional(v.string()),
+    con_author_id: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();

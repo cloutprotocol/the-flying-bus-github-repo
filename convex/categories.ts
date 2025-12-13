@@ -67,7 +67,7 @@ export const getBySlug = query({
 
 // Get child categories
 export const getChildren = query({
-  args: { parentId: v.id("categories") },
+  args: { parentId: v.string() },
   handler: async (ctx, args) => {
     const categories = await ctx.db
       .query("categories")
@@ -97,7 +97,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    parent_id: v.optional(v.id("categories")),
+    parent_id: v.optional(v.string()),
     display_order: v.optional(v.number()),
     is_active: v.optional(v.boolean()),
   },
@@ -130,7 +130,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    parent_id: v.optional(v.id("categories")),
+    parent_id: v.optional(v.string()),
     display_order: v.optional(v.number()),
     is_active: v.optional(v.boolean()),
   },

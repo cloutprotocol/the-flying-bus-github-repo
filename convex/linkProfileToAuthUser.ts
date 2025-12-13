@@ -74,6 +74,21 @@ export const linkMyProfileToAuthUser = mutation({
 export const linkAllProfilesByEmail = mutation({
   args: {},
   handler: async (ctx) => {
+    // Authentication and authorization: admin only
+    const userId = await auth.getUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const adminProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!adminProfile || adminProfile.role !== 'admin') {
+      throw new Error("Not authorized");
+    }
+
     // Get all profiles without userId
     const unlinkedProfiles = await ctx.db
       .query("profiles")
