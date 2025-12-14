@@ -20,7 +20,10 @@ const PasswordWithNormalizedEmail = Password({
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     PasswordWithNormalizedEmail,
-    Google(),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
 });
 

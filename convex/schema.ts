@@ -48,7 +48,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    parent_id: v.optional(v.string()),
+    parent_id: v.optional(v.id("categories")),
     display_order: v.optional(v.number()),
     is_active: v.boolean(),
     created_at: v.string(),

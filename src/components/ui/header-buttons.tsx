@@ -23,11 +23,11 @@ const LoadingButtons = React.memo(({ className }: { className?: string }) => (
 ));
 
 // Memoized authenticated buttons to prevent unnecessary re-renders
-const AuthenticatedButtons = React.memo(({ 
-  className, 
-  displayName 
-}: { 
-  className?: string; 
+const AuthenticatedButtons = React.memo(({
+  className,
+  displayName
+}: {
+  className?: string;
   displayName?: string;
 }) => (
   <div className={`flex items-center space-x-3 ${className}`}>
@@ -55,7 +55,7 @@ const UnauthenticatedButtons = React.memo(({ className }: { className?: string }
         defaultTab="sign-in"
       />
     </div>
-    
+
     {/* Drawer Auth for Sign Up/Join Us button */}
     <div className="hidden md:block">
       <DrawerAuth
@@ -77,6 +77,8 @@ UnauthenticatedButtons.displayName = 'UnauthenticatedButtons';
 
 export const HeaderButtons: React.FC<HeaderButtonsProps> = React.memo(({ className }) => {
   const { isLoggedIn, isLoading, currentUser, isInitialized } = useAuth();
+
+  console.log('[HeaderButtons] Render:', { isLoggedIn, isLoading, isInitialized, user: currentUser?.display_name });
 
   // Only show loading during initial auth check, not during data loading
   if (isLoading && !isInitialized) {

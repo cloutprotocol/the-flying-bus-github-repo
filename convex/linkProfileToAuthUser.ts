@@ -6,6 +6,7 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { auth } from "./auth";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Links the current authenticated user to an existing profile by email
@@ -95,7 +96,7 @@ export const linkAllProfilesByEmail = mutation({
     // 1. Build an email-to-user Map from all users
     // Fetching all users might still be heavy if there are thousands, but better than O(n^2)
     const allUsers = await ctx.db.query("users").collect();
-    const userEmailMap = new Map<string, string>();
+    const userEmailMap = new Map<string, Id<"users">>();
 
     for (const user of allUsers) {
       if (user.email) {
@@ -138,7 +139,7 @@ export const linkAllProfilesByEmail = mutation({
 
         // Link the profile
         await ctx.db.patch(profile._id, {
-          userId: matchingUserId as any, // Cast to any or Id if needed, assume string matches Id type at runtime or map needs typed Id
+          userId: matchingUserId,
           updated_at: new Date().toISOString(),
         });
 

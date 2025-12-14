@@ -59,16 +59,24 @@ export const getById = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    // Primary lookup via index
+    const direct = await ctx.db
       .query("categories")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+
+    if (direct) return direct;
+
+    // Fallback: case-insensitive match for legacy data where slug casing wasn’t normalized
+    const normalized = args.slug.trim().toLowerCase();
+    const all = await ctx.db.query("categories").collect();
+    return all.find((c) => (c.slug || '').toLowerCase() === normalized) || null;
   },
 });
 
 // Get child categories
 export const getChildren = query({
-  args: { parentId: v.string() },
+  args: { parentId: v.id("categories") },
   handler: async (ctx, args) => {
     const categories = await ctx.db
       .query("categories")
@@ -98,7 +106,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    parent_id: v.optional(v.string()),
+    parent_id: v.optional(v.id("categories")),
     display_order: v.optional(v.number()),
     is_active: v.optional(v.boolean()),
   },
@@ -145,7 +153,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    parent_id: v.optional(v.string()),
+    parent_id: v.optional(v.id("categories")),
     display_order: v.optional(v.number()),
     is_active: v.optional(v.boolean()),
   },
