@@ -31,9 +31,10 @@ export const getAll = query({
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
-    const categories = await ctx.db.query("categories").collect();
-
-    const activeCategories = categories.filter((c) => c.is_active);
+    const activeCategories = await ctx.db
+      .query("categories")
+      .withIndex("by_active", (q) => q.eq("is_active", true))
+      .collect();
 
     // Sort by display_order
     activeCategories.sort((a, b) => {
@@ -104,9 +105,23 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const now = new Date().toISOString();
 
+    // Normalize slug for uniqueness checks
+    const normalizedSlug = args.slug.trim().toLowerCase();
+
+    // Check for existing category with the same slug
+    const existing = await ctx.db
+      .query("categories")
+      .withIndex("by_slug", (q) => q.eq("slug", normalizedSlug))
+      .first();
+
+    if (existing) {
+      throw new Error("Slug already exists");
+    }
+
     const categoryId = await ctx.db.insert("categories", {
       name: args.name,
-      slug: args.slug,
+      // Store normalized slug to enforce consistent lookups
+      slug: normalizedSlug,
       description: args.description,
       icon: args.icon,
       color: args.color,
@@ -137,6 +152,23 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
 
+    if (updates.slug) {
+      const normalizedSlug = updates.slug.trim().toLowerCase();
+
+      // Check for existing category with the same slug
+      const existing = await ctx.db
+        .query("categories")
+        .withIndex("by_slug", (q) => q.eq("slug", normalizedSlug))
+        .first();
+
+      if (existing && existing._id !== id) {
+        throw new Error("Slug already exists");
+      }
+
+      // Use the normalized slug
+      updates.slug = normalizedSlug;
+    }
+
     await ctx.db.patch(id, {
       ...updates,
       updated_at: new Date().toISOString(),
@@ -150,6 +182,16 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("categories") },
   handler: async (ctx, args) => {
+    // Check for child categories
+    const children = await ctx.db
+      .query("categories")
+      .withIndex("by_parent", (q) => q.eq("parent_id", args.id))
+      .first();
+
+    if (children) {
+      return { success: false, error: "Category has child categories" };
+    }
+
     await ctx.db.delete(args.id);
     return { success: true };
   },

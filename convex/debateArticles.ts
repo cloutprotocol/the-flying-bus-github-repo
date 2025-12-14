@@ -31,8 +31,8 @@ export const create = mutation({
     article_id: v.string(),
     pro_content: v.string(),
     con_content: v.string(),
-    pro_author_id: v.optional(v.string()),
-    con_author_id: v.optional(v.string()),
+    pro_author_id: v.optional(v.id("profiles")),
+    con_author_id: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();

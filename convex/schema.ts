@@ -54,8 +54,9 @@ export default defineSchema({
     created_at: v.string(),
     updated_at: v.string(),
   })
-    .index("by_slug", ["slug"])
-    .index("by_parent", ["parent_id"]),
+    .index("by_slug", ["slug"]) 
+    .index("by_parent", ["parent_id"]) 
+    .index("by_active", ["is_active"]),
 
   // Articles (main content)
   articles: defineTable({
@@ -112,8 +113,8 @@ export default defineSchema({
     article_id: v.string(), // Reference to articles
     pro_content: v.string(),
     con_content: v.string(),
-    pro_author_id: v.optional(v.string()),
-    con_author_id: v.optional(v.string()),
+    pro_author_id: v.optional(v.id("profiles")),
+    con_author_id: v.optional(v.id("profiles")),
     created_at: v.string(),
     updated_at: v.string(),
   }).index("by_article", ["article_id"]),

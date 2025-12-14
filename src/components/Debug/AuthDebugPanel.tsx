@@ -2,8 +2,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQuery } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { useConvexAuth } from 'convex/react';
 import { Badge } from '@/components/ui/badge';
 
 // Memoized debug content to prevent unnecessary re-renders
@@ -68,8 +67,7 @@ DebugContent.displayName = 'DebugContent';
 
 const AuthDebugPanel = React.memo(() => {
   const { currentUser, isLoggedIn, isLoading, isInitialized } = useAuth();
-  const debugInfo = useQuery(api.auth.debugAuth);
-  const myProfile = useQuery(api.profiles.getMyProfile);
+  const { isAuthenticated } = useConvexAuth();
 
   /* New Clear Auth Logic */
   const clearAuth = () => {
@@ -93,20 +91,15 @@ const AuthDebugPanel = React.memo(() => {
         isLoading={isLoading}
         isInitialized={isInitialized}
         currentUser={currentUser}
-        serverIsAuthed={debugInfo?.isAuthed}
+        serverIsAuthed={isAuthenticated}
       />
       <div className="fixed bottom-4 right-4 mt-2 flex flex-col items-end gap-1">
         <div className="text-[10px] text-gray-600 bg-white/80 rounded px-2 py-1 border shadow-sm">
-          Server: {debugInfo ? `Authed:${debugInfo.isAuthed} ID:${JSON.stringify(debugInfo.userId)}` : 'Loading...'} | PO: {myProfile ? 'Yes' : 'No'}
+          Server: Authed:{String(isAuthenticated)} | PO: {currentUser ? 'Yes' : 'No'}
         </div>
         <div className="text-[10px] text-gray-600 bg-white/80 rounded px-2 py-1 border shadow-sm max-w-[200px] truncate">
           URL: {import.meta.env.VITE_CONVEX_URL || 'Missing'}
         </div>
-        {debugInfo && (
-          <div className="text-[10px] text-gray-600 bg-white/80 rounded px-2 py-1 border shadow-sm">
-            Key: {debugInfo.keySnippet} {debugInfo.hasLiteralBackslashN ? '⚠️ BAD \\n' : '✅'}
-          </div>
-        )}
         <button
           onClick={clearAuth}
           className="bg-red-500 hover:bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow transition-colors"

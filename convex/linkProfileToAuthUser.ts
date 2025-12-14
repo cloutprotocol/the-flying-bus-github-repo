@@ -71,6 +71,9 @@ export const linkMyProfileToAuthUser = mutation({
  * Admin function to link all unlinked profiles to auth users by email
  * Use this to migrate all imported profiles at once
  */
+// Batch size to prevent timeouts
+const BATCH_SIZE = 100;
+
 export const linkAllProfilesByEmail = mutation({
   args: {},
   handler: async (ctx) => {
@@ -89,45 +92,57 @@ export const linkAllProfilesByEmail = mutation({
       throw new Error("Not authorized");
     }
 
-    // Get all profiles without userId
+    // 1. Build an email-to-user Map from all users
+    // Fetching all users might still be heavy if there are thousands, but better than O(n^2)
+    const allUsers = await ctx.db.query("users").collect();
+    const userEmailMap = new Map<string, string>();
+
+    for (const user of allUsers) {
+      if (user.email) {
+        userEmailMap.set(user.email.toLowerCase().trim(), user._id);
+      }
+    }
+
+    console.log('[linkAllProfilesByEmail] Built user map with', userEmailMap.size, 'emails');
+
+    // 2. Get a batch of profiles without userId
+    // Using server-side filter and limit
     const unlinkedProfiles = await ctx.db
       .query("profiles")
-      .collect()
-      .then(profiles => profiles.filter(p => !p.userId));
+      .filter((q) => q.eq(q.field("userId"), undefined))
+      .take(BATCH_SIZE);
 
-    console.log('[linkAllProfilesByEmail] Found', unlinkedProfiles.length, 'unlinked profiles');
+    console.log('[linkAllProfilesByEmail] Processing batch of', unlinkedProfiles.length, 'unlinked profiles');
 
     const results = {
-      total: unlinkedProfiles.length,
+      processed: unlinkedProfiles.length,
       linked: 0,
       noMatchingUser: 0,
       errors: [] as string[],
+      hasMore: unlinkedProfiles.length === BATCH_SIZE
     };
 
-    // Get all auth users
-    const allUsers = await ctx.db.query("users").collect();
-    console.log('[linkAllProfilesByEmail] Found', allUsers.length, 'auth users');
-
+    // 3. Process the batch using the Map for O(1) lookup
     for (const profile of unlinkedProfiles) {
       try {
         const normalizedEmail = profile.email.toLowerCase().trim();
 
-        // Find matching auth user by email
-        const matchingUser = allUsers.find(u => u.email?.toLowerCase().trim() === normalizedEmail);
+        // O(1) lookup
+        const matchingUserId = userEmailMap.get(normalizedEmail);
 
-        if (!matchingUser) {
-          console.log('[linkAllProfilesByEmail] No auth user found for:', profile.email);
+        if (!matchingUserId) {
+          // console.log('[linkAllProfilesByEmail] No auth user found for:', profile.email);
           results.noMatchingUser++;
           continue;
         }
 
         // Link the profile
         await ctx.db.patch(profile._id, {
-          userId: matchingUser._id,
+          userId: matchingUserId as any, // Cast to any or Id if needed, assume string matches Id type at runtime or map needs typed Id
           updated_at: new Date().toISOString(),
         });
 
-        console.log('[linkAllProfilesByEmail] Linked profile:', profile.email, 'to user:', matchingUser._id);
+        // console.log('[linkAllProfilesByEmail] Linked profile:', profile.email, 'to user:', matchingUserId);
         results.linked++;
       } catch (error: any) {
         console.error('[linkAllProfilesByEmail] Error linking profile:', profile.email, error);

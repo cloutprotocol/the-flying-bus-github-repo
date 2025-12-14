@@ -3,7 +3,6 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
@@ -43,3 +42,7 @@ supabase/.env.local
 wallet/.env
 supabase/.env.production
 supabase/migrations/*remote_schema.sql
+
+# Data dumps and sensitive files
+*.csv
+convex_migration/json_data/

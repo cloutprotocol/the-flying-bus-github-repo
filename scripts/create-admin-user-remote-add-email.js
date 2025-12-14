@@ -15,18 +15,28 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const ADMIN_EMAIL = 'neel@conversiondesigner.co';
-const ADMIN_PASSWORD = 'Temporary123';
-const ADMIN_DISPLAY_NAME = 'Remote Admin (Add Email Branch)';
-const ADMIN_USERNAME = 'remoteadmin';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'neel@conversiondesigner.co';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_DISPLAY_NAME = process.env.ADMIN_DISPLAY_NAME || 'Remote Admin (Add Email Branch)';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'remoteadmin';
+
+if (!ADMIN_PASSWORD) {
+    console.error('❌ Error: ADMIN_PASSWORD environment variable is not set.');
+    process.exit(1);
+}
 
 async function createAdminUser() {
     console.log('🚀 Creating remote admin user for add-email preview branch...');
 
     // Use remote Supabase preview branch
-    const supabaseUrl = 'https://yrudgsfttkqcbqznixzi.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://yrudgsfttkqcbqznixzi.supabase.co';
     // Service role key for add-email preview branch
-    const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydWRnc2Z0dGtxY2Jxem5peHppIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTYyMzU2NSwiZXhwIjoyMDc1MTk5NTY1fQ.oNV6eOgL4bm6zC0S3ROk8ZGQ9oHaN7ynJ_KgM-V1668';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseServiceKey) {
+        console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is not set.');
+        process.exit(1);
+    }
 
     // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -78,7 +88,8 @@ async function createAdminUser() {
         console.log('');
         console.log('📋 Login Credentials:');
         console.log('   Email:', ADMIN_EMAIL);
-        console.log('   Password:', ADMIN_PASSWORD);
+        // Do not log the password
+        console.log('   Password: [HIDDEN]');
         console.log('   Role: admin');
         console.log('   Environment: Remote Add-Email Preview Branch');
         console.log('');
@@ -116,10 +127,18 @@ async function updateUserProfile(supabase, userId) {
 
 // Check if we can connect to the remote Supabase
 async function checkEnvironment() {
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://yrudgsfttkqcbqznixzi.supabase.co';
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseAnonKey) {
+        console.error('❌ Error: SUPABASE_ANON_KEY environment variable is not set.');
+        process.exit(1);
+    }
+
     try {
-        const response = await fetch('https://yrudgsfttkqcbqznixzi.supabase.co/rest/v1/', {
+        const response = await fetch(`${supabaseUrl}/rest/v1/`, {
             headers: {
-                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydWRnc2Z0dGtxY2Jxem5peHppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjM1NjUsImV4cCI6MjA3NTE5OTU2NX0.w8x14zKW4jKiwOuYVvUhqjsFauxvNTyJozrMZoMztsY'
+                'apikey': supabaseAnonKey
             }
         });
         if (!response.ok && response.status !== 404) {
@@ -132,7 +151,7 @@ async function checkEnvironment() {
         console.log('Please check:');
         console.log('1. Your internet connection');
         console.log('2. The preview branch is still active');
-        console.log('3. The URL is correct: https://yrudgsfttkqcbqznixzi.supabase.co');
+        console.log(`3. The URL is correct: ${supabaseUrl}`);
         console.log('');
         process.exit(1);
     }
