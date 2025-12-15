@@ -64,11 +64,29 @@ After migrating from Supabase to Convex, users cannot authenticate into the appl
 
 ## Common Issues & Solutions
 
-### Issue: "Not authenticated" error in profile queries
-**Solution**: Ensure CONVEX_AUTH_PRIVATE_KEY is set correctly in Convex deployment
+### Issue: "Not authenticated" or "No auth provider found" / "JWT missing kid" errors
+**Root cause**: Convex isn't configured to trust tokens from `@convex-dev/auth`.
+
+1) Configure server auth provider
+
+- Ensure `convex/auth.config.ts` exists and includes a `customJwt` provider with:
+  - `issuer = CONVEX_SITE_URL` (e.g. `https://<deployment>.convex.site`)
+  - `jwks = ${issuer}/.well-known/jwks.json`
+  - `applicationID = "convex"`
+
+2) Set required Convex server env vars
+
 ```bash
-npx convex env get CONVEX_AUTH_PRIVATE_KEY
+npx convex env set CONVEX_SITE_URL https://<deployment>.convex.site
+npx convex env set JWT_PRIVATE_KEY "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+# JWKS must be JSON, NOT a PEM string
+node scripts/generate_jwks_from_private_key.js > jwks.json
+npx convex env set JWKS "$(cat jwks.json)"
 ```
+
+Notes:
+- JWKS must be valid JSON with a `keys` array and each key including `kty`, `n`, `e`, `alg`, `use`, and `kid`.
+- If JWKS is set to a PEM by mistake, Convex will log: `Could not decode token. JWT may be missing a 'kid' (key ID) header`.
 
 ### Issue: Profile not loading after login
 **Solution**: Check browser console for profile linking logs. May need to run:

@@ -9,11 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DrawerAuth } from '@/components/ui/drawer-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useKanaCoinBalance } from '../../../../wallet/useWalletHook';
+import { useConvexAuth } from 'convex/react';
 
 const MobileNavAuth: React.FC = () => {
   const { isLoggedIn, currentUser, logout, isLoading } = useAuth();
+  const { isAuthenticated: convexIsAuthenticated, isLoading: convexLoading } = useConvexAuth();
+  const authed = convexIsAuthenticated || isLoggedIn;
 
-  if (isLoading) {
+  if ((isLoading || convexLoading) && !authed) {
     return (
       <div className="flex items-center justify-center py-4">
         <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
@@ -22,7 +25,7 @@ const MobileNavAuth: React.FC = () => {
     );
   }
 
-  if (isLoggedIn && currentUser) {
+  if (authed && currentUser) {
     // Kana Coin balance logic
     const walletAddress = currentUser.crypto_wallet_address;
     const { balance, isLoading, error } = useKanaCoinBalance(walletAddress);

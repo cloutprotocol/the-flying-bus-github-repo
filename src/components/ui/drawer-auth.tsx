@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DrawerSignInForm from "@/components/Auth/DrawerSignInForm";
 import DrawerSignUpForm from "@/components/Auth/DrawerSignUpForm";
 import { useAuth } from "@/hooks/useAuth";
+import { useConvexAuth } from "convex/react";
 
 interface DrawerAuthProps {
   triggerComponent: React.ReactNode;
@@ -24,14 +25,15 @@ export function DrawerAuth({ triggerComponent, defaultTab = 'sign-in' }: DrawerA
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const { isLoggedIn } = useAuth();
+  const { isAuthenticated: convexIsAuthenticated } = useConvexAuth();
 
   // Close drawer when user successfully logs in
   useEffect(() => {
-    if (isLoggedIn && isOpen) {
+    if ((isLoggedIn || convexIsAuthenticated) && isOpen) {
       console.log('User logged in, closing drawer');
       setIsOpen(false);
     }
-  }, [isLoggedIn, isOpen]);
+  }, [isLoggedIn, convexIsAuthenticated, isOpen]);
 
   // Accessibility fix: ensure no focused element remains when hiding background
   useEffect(() => {

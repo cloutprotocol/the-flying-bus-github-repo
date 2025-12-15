@@ -15,6 +15,12 @@ export const getArticleById = async (articleId: string): Promise<{ article: Arti
   try {
     logger.info(LogSource.ARTICLE, `Fetching article with ID ${articleId}`);
 
+    // Skip Mock IDs
+    if (articleId.length < 10) {
+      logger.warn(LogSource.ARTICLE, `Skipping Convex query for Mock ID: ${articleId}`);
+      return { article: null, error: new Error('Mock ID') };
+    }
+
     const data = await convexClient.query(api.articles.getById, {
       articleId: articleId as Id<"articles">,
     });

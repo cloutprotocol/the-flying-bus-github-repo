@@ -15,6 +15,13 @@ const VideoDebugComponent: React.FC<VideoDebugProps> = ({ articleId }) => {
     const fetchDebugData = async () => {
       try {
         console.log('VideoDebugComponent - Fetching data for article:', articleId);
+
+        // Skip Mock IDs
+        if (articleId.length < 10) {
+          console.log('VideoDebugComponent - Skipping Mock ID:', articleId);
+          return;
+        }
+
         const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL!);
         const data = await convex.query(api.articles.getById, { articleId: articleId as any as Id<'articles'> });
         if (!data || data.status !== 'published') {

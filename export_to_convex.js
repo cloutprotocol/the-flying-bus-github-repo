@@ -3,8 +3,8 @@
  * This script exports all tables from the public schema
  */
 
-const SUPABASE_URL = 'https://sutvexycbiiarpkugzpv.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1dHZleHljYmlpYXJwa3VnenB2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcwNTgyMCwiZXhwIjoyMDcxMjgxODIwfQ.wFRgRC_q6XvAXk-tjN5gGTmxQceW053-jrJHtT0TRcM';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const fs = require('fs');
 const path = require('path');

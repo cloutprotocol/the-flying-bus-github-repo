@@ -46,3 +46,10 @@ supabase/migrations/*remote_schema.sql
 # Data dumps and sensitive files
 *.csv
 convex_migration/json_data/
+# Ignore auth/export dumps and sensitive data files
+auth__*.csv
+*__auth__*.csv
+convex_migration/json_data/auth__*.json
+convex_export/
+_all_tables.json
+_export_summary.json

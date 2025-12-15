@@ -17,10 +17,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   // Fetch current user profile from Convex
-  const userProfile = useQuery(api.profiles.getMyProfile);
+  // Only query when authenticated to avoid caching a pre-login null result
+  const userProfile = useQuery(
+    api.profiles.getMyProfile,
+    isAuthenticated ? {} : undefined
+  );
   const ensureProfileMutation = useMutation(api.profiles.ensureProfile);
   const linkProfileMutation = useMutation(api.linkProfileToAuthUser.linkMyProfileToAuthUser);
   const currentUser: ReaderProfile | null = useMemo(() => {
+    // If userProfile is undefined (loading) or null (not found), return null
     if (!userProfile) return null;
     return {
       id: userProfile._id,
@@ -104,16 +109,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [isAuthenticated, authLoading, userProfile, ensureAttempted, ensureProfileMutation, linkProfileMutation]);
 
+  // Helper to wait for auth state to propagate
+  const waitForAuth = async (expectAuthenticated: boolean, timeoutMs = 5000): Promise<boolean> => {
+    const startTime = Date.now();
+
+    // We can't use the hook value directly in a loop because it won't update within this closure
+    // So we just rely on a small delay loop and trust the reactivity system will update the component
+    // BUT checking the ref/value in a loop here is tricky in React. 
+    // The `signIn` action sets the token in the Convey client.
+    // The client then notifies listeners. 
+    // The best we can do in a function is wait a bit or use a flag.
+
+    return new Promise((resolve) => {
+      const check = () => {
+        // We can check local storage as a proxy for "token received"
+        // STRICT CHECK: Must look for the actual JWT key, not just any convex key (which includes wake/refresh)
+        // The key format is usually `__convexAuthJWT_${host}`
+        const hasToken = typeof window !== 'undefined' &&
+          Object.keys(localStorage).some(k => k.startsWith('__convexAuthJWT_'));
+
+        if (expectAuthenticated === !!hasToken) {
+          resolve(true);
+          return;
+        }
+
+        if (Date.now() - startTime > timeoutMs) {
+          resolve(false);
+          return;
+        }
+
+        setTimeout(check, 50);
+      };
+      check();
+    });
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       logger.info(LogSource.AUTH, 'Attempting login via Convex Auth', { email });
 
       await signIn("password", { email, password, flow: "signIn" });
-      logger.info(LogSource.AUTH, 'SignIn succeeded, waiting for auth state to propagate');
+      logger.info(LogSource.AUTH, 'SignIn succeeded, waiting for token storage');
 
-      // Wait for auth state to propagate (Convex Auth stores token and updates state asynchronously)
-      // This ensures isAuthenticated becomes true before we return
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for token to appear in storage (robust proxy for auth success)
+      const tokenReceived = await waitForAuth(true);
+
+      if (!tokenReceived) {
+        throw new Error("Login succeeded on server but client received no session token. Please try again.");
+      }
 
       toast({
         title: "Welcome back!",
@@ -126,8 +169,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logger.error(LogSource.AUTH, 'Login failed', error);
 
       let errorMessage = error.message;
-      if (errorMessage?.includes('InvalidSecret') || errorMessage?.includes('Server Error') || errorMessage?.includes('Uncaught Error')) {
-        errorMessage = "Invalid email or password.";
+      if (errorMessage?.includes('InvalidSecret')) {
+        errorMessage = "Incorrect password. Please try again or reset your password.";
+      } else if (errorMessage?.includes('Server Error') || errorMessage?.includes('Uncaught Error')) {
+        console.error("Login Error Detail:", errorMessage);
+        errorMessage = "An unexpected error occurred. Please try again.";
       }
 
       toast({
@@ -148,7 +194,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logger.info(LogSource.AUTH, 'SignUp succeeded, waiting for auth state to propagate');
 
       // Wait for auth state to propagate
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const tokenReceived = await waitForAuth(true);
+
+      if (!tokenReceived) {
+        throw new Error("Registration succeeded but client received no session token.");
+      }
 
       toast({
         title: "Welcome!",
@@ -236,10 +286,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshUserProfile: async () => true, // Reactive updates handle this
 
-    // Loading until Convex auth ready; when authed, also wait until profile query resolves (undefined -> loading)
-    isLoading: authLoading || (loggedIn && userProfile === undefined),
-    // Initialized when Convex auth loaded; if authed, profile query has resolved
-    isInitialized: !authLoading && (!loggedIn || userProfile !== undefined),
+    // Loading: Convex auth is loading OR we are authenticated but profile query hasn't returned yet
+    isLoading: authLoading || (isAuthenticated && userProfile === undefined),
+
+    // Initialized: Auth is done loading AND if we are logged in, we have a profile result (null or object)
+    isInitialized: !authLoading && (!isAuthenticated || userProfile !== undefined),
 
     // Role checks
     checkRoleAccess,
@@ -252,7 +303,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncAuthState: async () => { },
 
     // Profile loading status
-    profileLoadingStatus: userProfile ? 'loaded' : 'loading'
+    profileLoadingStatus: userProfile === undefined ? 'loading' : 'loaded'
   }), [currentUser, isAuthenticated, authLoading, userProfile]);
 
   return (

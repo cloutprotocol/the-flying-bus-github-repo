@@ -15,7 +15,7 @@ export const getArticleViews = async (articleId: string) => {
       if (!articleId || articleId.trim() === '') {
         throw new Error('Invalid article ID');
       }
-      
+
       // View counts are not yet migrated to Convex; return 0 as a safe default
       return { count: 0 };
     },
@@ -36,6 +36,12 @@ export const checkArticlePublished = async (articleId: string): Promise<boolean>
       logger.warn(LogSource.ARTICLE, 'Invalid article ID when checking publication status');
       return false;
     }
+
+    // SKIP MOCK IDs: Convex IDs are long strings. "1", "2" etc are mocks.
+    if (articleId.length < 10) {
+      logger.debug(LogSource.ARTICLE, 'Skipping publication check for Mock ID', { articleId });
+      return false;
+    }
     const convexUrl = import.meta.env.VITE_CONVEX_URL!;
     const convexClient = new ConvexHttpClient(convexUrl);
     const data = await convexClient.query(api.articles.getById, {
@@ -43,11 +49,11 @@ export const checkArticlePublished = async (articleId: string): Promise<boolean>
     });
 
     const isPublished = data?.status === 'published';
-    logger.debug(LogSource.ARTICLE, `Article publication check: ${isPublished ? 'published' : 'not published'}`, { 
-      articleId, 
-      status: data?.status 
+    logger.debug(LogSource.ARTICLE, `Article publication check: ${isPublished ? 'published' : 'not published'}`, {
+      articleId,
+      status: data?.status
     });
-    
+
     return isPublished;
   } catch (e) {
     logger.error(LogSource.ARTICLE, 'Error checking article status', e);

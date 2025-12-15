@@ -21,52 +21,42 @@ export const getById = query({
 });
 
 // Get current user's profile
+// Get current user's profile
 export const getMyProfile = query({
   args: {},
   handler: async (ctx) => {
-    // Try multiple ways to get the userId for debugging
     const userId = await auth.getUserId(ctx);
-    console.log('[getMyProfile] auth.getUserId():', userId);
-
-    // Also check if there's a session at all
-    const session = await ctx.auth.getUserIdentity();
-    console.log('[getMyProfile] ctx.auth.getUserIdentity():', session ? 'EXISTS' : 'NULL');
-    if (session) {
-      console.log('[getMyProfile] session.subject:', session.subject);
-      console.log('[getMyProfile] session.tokenIdentifier:', session.tokenIdentifier);
-    }
-
     if (!userId) {
-      console.log('[getMyProfile] No userId from auth.getUserId(), returning null');
       return null;
     }
 
-    // Find profile linked to this Auth userId
+    // 1. Try to find profile linked to this Auth userId
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .first();
 
-    console.log('[getMyProfile] Found profile by userId:', profile ? 'YES' : 'NO');
+    if (profile) {
+      return profile;
+    }
 
-    // If profile is null, let's also check if any profiles exist without userId
-    if (!profile) {
-      const allProfiles = await ctx.db.query("profiles").collect();
-      console.log('[getMyProfile] Total profiles in DB:', allProfiles.length);
-      console.log('[getMyProfile] Profiles with userId:', allProfiles.filter(p => p.userId).length);
+    // 2. If not found, try to find by email (legacy/migrated users)
+    const session = await ctx.auth.getUserIdentity();
+    if (session && session.email) {
+      const userEmail = session.email;
+      const profileByEmail = await ctx.db
+        .query("profiles")
+        .withIndex("by_email", (q) => q.eq("email", userEmail))
+        .first();
 
-      // Try to find by email from the auth user
-      if (session?.email) {
-        const userEmail = session.email;
-        const profileByEmail = await ctx.db
-          .query("profiles")
-          .withIndex("by_email", (q) => q.eq("email", userEmail))
-          .first();
-        console.log('[getMyProfile] Found profile by email:', profileByEmail ? 'YES' : 'NO');
+      // Note: We cannot write (link) in a query, so we return the unlinked profile
+      // The client-side "ensureProfile" or "linkMyProfileToAuthUser" must handle the linking
+      if (profileByEmail) {
+        return profileByEmail;
       }
     }
 
-    return profile;
+    return null;
   },
 });
 

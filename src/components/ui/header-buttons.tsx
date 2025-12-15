@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import UserMenu from "@/components/Auth/UserMenu"
 import { DrawerAuth } from "@/components/ui/drawer-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useConvexAuth } from "convex/react"
 
 interface HeaderButtonsProps {
   className?: string
@@ -77,15 +78,17 @@ UnauthenticatedButtons.displayName = 'UnauthenticatedButtons';
 
 export const HeaderButtons: React.FC<HeaderButtonsProps> = React.memo(({ className }) => {
   const { isLoggedIn, isLoading, currentUser, isInitialized } = useAuth();
+  const { isAuthenticated: convexIsAuthenticated, isLoading: convexLoading } = useConvexAuth();
 
-  console.log('[HeaderButtons] Render:', { isLoggedIn, isLoading, isInitialized, user: currentUser?.display_name });
+  // Prefer Convex auth as the source of truth to avoid stale UI during migrations
+  const authed = convexIsAuthenticated || isLoggedIn;
+  const loading = (isLoading || convexLoading) && !authed && !isInitialized;
 
-  // Only show loading during initial auth check, not during data loading
-  if (isLoading && !isInitialized) {
+  if (loading) {
     return <LoadingButtons className={className} />;
   }
 
-  if (isLoggedIn) {
+  if (authed) {
     return <AuthenticatedButtons className={className} displayName={currentUser?.display_name} />;
   }
 

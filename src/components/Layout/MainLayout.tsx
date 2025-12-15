@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, memo } from 'react';
 import ModernHeader from './ModernHeader';
 import Footer from './Footer';
-import AuthDebugPanel from '@/components/Debug/AuthDebugPanel';
+// import { AuthDebugPanel } from '@/components/Debug/AuthDebugPanel';
 import { useLocation } from 'react-router-dom';
 import { logger } from '@/utils/logger/logger';
 import { LogSource } from '@/utils/logger/types';
@@ -18,7 +18,7 @@ const MainLayout: React.FC<MainLayoutProps> = memo(({ children, fullWidth = fals
   const { isTransitioning } = useNavigation();
   const mainRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(false);
-  
+
   useEffect(() => {
     if (!mountedRef.current) {
       logger.info(LogSource.APP, 'MainLayout mounted', {
@@ -27,11 +27,11 @@ const MainLayout: React.FC<MainLayoutProps> = memo(({ children, fullWidth = fals
       });
       mountedRef.current = true;
     }
-    
+
     // Set header height for consistent spacing
     const headerHeight = document.querySelector('header')?.offsetHeight || 80;
     document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
-    
+
     return () => {
       logger.info(LogSource.APP, 'MainLayout unmounted', {
         pathname: location.pathname,
@@ -44,7 +44,7 @@ const MainLayout: React.FC<MainLayoutProps> = memo(({ children, fullWidth = fals
   // Scroll to top on location change
   useEffect(() => {
     window.scrollTo(0, 0);
-    
+
     if (mainRef.current) {
       mainRef.current.focus();
     }
@@ -52,13 +52,11 @@ const MainLayout: React.FC<MainLayoutProps> = memo(({ children, fullWidth = fals
 
   return (
     <div className="flex flex-col min-h-screen bg-flyingbus-background">
-      <AuthDebugPanel />
       <ModernHeader />
-      <main 
+      <main
         ref={mainRef}
-        className={`flex-grow w-full transition-opacity duration-300 ${
-          isTransitioning ? 'opacity-95' : 'opacity-100'
-        }`}
+        className={`flex-grow w-full transition-opacity duration-300 ${isTransitioning ? 'opacity-95' : 'opacity-100'
+          }`}
         tabIndex={-1} // Make it focusable for accessibility
       >
         {fullWidth ? (

@@ -18,6 +18,7 @@ import type * as createAuthUserForProfile from "../createAuthUserForProfile.js";
 import type * as createTestInvitation from "../createTestInvitation.js";
 import type * as dashboard from "../dashboard.js";
 import type * as debateArticles from "../debateArticles.js";
+import type * as debug_validateKeys from "../debug/validateKeys.js";
 import type * as http from "../http.js";
 import type * as importData from "../importData.js";
 import type * as invitations from "../invitations.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   createTestInvitation: typeof createTestInvitation;
   dashboard: typeof dashboard;
   debateArticles: typeof debateArticles;
+  "debug/validateKeys": typeof debug_validateKeys;
   http: typeof http;
   importData: typeof importData;
   invitations: typeof invitations;
