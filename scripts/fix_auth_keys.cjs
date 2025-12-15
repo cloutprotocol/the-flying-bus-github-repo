@@ -5,71 +5,32 @@ const { execSync } = require('child_process');
 
 const envPath = path.join(process.cwd(), '.env.local');
 
-// The key provided by the user (multiline)
-const KEY_1 = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCgJy6Pl9e2sxFC
-7sIzuNw3DRamHHP8RrkAA7+IksgyN1SPSq27qaPnossgvsBk+C3zCNtYIZ6w68pV
-OnbpiZyG4mSelMn1E72BJSZRdxLXv9emqIA1CPmP67ekaG9ktX4XBQtdBtbhIVud
-adGvtl1Hp+BHNrHo5RVB+e7CbzIiPMwG39GhhSLArEXonjgqLgPhiV1XHK8hQkHa
-fB4fUu3lqiAXKY5wQZiGTZ0xTSzWvEzHnY/WYcdtkwfEPefkBqCV1ROSOcRPJfxy
-p38NXtkjrHrsP08EzwmzWFXcBqPwLtGL47nw/rnUmiHaAzlHQ3KQ/FDxdp4I0xzO
-7Xb8YHnNAgMBAAECggEAHg3MSIkTo4buDdP1YLRnqvMLVYfQYj65V93cMxpsdDP6
-69r1SFq41e6wVMhHHYuPP+ThGKRSfdv5v821Y/T9iThx7mp4jcOzE8mva6k/QXqQ
-Uwea65jwEEiJUVKB2PHQJCy/qajvaRcT9LHXdjRwQ9KmnWaPs2dN+nAXFKi+TTs0
-WW2uhzyBAT4hsrqCNNPGmCmcGyLs2kn0mEx8BhNmN5bg0qJWUn7h+mKD7dE8VBPI
-QPJg3dkWZTn044E1ZcH0p1FB13KOc2c28biIppG6+bSplZfFxyRHwsgtGo/rFm38
-wL7ymdxcz2aLQeywY3mDqL7RWNhRLfy0N245e5xYBwKBgQDYlMDeIveGyXP6f7I3
-I/isAS4cZYK7DfFfWR3az9qBR78XQWajfKzhs406xzYOxqIQAzblyQv5pgHHd187
-mUl7iGlig5KzrciCDEboogGhkWmEOn7l21qXCH7V29/iC6v18plTmPneLcHsQ20j
-PWAaIYlIKx+UPxASj16W/pwowwKBgQC9TUGEKgKZFoi3d10TTcB0h8A2woQWQAgg
-X8/YvnXjm/L052OKttuSIVnkfocaH0uoMQOIu2qil1dBtMTCe2XzRDAv5HuACTXh
-NZC3Pk0K3wwZJi+0LCuLIn+pmHKofYumCRjfU+ieQDTF1IjR7+mLstm/JZP+/SsV
-Ec6H3JcqLwKBgQC5OdcM49jP9KB03xsan3AAIu49qO86bL0+r2eiCFu2bxbVm8Bd
-F7Z/POEPIOpxjp1xll4v/VZ5hulEnynaPcmjldGTSDWB56Fw33ERaeR9OnCEfsai
-bIw4WTKoUehSWWsS6A0LeuxPgNC18CB5n/b9wiq3hvH2Bk0HoofiGRSSowKBgCgE
-Uts7fj0adGBETVqtTwfTQqDQ0ddaRd2CI4/wAz/QUbXPzE0ghp4HitcwoCK3hujR
-I6wd4lbooztymT17lHuuaHlXVXwldkxbZHI4K1Um/Ym7ds4hoDrTWiVh4qsXjxPU
-THu5Yy1A6WcAnMO0caxkbH9p1DVNE3RqxTwXN6VlAoGAdBvw9UJsQCXxu0hY+7uU
-dlU/VUnRMbe+gXJafAmbXtcZ2qQX0hujgXYHZrHn+vHkE4iV0u1IARZ71jmHghFa
-0dpoORBdDaMsUXVB/AF4aNjge2+eogD+JbmQPqvTc5khxC+ZKgG3MC4jP06iY9iD
-ktkZUbHKUfn9ecTs62K2itQ
------END PRIVATE KEY-----`.trim();
+// Read keys from environment variables
+const KEY_1 = process.env.CONVEX_AUTH_PRIVATE_KEY;
+const KEY_2 = process.env.JWT_PRIVATE_KEY || process.env.JWKS_PRIVATE_KEY;
 
-const KEY_2 = `-----BEGIN PRIVATE KEY-----
-MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC20GZNl6uaiDj1
-sW06xcqQdjgYwOVuUTSJBikxQyCeG2A6xJAncUkSJg/z4kpW2PULaM87vFMe7kz3
-3KLyPZV90dgOuHOPeVLTgbrdYHBu+eUxsKirOEiLSVieQiBZwmJw/msh+YyOFQlW
-4a5DQBtturXdW6L/5aGXG5Xm7c1cG5UOWFEPTZb38/vXTg0JdmKS36kJN6zhLQcN
-GLGZetZoqqngOKSArxXuKqoNPMojoqb7r5uNDm3LQdy8IMK6O7iTtzZ/S0dWOiYC
-9W8OC4qlMH+FxIwcsiE2Eooxzio28oTr1DftOxyMv6ICF+slxDB1pNaLIxVwfw4O
-bjV1Qpx7AgMBAAECggEABSIxrT4ewIEmGv13fsNXyS9jVeFHeriRtsNTMXdGxDR/
-7ZvgHGtu94aAGNjNk5trY32hoXYhXhNSWqd5ypRLeAlbfYD/0GiXbdRicJ2o/+9z
-2IMIdCkUHcKFLYnX1LgZAZPzYt8va5H6/X3q4dKRXUcf8kOvfmtur9/uGVpWKPRF
-GA2KoSgrEjDBKAgCYXp6Piia5oLzrHdPMFYFzM72TrGrhWm9WH2/px7ik8m3LMUf
-whww1JfaWBqoOXorEpqAH0MGFKFFdvrcxs8mNUjuTS0ynBl3MTF8aRhHSv2vv4Or
-hN1OWjGNjOLgCGeExGaVUuBetr/2bp8fy42zjQlAOQKBgQDzigYxGpChzwIUozKp
-cupu5Cx5WcoLUZDRRNOIzxkDrsc48mDaRtqPwhRtqPQogbyS0tGiA2dOhOLGXCUR
-nBHxWQX2gMqluErQEErFi0aE1ikWjWzRK4PZ7qLWWgJzKXMZuHbuaFfpsY7uYhrk
-m4Ew+PNUff3YXJ+S/zE50pmtlwKBgQDAKvkkQ4vSYU6Lm/7cirIyv2nqfMSjiwWn
-S45bK46ZUtCKDJhkOspxL31a2tp3F2atd6d0KnTGWKPx9QDDI/jl0bGqgRLFeJvz
-7KYpeT6ogCIaAnylMkfKMGNcZqjh3oPF0qoLCadHqTE5FKrWPESFJk4msFxkRTls
-f5DxDbSsvQKBgDMj7rzs+SYhVCyFQKQ4j2YN4BDze+v4itKHA2ydIIGXeBpLO29a
-pZa+iI+mhO7kn3atcnv0/wKMARrqSpZyEYp+yTPEQ8mc84jRgwIMhxhp6GLl+83I
-t31SETu11wHb2GG0TLUvkBZwxLTmQQN0bCKehGpfsqh2esPhdrLPuJmtAoGARjtu
-cuJ855bIrh2FN/U4y3NJsnmHJH5awpnKnWd95mtt7AZOa9NQya0hk2MJFR1oWV2x
-xbL+mr8qq/NvI+KxxMyusjIaOjGqTavfzqiRTeQGkpr2EyodMrgcmFiswGAiqNol
-a4NLr9UWOFZlWYcNQ9yME3fBTKRAKHc28eKgdcECgYAQkK5NYMDM7fwCfmgX7QaH
-RpTfhYPJZ8Qk8aUp7ykO3TJUnmYoEbmc9Oa/8pL5wA8HR6x9fxomi7aHcQOsjBeK
-p+1QJ0RpcHs3Szv4+y5vRGBkYq4+sGZqTaQkrYu+tJip8cSu5RT1ZMxEn1CaTT7j
-W4FSQM6cj0NRvc6UcTgigA==
------END PRIVATE KEY-----`.trim();
+if (!KEY_1) {
+    console.error('❌ Error: CONVEX_AUTH_PRIVATE_KEY environment variable must be set');
+    console.error('');
+    console.error('Usage:');
+    console.error('  export CONVEX_AUTH_PRIVATE_KEY="$(cat path/to/private-key-1.pem)"');
+    console.error('  export JWT_PRIVATE_KEY="$(cat path/to/private-key-2.pem)"');
+    console.error('  node scripts/fix_auth_keys.cjs');
+    console.error('');
+    console.error('Or generate new keys:');
+    console.error('  openssl genrsa -out private-key-1.pem 2048');
+    console.error('  openssl genrsa -out private-key-2.pem 2048');
+    console.error('  export CONVEX_AUTH_PRIVATE_KEY="$(cat private-key-1.pem)"');
+    console.error('  export JWT_PRIVATE_KEY="$(cat private-key-2.pem)"');
+    process.exit(1);
+}
+
+if (!KEY_2) {
+    console.error('❌ Error: JWT_PRIVATE_KEY or JWKS_PRIVATE_KEY environment variable must be set');
+    process.exit(1);
+}
 
 // 1. UPDATE .ENV.LOCAL
-// Standard dotenv often prefers newlines to be literally \n or use quoted multiline.
-// We'll use quoted actual multiline which works with many modern parsers,
-// OR single line with \n literal.
-// Based on the error, the previous attempt might have double escaped.
-// Let's try explicit Quoted Actual Newlines for local file.
 let envContent = '';
 try {
     envContent = fs.readFileSync(envPath, 'utf8');
@@ -83,9 +44,6 @@ const lines = envContent.split('\n').filter(line =>
     !line.startsWith('JWKS=')
 );
 
-// For .env.local, we can escape newlines as literal \n, because the Convex Auth library
-// typically processes these.
-// 'key'.replace(/\n/g, '\\n') produces literal \n chars.
 const keyForLocalEnv = `"${KEY_1.replace(/\n/g, '\\n')}"`;
 const key2ForLocalEnv = `"${KEY_2.replace(/\n/g, '\\n')}"`;
 
@@ -95,32 +53,19 @@ lines.push(`JWT_PRIVATE_KEY=${key2ForLocalEnv}`);
 fs.writeFileSync(envPath, lines.join('\n') + '\n');
 console.log('✅ Updated .env.local (keys using literal \\n)');
 
-
 // 2. UPDATE REMOTE ENV
-// IMPORTANT: The error "Invalid byte 92" means the server saw literal backslashes (\)
-// where it expected valid base64 chars.
-// This means we should NOT send literal \n characters to the remote env setter if the shell/tool doesn't expand them.
-// We should try to send ACTUAL newlines.
-// Note: formatting a multiline string for execSync in a shell is tricky.
 console.log('Attempting to set Convex env vars...');
 
 try {
-    // Use a different quoting strategy. We'll pass the exact string with newlines.
-    // In bash, "string
-    // string" works safely.
-
     const setEnv = (name, value) => {
-        // Escape double quotes inside the key (unlikely in PEM but safely handled)
         const safeValue = value.replace(/"/g, '\\"');
-        // Wrap in double quotes, preserve newlines
         const command = `npx convex env set ${name}="${safeValue}"`;
 
         console.log(`Setting ${name}...`);
-        // execSync with a large buffer, encoding utf8
         execSync(command, {
             stdio: 'inherit',
             encoding: 'utf8',
-            shell: '/bin/bash' // Force bash to handle multiline quotes correctly
+            shell: '/bin/bash'
         });
     };
 
